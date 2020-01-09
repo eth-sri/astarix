@@ -66,8 +66,8 @@ int AStar::precompute_A_star_prefix() {
 	LOG_INFO << "Hash table size: " << size_t(classes)*kMaxStrHash << " = " << classes << " * " << kMaxStrHash;
 
 	LOG_INFO << "Bucket count before resizing: " << _star.bucket_count();
-	_star.resize(150 * 1000 * 1000);
-	LOG_INFO << "Bucket count after initial resizing: " << _star.bucket_count();
+	//_star.resize(150 * 1000 * 1000);
+	//LOG_INFO << "Bucket count after initial resizing: " << _star.bucket_count();
 	assert(_class2repr.size() == (size_t)classes);
 	LOG_INFO << "Prefix+Vertex hash table size = " << _star.size();
 

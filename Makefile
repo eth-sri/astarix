@@ -1,5 +1,5 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -g -Iext/plog/include/ -Iext/GraphAligner/ -Wno-unused-parameter
+CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -g -Iext/plog/include/ -Iext/GraphAligner/ -Iext/ -Wno-unused-parameter
 
 SRCDIR=src
 EXTDIR=ext
