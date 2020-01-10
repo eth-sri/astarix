@@ -105,10 +105,11 @@ cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std
 		++_cache_misses;
 		cost_t res=0.0;
 		res = max_prefix_cost;
-		clock_t start_astar = clock();
-		astar_time.start();
+		Timer curr_time;
+		curr_time.start();
 			compute_astar_cost_from_vertex_and_prefix(res, repr, prefix, boundary_node);
-		astar_time.stop();
+		curr_time.stop();
+		astar_time += curr_time;
 		_star[h] = res;
 		return res;
 	}

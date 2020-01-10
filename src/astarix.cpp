@@ -222,8 +222,6 @@ int main(int argc, char **argv) {
 					&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
 		}
 	} else {
-		assert(false);
-
 		std::vector<thread> threads(args.threads);
 		int bucket_sz = R.size() / args.threads;
 		for (int t = 0; t < args.threads; ++t) {
