@@ -4,12 +4,13 @@ CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -g -Iext/plog/include/ -Iext/GraphAligner/
 SRCDIR=src
 EXTDIR=ext
 DATADIR=data
+TESTSDIR=tests
 
 ODIR=obj
 BINDIR=bin
 TMPDIR=tmp
 
-ASTARIX_BIN=$(BINDIR)/astarix
+ASTARIXBIN=$(BINDIR)/astarix
 LIBS=-lm -lz 
 
 _DEPS = $(SRCDIR)/argparse.h $(SRCDIR)/astar.h $(SRCDIR)/gfa2graph.h $(SRCDIR)/graph.h $(SRCDIR)/io.h $(SRCDIR)/align.h $(SRCDIR)/utils.h $(SRCDIR)/trie.h $(EXTDIR)/GraphAligner/GfaGraph.h
@@ -24,18 +25,19 @@ $(shell mkdir -p bin)
 $(shell mkdir -p obj/src)
 $(shell mkdir -p obj/ext/GraphAligner)
 
-$(ASTARIX_BIN): $(SRCDIR)/astarix.cpp $(OBJ)
+$(ASTARIXBIN): $(SRCDIR)/astarix.cpp $(OBJ)
 	$(GPP) $< -o $@ $(OBJ) $(LINKFLAGS)
 
 $(ODIR)/%.o: %.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
-test: $(ASTARIX_BIN)
+test: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIX_BIN) align-optimal -t 1 -v 2 -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/astar-default
-	#$(ASTARIX_BIN) align-optimal -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/astar-default
-	#$(ASTARIX_BIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/dijkstra-default
-	#$(ASTARIX_BIN) align-optimal -a astar-prefix -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -D 5 -f 0 -d 10 -c 3 -M 0 -e 0 -S 1 -G 1 -o $(TMPDIR)/astar-custom
+	$(ASTARIXBIN) align-optimal -t 1 -v 2 -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-default
+	#$(ASTARIXBIN) align-optimal -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-default
+	$(ASTARIXBIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/dijkstra-default
+	#$(ASTARIXBIN) align-optimal -a astar-prefix -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -D 5 -f 0 -d 10 -c 3 -M 0 -e 0 -S 1 -G 1 -o $(TMPDIR)/ecoli_head10000_linear/astar-custom
+	$(TESTSDIR)/compare_profilings.py $(TMPDIR)/ecoli_head10000_linear/astar-default/alignments.tsv $(TMPDIR)/ecoli_head10000_linear/dijkstra-default/alignments.tsv
                     
 .PHONY: all clean
 
