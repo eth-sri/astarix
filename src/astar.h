@@ -3,10 +3,7 @@
 
 #include <string>
 #include <vector>
-//#include <sparsehash/sparse_hash_map>
 #include "parallel_hashmap/phmap.h"
-
-using phmap::flat_hash_map;
 
 #include "utils.h"
 #include "io.h"
@@ -100,7 +97,8 @@ class AStar {
 
 	// Main data struct to be computed
 	//google::sparse_hash_map<unsigned, cost_t> _star;
-	flat_hash_map<unsigned, cost_t> _star;
+	//phmap::flat_hash_map<unsigned, cost_t> _star;
+	phmap::parallel_flat_hash_map<unsigned, cost_t> _star;
 
 	// Auxiliary structs
 	std::vector<unsigned> _prev_group_sum;  		// string length -> number of strings with strictly lower length

@@ -4,6 +4,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <map>
+#include <thread>
 
 #include "argparse.h"
 #include "graph.h"
@@ -180,8 +181,6 @@ int main(int argc, char **argv) {
 
 	add_tree(&G, args.tree_depth);
 	
-	priority_queue<int, vector<int>, greater<int>> Q;
-
 	Aligner Aligner(G, args.costs, args.greedy_match, args.AStarCostCap, args.AStarLengthCap,
 				  args.AStarNodeEqivClasses, true, args.tree_depth);
 	string algo = string(args.algorithm);
@@ -208,10 +207,30 @@ int main(int argc, char **argv) {
 	T.align.start();
 
 	cout << "Aligning..." << endl << flush;
-	for (size_t i=0; i<R.size(); i++) {
-		bool calc_mapping_cost = false;
-		state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &Aligner, calc_mapping_cost,
-				&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
+	bool calc_mapping_cost = false;
+	if (args.threads == 1) {
+		for (size_t i=0; i<R.size(); i++) {
+			state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &Aligner, calc_mapping_cost,
+					&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
+		}
+	} else {
+		assert(false);
+
+		std::vector<thread> threads(args.threads);
+		int bucket_sz = R.size() / args.threads;
+		for (int t = 0; t < args.threads; ++t) {
+			threads[t] = thread([&]() {
+				int from = t*bucket_sz;
+				int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
+				for (size_t i=from; i<to; i++) {
+					state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &Aligner, calc_mapping_cost,
+							&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
+				}
+			});
+		}
+		for (int t = 0; t != args.threads; ++t) {
+			threads[t].join();
+		}
 	}
 	T.align.stop();
 
@@ -230,6 +249,7 @@ int main(int argc, char **argv) {
 	out << "              Queries/reads: " << R.size() << " read in " << T.read_queries.get_sec() << "s"<< endl;
 	out << "Graph nodes, edges, density: " << G.nodes() << ", " << G.edges()
 													<< ", " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
+	out << "                    Threads: " << args.threads											<< endl;
 	out << "           Reading run time: " << T.read_graph.get_sec() << "s" 	<< endl;  // There are the independent forward and reverse graph
 	//out << "                  Read cost: " << "avg=" << total_read_cost / R.size()
 //											<< ", max=" << max_read_cost							<< endl;

@@ -26,6 +26,7 @@ static struct argp_option options[] = {
     { "match",			'M', "MATCH_COST",   0,  "Match penalty" },
     { "subst",	'S', "SUBST_COST",   0,  "Substitution penalty" },
     { "gap",			'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
+    { "threads",		't', "THREADS",      0,  "Number of threads (default=1)" },
     { 0 }
 };
 
@@ -45,6 +46,8 @@ struct arguments {
 	int AStarLengthCap;
 	double AStarCostCap;
 	bool AStarNodeEqivClasses;
+
+	int threads;
 };
 
 /* Parse a single option. */
@@ -94,6 +97,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
         case 'G':
             arguments->costs.ins = std::stod(arg);
             arguments->costs.del = std::stod(arg);
+            break;
+        case 't':
+            arguments->threads = std::stod(arg);
             break;
         case ARGP_KEY_ARG:
             // Too many arguments.

@@ -32,9 +32,10 @@ $(ODIR)/%.o: %.cpp $(DEPS)
 
 test: $(ASTARIX_BIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIX_BIN) align-optimal -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/astar-default
-	$(ASTARIX_BIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/dijkstra-default
-	$(ASTARIX_BIN) align-optimal -a astar-prefix -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -D 5 -f 0 -d 10 -c 3 -M 0 -e 0 -S 1 -G 1 -o $(TMPDIR)/astar-custom
+	$(ASTARIX_BIN) align-optimal -t 1 -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/astar-default
+	#$(ASTARIX_BIN) align-optimal -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/astar-default
+	#$(ASTARIX_BIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/dijkstra-default
+	#$(ASTARIX_BIN) align-optimal -a astar-prefix -g $(DATADIR)/ecoli_head10000_linear.gfa -q $(DATADIR)/illumina.fq -D 5 -f 0 -d 10 -c 3 -M 0 -e 0 -S 1 -G 1 -o $(TMPDIR)/astar-custom
                     
 .PHONY: all clean
 

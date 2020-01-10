@@ -31,6 +31,8 @@ arguments read_args(int argc, char **argv) {
 	// Sound optimizations turned ON by default.
 	args.greedy_match          = true;
 	args.AStarNodeEqivClasses  = true;
+
+	args.threads               = 1;
 	
 	// Unsound optimizations turned OFF by default.
 	// None.
@@ -51,6 +53,8 @@ arguments read_args(int argc, char **argv) {
 	assert(args.costs.match <= args.costs.subst && "Match should be cheaper than other operations.");
 	assert(args.costs.match <= args.costs.ins   && "Match should be cheaper than other operations.");
 	assert(args.costs.match <= args.costs.del   && "Match should be cheaper than other operations.");
+
+	assert(args.threads >= 1   && "There should be a positive number of threads.");
 
 	return args;
 }
