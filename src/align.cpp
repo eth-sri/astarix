@@ -13,7 +13,6 @@ state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
 	// Clean up
 	read_timers.clear();
 	read_timers.total.start();
-	astar.reset_astar_time();
 	read_counters.clear();
 	_repeated_visits = 0;
 	best_path->clear();
@@ -70,7 +69,7 @@ state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
 		}
 
 		// lazy DP / Fast-Forward
-		if (greedy_match)
+		if (params.greedy_match)
 			curr = proceed_identity(p, pe, curr, r);
 
 		for (auto it=G.begin_all_matching_edges(curr.v, r.s[curr.i]); it!=G.end_all_matching_edges(); ++it) {
@@ -84,7 +83,7 @@ state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
 }
 
 void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edge_t &pe, const std::string &algo, queue_t &Q, const edge_t &e) {
-	cost_t edge_cost = costs.edge2score(e);
+	cost_t edge_cost = params.costs.edge2score(e);
 
 	if (e.label != EPS && e.label != r.s[curr.i])
 		return;
@@ -104,8 +103,8 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
 			push(Q, g, next);
 		} else if (algo == "astar-prefix") {
 			read_timers.astar.start();
-			std::string suff = r.s.substr(i_next, astar.get_max_prefix_len());
-			cost_t h = astar.h(e.to, suff);
+			std::string suff = r.s.substr(i_next, astar->get_max_prefix_len());
+			cost_t h = astar->h(e.to, suff);
 			cost_t f = g + h;
 			read_timers.astar.stop();
 			push(Q, f, next);
@@ -122,7 +121,7 @@ state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, cons
 	edge_t e; 
 	while (G.numOutOrigEdges(curr.v, &e) == 1 && curr.i < r.len-1 && e.label == r.s[curr.i]) {
 		read_counters.greedy_matched.inc();
-		state_t next = state_t(curr.cost + costs.edge2score(e), curr.i+1, e.to, curr.i, curr.v); 
+		state_t next = state_t(curr.cost + params.costs.edge2score(e), curr.i+1, e.to, curr.i, curr.v); 
 		if (get_path(p, next.i, next.v).optimize(next)) {
 			set_prev_edge(pe, next.i, next.v, e);
 		} else {

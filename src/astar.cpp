@@ -26,6 +26,7 @@ bool AStar::is_linear(int u, int rem_len, std::string *pref, int *boundary_node)
 }
 
 int AStar::precompute_A_star_prefix() {
+	LOG_INFO << "A* precomputation...";
 	assert(_star.empty());
 
 	LOG_INFO << "Using A* prefix len " << max_prefix_len << " and A* max cost " << max_prefix_cost;
@@ -97,6 +98,7 @@ void AStar::compute_astar_cost_from_vertex_and_prefix(cost_t &res, int u, const 
 }
 
 cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std::string &prefix) {
+	LOG_DEBUG << "Lazy A* query for h=" << h << ", repr=" << repr << ", boundary_node=" << boundary_node << ", prefix=" << prefix;
 	auto it = _star.find(h);
 	++_cache_trees;
 	if (it == _star.end()) {
@@ -115,8 +117,11 @@ cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std
 }
 
 cost_t AStar::astar_from_pos(int v, const std::string &prefix) {
+	LOG_DEBUG << "v=" << v << ", prefix=" << prefix;
+	assert(v < _vertex2class.size());
 	int cl = _vertex2class[v];
 	auto h = hash(prefix, cl);
+	assert(cl < _class2repr.size());
 	int repr = _class2repr[cl];
 	assert(cl < _class2boundary.size());
 	int boundary_node = _class2boundary[cl];

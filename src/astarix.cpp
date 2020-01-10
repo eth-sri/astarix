@@ -1,4 +1,4 @@
-#define NDEBUG
+//#define NDEBUG
 
 #include <algorithm>
 #include <dirent.h>
@@ -17,14 +17,27 @@ using namespace astarix;
 
 arguments args;
 
-state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *Aligner, bool calc_mapping_cost,
+// plog
+void init_logger(const char *log_fn, int verbose) {
+#ifndef NDEBUG
+	if (log_fn && verbose > 0) {
+		auto level = verbose == 1 ? plog::info : plog::debug;
+		static plog::RollingFileAppender<plog::TxtFormatter> InfoFileAppender(log_fn, 0);
+		plog::init<1>(level, &InfoFileAppender);
+		
+		plog::init(level).addAppender(plog::get<1>());
+	}
+#endif
+}
+
+state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
 		edge_path_t *path, double memory, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, string *perf_s) {
 	state_t ans;
 	
-	ans = Aligner->readmap(r, algo, path);
+	ans = aligner->readmap(r, algo, path);
 
-	const auto &astar = Aligner->get_astar();
-	const auto &timers = Aligner->read_timers;
+	const auto &astar = aligner->get_astar();
+	const auto &timers = aligner->read_timers;
 
 	if (!performance_file.empty()) {
 		string precomp_str = "align";
@@ -32,9 +45,9 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *A
 		string s = r.s.substr(1);
 		int L = s.size();
 		int starts = -1;
-		double pushed_rate = (double)Aligner->read_counters.pushed.get() / L;
-		double popped_rate = (double)Aligner->read_counters.popped.get() / L;
-		double repeat_rate = (double)Aligner->_repeated_visits / Aligner->read_counters.pushed.get();
+		double pushed_rate = (double)aligner->read_counters.pushed.get() / L;
+		double popped_rate = (double)aligner->read_counters.popped.get() / L;
+		double repeat_rate = (double)aligner->_repeated_visits / aligner->read_counters.pushed.get();
 		double astar_hitrate = 100.0 - 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 		*pushed_rate_sum += pushed_rate;
 		*popped_rate_sum += popped_rate;
@@ -52,8 +65,8 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *A
 				"%8lf\t%6d\t%6lf\t"
 				"%6lf\t%4lf\t%8lf\t"
 				"%8lf\t%2lf\n",
-				args.graph_file, (int)Aligner->graph().nodes(),
-				algo.c_str(), astar.get_max_prefix_len(), astar.get_max_prefix_cost(), 100.0 * astar.get_compressable_vertices() / Aligner->graph().nodes(),
+				args.graph_file, (int)aligner->graph().nodes(),
+				algo.c_str(), astar.get_max_prefix_len(), astar.get_max_prefix_cost(), 100.0 * astar.get_compressable_vertices() / aligner->graph().nodes(),
 				precomp_str.c_str(), r.comment.c_str(), memory,
 				L, s.c_str(), spell(*path).c_str(),
 				ans.cost, starts, pushed_rate,
@@ -136,17 +149,15 @@ int main(int argc, char **argv) {
 
 	string performance_file, info_log_file;
 
-	string output_dir = "";
-	if (args.output_dir) {
+	string output_dir = args.output_dir;
+	if (!output_dir.empty()) {
 		assure_dir_exists(args.output_dir);
-		output_dir = args.output_dir;
 		performance_file = output_dir + "/alignments.tsv";
 		info_log_file = output_dir + "/info.log";
 		//stats_log_file = output_dir + "/info.log";
+	//if (!output_dir.empty())
+		init_logger(info_log_file.c_str(), args.verbose);
 	}
-
-	if (!output_dir.empty())
-		init_logger(info_log_file.c_str());
 
 	LOG_INFO << " ------------------------------ ";
 	LOG_INFO << "Starting " << to_str(argc, argv);
@@ -180,18 +191,15 @@ int main(int argc, char **argv) {
 	auto_params(G, R, &args);
 
 	add_tree(&G, args.tree_depth);
-	
-	Aligner Aligner(G, args.costs, args.greedy_match, args.AStarCostCap, args.AStarLengthCap,
-				  args.AStarNodeEqivClasses, true, args.tree_depth);
+
+	T.precompute.start();
+	AStar astar(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+	T.precompute.stop();
+
+	AlignParams align_params(args.costs, args.greedy_match); //, args.tree_depth);
+	Aligner aligner(G, align_params, &astar);
 	string algo = string(args.algorithm);
 	string perf_s;
-
-	if (algo == "astar-prefix") {
-		cout << "Precomputation..." << endl << flush;
-		T.precompute.start();
-		Aligner.precompute_A_star(algo);
-		T.precompute.stop();
-	}
 
     double pushed_rate_sum(0.0), pushed_rate_max(0.0);
     double popped_rate_sum(0.0), popped_rate_max(0.0);
@@ -210,7 +218,7 @@ int main(int argc, char **argv) {
 	bool calc_mapping_cost = false;
 	if (args.threads == 1) {
 		for (size_t i=0; i<R.size(); i++) {
-			state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &Aligner, calc_mapping_cost,
+			state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
 					&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
 		}
 	} else {
@@ -223,7 +231,7 @@ int main(int argc, char **argv) {
 				int from = t*bucket_sz;
 				int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
 				for (size_t i=from; i<to; i++) {
-					state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &Aligner, calc_mapping_cost,
+					state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
 							&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
 				}
 			});
@@ -235,10 +243,9 @@ int main(int argc, char **argv) {
 	T.align.stop();
 
 	std::ostream &out = cout;
-	const auto& astar = Aligner.get_astar();
 	double astar_hitrate = 100.0 - 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 
-	double total_map_time = Aligner.total_timers.total.get_sec();
+	double total_map_time = aligner.total_timers.total.get_sec();
 
 	T.append_to_dict(&stats);
 
@@ -262,10 +269,10 @@ int main(int argc, char **argv) {
 	out << "       == Aligning statistics =="														<< endl;
 	out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp"	<< endl;
 	out << "          Aligning run time: " << total_map_time << "s ("							
-								<< "A*: " << 100.0 * Aligner.total_timers.astar.get_sec() / total_map_time	<< "%, "
-								<< "que: " << 100.0 * Aligner.total_timers.queue.get_sec() / total_map_time	<< "%, "
-								<< "dicts: " << 100.0 * Aligner.total_timers.dicts.get_sec() / total_map_time	<< "%, "
-								<< "greedy_match: " << 100.0 * Aligner.total_timers.ff.get_sec() / total_map_time	<< "%"
+								<< "A*: " << 100.0 * aligner.total_timers.astar.get_sec() / total_map_time	<< "%, "
+								<< "que: " << 100.0 * aligner.total_timers.queue.get_sec() / total_map_time	<< "%, "
+								<< "dicts: " << 100.0 * aligner.total_timers.dicts.get_sec() / total_map_time	<< "%, "
+								<< "greedy_match: " << 100.0 * aligner.total_timers.ff.get_sec() / total_map_time	<< "%"
 								<< ")" << endl;
 	out << "                Performance: " << R.size() / total_map_time << " reads/s, "
 											<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl;

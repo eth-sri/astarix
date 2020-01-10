@@ -25,11 +25,62 @@ struct pairhash {
     }
 };
 
+struct Counters {
+	Counter pushed, popped, greedy_matched;
+
+	void clear() {
+		pushed.clear();
+		popped.clear();
+		greedy_matched.clear();
+	}
+};
+
+struct AlignerTimers {
+	Timer queue, ff, dicts, astar, total;
+
+	void clear() {
+		queue.clear();
+		ff.clear();
+		dicts.clear();
+		astar.clear();
+		total.clear();
+	}
+
+	AlignerTimers& operator+=(const AlignerTimers &b) {
+		queue += b.queue;
+		ff += b.ff;
+		dicts += b.dicts;
+		astar += b.astar;
+		total += b.total;
+		return *this;
+	}
+};
+
+struct AlignParams {
+	const EditCosts &costs;
+	const bool greedy_match;
+
+	AlignParams(const EditCosts &_costs, bool _fast_forward)
+	  : costs(_costs),
+		greedy_match(_fast_forward) {
+	}
+
+	void print() const {
+		LOG_INFO << "Params: ";
+		LOG_INFO << "  greedy_match  = " << greedy_match;
+		//LOG_INFO << "  tree depth    = " << _tree_depth;
+		LOG_INFO << "Edit costs: ";
+		LOG_INFO << "  match_cost    = " << costs.match;
+		LOG_INFO << "  mismatch_cost = " << costs.subst;
+		LOG_INFO << "  ins_cost      = " << costs.ins;
+		LOG_INFO << "  del_cost      = " << costs.del;
+	}
+};
+
 class Aligner {
     const graph_t &G;
-	EditCosts costs;                // edit costs
-	const bool greedy_match;
-	AStar astar;
+	const AlignParams &params;
+	AStar *astar;
 
 	typedef std::unordered_map<std::pair<int,int>, state_t, pairhash> path_t;
 	typedef std::unordered_map<std::pair<int,int>, edge_t, pairhash> prev_edge_t;
@@ -38,57 +89,15 @@ class Aligner {
   public:
 	int _repeated_visits;
 
-	struct Counters {
-		Counter pushed, popped, greedy_matched;
-
-		void clear() {
-			pushed.clear();
-			popped.clear();
-			greedy_matched.clear();
-		}
-	};
 	// total_counters are aggregating read_counters at the end of every alignment
 	mutable Counters read_counters, total_counters;
-
-	struct AlignerTimers {
-		Timer queue, ff, dicts, astar, total;
-
-		void clear() {
-			queue.clear();
-			ff.clear();
-			dicts.clear();
-			astar.clear();
-			total.clear();
-		}
-
-		AlignerTimers& operator+=(const AlignerTimers &b) {
-			queue += b.queue;
-			ff += b.ff;
-			dicts += b.dicts;
-			astar += b.astar;
-			total += b.total;
-			return *this;
-		}
-	};
 	mutable AlignerTimers read_timers, total_timers;
 
-    Aligner(const graph_t &_G, const EditCosts &_costs, bool _fast_forward,
-		   cost_t _kAStarMaxScore, int _kAStarMaxPrefixLen, bool _kAStarCompressVertices, bool _astar_lazy, const int _tree_depth)
-			: G(_G),
-			costs(_costs),
-			greedy_match(_fast_forward),
-			astar(_G, _costs, _kAStarMaxPrefixLen, _kAStarMaxScore, _kAStarCompressVertices, _astar_lazy) {
-			assert(G.has_supersource());
+    Aligner(const graph_t &_G, const AlignParams &_params, AStar *_astar)
+			: G(_G), params(_params), astar(_astar) {
+		assert(G.has_supersource());
 		LOG_INFO << "Mapping init with graph with n=" << G.V.size() << " and m=" << G.E.size();
-
-		LOG_INFO << "Params: ";
-		LOG_INFO << "  greedy_match  = " << greedy_match;
-		LOG_INFO << "  tree depth    = " << _tree_depth;
-		LOG_INFO << "Edit costs: ";
-		LOG_INFO << "  match_cost    = " << costs.match;
-		LOG_INFO << "  mismatch_cost = " << costs.subst;
-		LOG_INFO << "  ins_cost      = " << costs.ins;
-		LOG_INFO << "  del_cost      = " << costs.del;
+		params.print();
 	}
 
 	inline const graph_t& graph() const {
@@ -96,7 +105,7 @@ class Aligner {
 	}
 
 	inline const AStar& get_astar() const {
-		return astar;
+		return *astar;
 	}
   
   private:
@@ -161,24 +170,6 @@ class Aligner {
 	}
 
   public:
-	// space for paths: O(NlogL*?), time for paths: O(MlogL*?)
-	// query will be for O(logL)
-    int precompute_A_star(std::string algo) {
-		LOG_INFO << "Precomputation for " << algo << " starts.";
-		//assert(!A_star_precomputed);
-		//A_star_precomputed = true;
-
-		if (algo == "dijkstra") {
-			// Do nothing.
-		} else if (algo == "astar-prefix") {
-			return astar.precompute_A_star_prefix();
-		} else {
-			assert(false);
-		}
-
-		return 0;
-	}
-
 	state_t proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, const read_t &r);
 
 	void try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edge_t &pe, const std::string &algo, queue_t &Q, const edge_t &e);

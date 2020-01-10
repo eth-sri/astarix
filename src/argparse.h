@@ -27,6 +27,7 @@ static struct argp_option options[] = {
     { "subst",	'S', "SUBST_COST",   0,  "Substitution penalty" },
     { "gap",			'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
     { "threads",		't', "THREADS",      0,  "Number of threads (default=1)" },
+    { "verbose",		'v', "THREADS",      0,  "Verbosity (default=silent=0, info=1, debug=2)" },
     { 0 }
 };
 
@@ -48,6 +49,7 @@ struct arguments {
 	bool AStarNodeEqivClasses;
 
 	int threads;
+	int verbose;
 };
 
 /* Parse a single option. */
@@ -100,6 +102,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             break;
         case 't':
             arguments->threads = std::stod(arg);
+            break;
+        case 'v':
+            arguments->verbose = std::stod(arg);
             break;
         case ARGP_KEY_ARG:
             // Too many arguments.

@@ -21,18 +21,6 @@
 
 namespace astarix {
 
-// plog
-static void init_logger(const char *log_fn=NULL) {
-#ifndef NDEBUG
-	if (log_fn) {
-		static plog::RollingFileAppender<plog::TxtFormatter> InfoFileAppender(log_fn, 0);
-		plog::init<1>(plog::info, &InfoFileAppender);
-		
-		plog::init(plog::info).addAppender(plog::get<1>());
-	}
-#endif
-}
-
 // http://nion.modprobe.de/blog/archives/357-Recursive-directory-creation.html
 static void _mkdir(const char *dir) {
 	char tmp[256];

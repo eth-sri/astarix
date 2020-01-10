@@ -12,13 +12,13 @@ namespace astarix {
 
 class AStar {
   public:
-	AStar(const graph_t &_G, const EditCosts &_costs, int _max_prefix_len, int _max_prefix_cost, bool _compress_vertices, bool _lazy)
+	AStar(const graph_t &_G, const EditCosts &_costs, int _max_prefix_len, int _max_prefix_cost, bool _compress_vertices)
 		: G(_G),
 		  costs(_costs),
 		  max_prefix_len(_max_prefix_len),
 		  max_prefix_cost(_max_prefix_cost),
 		  compress_vertices(_compress_vertices),
-		  lazy(_lazy),
+		  lazy(true),
 		  _cache_trees(0), _cache_misses(0),
 		  classes(0),
 		  compressable_vertices(0)
@@ -34,9 +34,13 @@ class AStar {
 		_nucl_num['c'] = _nucl_num['C'] = 1;
 		_nucl_num['g'] = _nucl_num['G'] = 2;
 		_nucl_num['t'] = _nucl_num['T'] = 3;
+
+		precompute_A_star_prefix();
 	}
 	
 	// returns the total number of precomputed elements.
+	// space for paths: O(NlogL*?), time for paths: O(MlogL*?)
+	// query will be for O(logL)
     int precompute_A_star_prefix();
 
 	// heuristic h(node, upcoming string)
