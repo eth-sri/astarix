@@ -110,6 +110,8 @@ Optimal sequence-to-graph aligner based on A* shortest path.
   -o, --outdir=OUTDIR        Output directory
   -q, --query=QUERY          Input queries/reads (.fq, .fastq)
   -S, --subst=SUBST_COST     Substitution penalty
+  -t, --threads=THREADS      Number of threads (default=1)
+  -v, --verbose=THREADS      Verbosity (default=silent=0, info=1, debug=2)
   -?, --help                 Give this help list
       --usage                Give a short usage message
   -V, --version              Print program version
