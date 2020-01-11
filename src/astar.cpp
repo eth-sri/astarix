@@ -111,11 +111,7 @@ cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std
 			compute_astar_cost_from_vertex_and_prefix(res, repr, prefix, boundary_node);
 		curr_time.stop();
 		astar_time += curr_time;
-
-		{
-			std::lock_guard<std::mutex> lock(memoizing_mutex);   // TODO: remove
-			_star[h] = res;
-		}
+		_star[h] = res;
 		return res;
 	}
 

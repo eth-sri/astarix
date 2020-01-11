@@ -25,8 +25,13 @@ class AStar {
 	// Main data struct to be computed
 	//google::sparse_hash_map<unsigned, cost_t> _star;
 	//phmap::flat_hash_map<unsigned, cost_t> _star;
-	phmap::parallel_flat_hash_map<unsigned, cost_t> _star;
-	std::mutex memoizing_mutex;
+
+	//phmap::parallel_flat_hash_map<unsigned, cost_t> _star;
+	//std::mutex memoizing_mutex;
+	phmap::parallel_flat_hash_map<unsigned, cost_t,
+							phmap::container_internal::hash_default_hash<unsigned>, \
+                            phmap::container_internal::hash_default_eq<unsigned>, \
+                            std::allocator<std::pair<const unsigned, cost_t>>, 4, std::mutex> _star;
 
 	// Auxiliary structs
 	std::vector<unsigned> _prev_group_sum;  		// string length -> number of strings with strictly lower length
