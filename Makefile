@@ -1,5 +1,5 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -g -Iext/plog/include/ -Iext/GraphAligner/ -Iext/ -Wno-unused-parameter
+CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -g -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter
 
 SRCDIR=src
 EXTDIR=ext
@@ -39,7 +39,8 @@ test: $(ASTARIXBIN)
 	#$(ASTARIXBIN) align-optimal -a astar-prefix -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -D 5 -f 0 -d 10 -c 3 -M 0 -e 0 -S 1 -G 1 -o $(TMPDIR)/ecoli_head10000_linear/astar-custom
 	$(TESTSDIR)/compare_profilings.py $(TMPDIR)/ecoli_head10000_linear/astar-default/alignments.tsv $(TMPDIR)/ecoli_head10000_linear/dijkstra-default/alignments.tsv
 
-	$(ASTARIXBIN) align-optimal -t 8 -v 2 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default
+	# 10000 reads
+	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default
 	$(ASTARIXBIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/dijkstra-default
 	$(TESTSDIR)/compare_profilings.py $(TMPDIR)/ecoli_head1000000_linear/astar-default/alignments.tsv $(TMPDIR)/ecoli_head1000000_linear/dijkstra-default/alignments.tsv
                     

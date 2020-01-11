@@ -132,8 +132,9 @@ class Aligner {
 
 	inline state_t& get_path(path_t &p, int i, int v) {
 		read_timers.dicts.start();
-		return p[std::make_pair(i, v)];
+		auto &ret = p[std::make_pair(i, v)];
 		read_timers.dicts.stop();
+		return ret;
 	}
 
 	inline const edge_t& get_prev_edge(const prev_edge_t &pe, int i, int v) const {
@@ -152,8 +153,9 @@ class Aligner {
 
 	inline bool& visited(visited_t &vis, int i, int v) {
 		read_timers.dicts.start();
-		return vis[std::make_pair(i, v)];
+		auto &ret = vis[std::make_pair(i, v)];
 		read_timers.dicts.stop();
+		return ret;
 	}
 
 	void get_best_path_to_state(const path_t &p, const prev_edge_t &pe, state_t final_state, edge_path_t *best_path) const {

@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "parallel_hashmap/phmap.h"
+#include "phmap.h"  // parallel_hashmap
 
 #include "utils.h"
 #include "io.h"
@@ -22,16 +22,11 @@ class AStar {
 	bool compress_vertices;
 	bool lazy;
 
-	// Main data struct to be computed
-	//google::sparse_hash_map<unsigned, cost_t> _star;
-	//phmap::flat_hash_map<unsigned, cost_t> _star;
-
-	//phmap::parallel_flat_hash_map<unsigned, cost_t> _star;
-	//std::mutex memoizing_mutex;
+	// Main data struct used for memoization
 	phmap::parallel_flat_hash_map<unsigned, cost_t,
 							phmap::container_internal::hash_default_hash<unsigned>, \
                             phmap::container_internal::hash_default_eq<unsigned>, \
-                            std::allocator<std::pair<const unsigned, cost_t>>, 4, std::mutex> _star;
+                            std::allocator<std::pair<const unsigned, cost_t>>, 4, std::mutex> _star;  // with a mutex
 
 	// Auxiliary structs
 	std::vector<unsigned> _prev_group_sum;  		// string length -> number of strings with strictly lower length

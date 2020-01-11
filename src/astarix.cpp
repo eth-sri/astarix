@@ -6,10 +6,11 @@
 #include <map>
 #include <thread>
 
+#include "align.h"
 #include "argparse.h"
+#include "concurrentqueue.h"
 #include "graph.h"
 #include "io.h"
-#include "align.h"
 #include "trie.h"
 
 using namespace std;
@@ -31,7 +32,7 @@ void init_logger(const char *log_fn, int verbose) {
 }
 
 state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
-		edge_path_t *path, double memory, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, string *perf_s) {
+		edge_path_t *path, double memory, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, string *perf_s, char *line) {
 	state_t ans;
 	
 	ans = aligner->readmap(r, algo, path);
@@ -56,7 +57,8 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 		*popped_rate_max = max(*popped_rate_max, popped_rate);
 		*repeat_rate_max = max(*repeat_rate_max, repeat_rate);
 
-		char line[10000];
+		//char line[10000];
+		line[0] = 0;
 		sprintf(line,
 				"%8s\t%3d\t"
 				"%8s\t%3d\t%4lf\t%4lf\t"
@@ -72,15 +74,15 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 				ans.cost, starts, pushed_rate,
 				popped_rate, repeat_rate, timers.total.get_sec(),
 				timers.astar.get_sec(), astar_hitrate);
-		*perf_s += line;
+		//*perf_s += line;
 		
-		if (perf_s->length() > 50000) {
-			FILE *fout = fopen(performance_file.c_str(), "a");
-			fprintf(fout, "%s", perf_s->c_str());
-			fclose(fout);
+		//if (perf_s->length() > 50000) {
+		//	FILE *fout = fopen(performance_file.c_str(), "a");
+		//	fprintf(fout, "%s", perf_s->c_str());
+		//	fclose(fout);
 
-			perf_s->clear();
-		}
+		//	perf_s->clear();
+		//}
 	}
 
 	return ans;
@@ -220,13 +222,20 @@ int main(int argc, char **argv) {
 	cout << "Aligning..." << endl << flush;
 	bool calc_mapping_cost = false;
 	if (false && args.threads == 1) {
+		FILE *fout = fopen(performance_file.c_str(), "a");
 		for (size_t i=0; i<R.size(); i++) {
+			char line[10000];
 			Aligner aligner(G, align_params, &astar);
 			state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-					&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
+					&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s, line);
+			fprintf(fout, "%s", line);
 		}
+		fclose(fout);
 	} else {
+		moodycamel::ConcurrentQueue<string> profileQueue;
 		std::vector<thread> threads(args.threads);
+		std::atomic<bool> allThreadsDone { false };
+
 		int bucket_sz = R.size() / args.threads;
 		for (int t = 0; t < args.threads; ++t) {
 			threads[t] = thread([&, t]() {
@@ -234,15 +243,38 @@ int main(int argc, char **argv) {
 				int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
 				LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
 				for (size_t i=from; i<to; i++) {
+					char line[10000];
 					Aligner aligner(G, align_params, &astar);
 					state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-							&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
+							&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s, line);
+					profileQueue.enqueue(string(line));
 				}
 			});
 		}
+
+		FILE *fout = fopen(performance_file.c_str(), "a");
+
+		thread profileWriter([&]() {
+			string line;
+			while (true) {
+				int elems = profileQueue.try_dequeue(line);
+				if (!elems) {
+					if (allThreadsDone)
+						break;
+				} else {
+					fprintf(fout, "%s", line.c_str());
+				}
+			}
+		});
+
 		for (int t = 0; t != args.threads; ++t) {
 			threads[t].join();
 		}
+
+		allThreadsDone = true;
+
+		profileWriter.join();
+		fclose(fout);
 	}
 	T.align.stop();
 
@@ -272,8 +304,8 @@ int main(int argc, char **argv) {
 	out << "              Greedy match?: " << bool2str(args.greedy_match) 							<< endl;
 	out << "       == Aligning statistics =="														<< endl;
 	out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp"	<< endl;
-//	out << "          Aligning run time: " << total_map_time << "s ("							
-//								<< "A*: " << 100.0 * aligner.total_timers.astar.get_sec() / total_map_time	<< "%, "
+	out << "         Aligning wall time: " << T.align.get_sec() << "s"								<< endl;
+//								<< " (A*: " << 100.0 * aligner.total_timers.astar.get_sec() / total_map_time	<< "%, "
 //								<< "que: " << 100.0 * aligner.total_timers.queue.get_sec() / total_map_time	<< "%, "
 //								<< "dicts: " << 100.0 * aligner.total_timers.dicts.get_sec() / total_map_time	<< "%, "
 //								<< "greedy_match: " << 100.0 * aligner.total_timers.ff.get_sec() / total_map_time	<< "%"

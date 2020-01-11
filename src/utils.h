@@ -46,7 +46,7 @@ class Timer {
 	}
 
 	void start() {
-		//assert(!running);
+		assert(!running);
 		start_time = std::clock();
 		running = true;
 	}
