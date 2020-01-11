@@ -218,6 +218,7 @@ int main(int argc, char **argv) {
 
 	T.input.stop();
 	T.align.start();
+    auto start_align_wt = std::chrono::high_resolution_clock::now();
 
 	cout << "Aligning..." << endl << flush;
 	bool calc_mapping_cost = false;
@@ -232,7 +233,7 @@ int main(int argc, char **argv) {
 		}
 		fclose(fout);
 	} else {
-		moodycamel::ConcurrentQueue<string> profileQueue;
+		moodycamel::ConcurrentQueue<string> profileQueue { 50, args.threads, args.threads };
 		std::vector<thread> threads(args.threads);
 		std::atomic<bool> allThreadsDone { false };
 
@@ -261,6 +262,8 @@ int main(int argc, char **argv) {
 				if (!elems) {
 					if (allThreadsDone)
 						break;
+					else
+						std::this_thread::sleep_for(std::chrono::milliseconds(10));
 				} else {
 					fprintf(fout, "%s", line.c_str());
 				}
@@ -277,6 +280,8 @@ int main(int argc, char **argv) {
 		fclose(fout);
 	}
 	T.align.stop();
+    auto end_align_wt = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> align_wt = end_align_wt - start_align_wt;
 
 	std::ostream &out = cout;
 	double astar_hitrate = 100.0 - 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
@@ -304,7 +309,8 @@ int main(int argc, char **argv) {
 	out << "              Greedy match?: " << bool2str(args.greedy_match) 							<< endl;
 	out << "       == Aligning statistics =="														<< endl;
 	out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp"	<< endl;
-	out << "         Aligning wall time: " << T.align.get_sec() << "s"								<< endl;
+	out << "              Aligning time: " << "wall=" << align_wt.count() << "s, "
+										   << "proc=" << T.align.get_sec() << "s"					<< endl;
 //								<< " (A*: " << 100.0 * aligner.total_timers.astar.get_sec() / total_map_time	<< "%, "
 //								<< "que: " << 100.0 * aligner.total_timers.queue.get_sec() / total_map_time	<< "%, "
 //								<< "dicts: " << 100.0 * aligner.total_timers.dicts.get_sec() / total_map_time	<< "%, "

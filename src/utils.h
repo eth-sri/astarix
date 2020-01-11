@@ -47,13 +47,13 @@ class Timer {
 
 	void start() {
 		assert(!running);
-		start_time = std::clock();
 		running = true;
+		start_time = std::clock();
 	}
 
 	void stop() {
-		assert(running);
 		accum_time += std::clock() - start_time;
+		assert(running);
 		running = false;
 	}
 
