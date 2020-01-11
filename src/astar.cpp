@@ -99,8 +99,9 @@ void AStar::compute_astar_cost_from_vertex_and_prefix(cost_t &res, int u, const 
 
 cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std::string &prefix) {
 	LOG_DEBUG << "Lazy A* query for h=" << h << ", repr=" << repr << ", boundary_node=" << boundary_node << ", prefix=" << prefix;
-	auto it = _star.find(h);
+
 	++_cache_trees;
+	auto it = _star.find(h);
 	if (it == _star.end()) {
 		++_cache_misses;
 		cost_t res=0.0;
@@ -110,7 +111,11 @@ cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std
 			compute_astar_cost_from_vertex_and_prefix(res, repr, prefix, boundary_node);
 		curr_time.stop();
 		astar_time += curr_time;
-		_star[h] = res;
+
+		{
+			std::lock_guard<std::mutex> lock(memoizing_mutex);   // TODO: remove
+			_star[h] = res;
+		}
 		return res;
 	}
 

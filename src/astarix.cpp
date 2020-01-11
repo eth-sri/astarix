@@ -197,9 +197,12 @@ int main(int argc, char **argv) {
 	T.precompute.stop();
 
 	AlignParams align_params(args.costs, args.greedy_match); //, args.tree_depth);
-	Aligner aligner(G, align_params, &astar);
 	string algo = string(args.algorithm);
 	string perf_s;
+
+	assert(G.has_supersource());
+	LOG_INFO << "Mapping init with graph with n=" << G.V.size() << " and m=" << G.E.size();
+	align_params.print();
 
     double pushed_rate_sum(0.0), pushed_rate_max(0.0);
     double popped_rate_sum(0.0), popped_rate_max(0.0);
@@ -216,8 +219,9 @@ int main(int argc, char **argv) {
 
 	cout << "Aligning..." << endl << flush;
 	bool calc_mapping_cost = false;
-	if (args.threads == 1) {
+	if (false && args.threads == 1) {
 		for (size_t i=0; i<R.size(); i++) {
+			Aligner aligner(G, align_params, &astar);
 			state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
 					&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
 		}
@@ -225,10 +229,12 @@ int main(int argc, char **argv) {
 		std::vector<thread> threads(args.threads);
 		int bucket_sz = R.size() / args.threads;
 		for (int t = 0; t < args.threads; ++t) {
-			threads[t] = thread([&]() {
+			threads[t] = thread([&, t]() {
 				int from = t*bucket_sz;
 				int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
+				LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
 				for (size_t i=from; i<to; i++) {
+					Aligner aligner(G, align_params, &astar);
 					state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
 							&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s);
 				}
@@ -243,7 +249,7 @@ int main(int argc, char **argv) {
 	std::ostream &out = cout;
 	double astar_hitrate = 100.0 - 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 
-	double total_map_time = aligner.total_timers.total.get_sec();
+//	double total_map_time = aligner.total_timers.total.get_sec();
 
 	T.append_to_dict(&stats);
 
@@ -266,14 +272,14 @@ int main(int argc, char **argv) {
 	out << "              Greedy match?: " << bool2str(args.greedy_match) 							<< endl;
 	out << "       == Aligning statistics =="														<< endl;
 	out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp"	<< endl;
-	out << "          Aligning run time: " << total_map_time << "s ("							
-								<< "A*: " << 100.0 * aligner.total_timers.astar.get_sec() / total_map_time	<< "%, "
-								<< "que: " << 100.0 * aligner.total_timers.queue.get_sec() / total_map_time	<< "%, "
-								<< "dicts: " << 100.0 * aligner.total_timers.dicts.get_sec() / total_map_time	<< "%, "
-								<< "greedy_match: " << 100.0 * aligner.total_timers.ff.get_sec() / total_map_time	<< "%"
-								<< ")" << endl;
-	out << "                Performance: " << R.size() / total_map_time << " reads/s, "
-											<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl;
+//	out << "          Aligning run time: " << total_map_time << "s ("							
+//								<< "A*: " << 100.0 * aligner.total_timers.astar.get_sec() / total_map_time	<< "%, "
+//								<< "que: " << 100.0 * aligner.total_timers.queue.get_sec() / total_map_time	<< "%, "
+//								<< "dicts: " << 100.0 * aligner.total_timers.dicts.get_sec() / total_map_time	<< "%, "
+//								<< "greedy_match: " << 100.0 * aligner.total_timers.ff.get_sec() / total_map_time	<< "%"
+//								<< ")" << endl;
+//	out << "                Performance: " << R.size() / total_map_time << " reads/s, "
+//											<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl;
 	out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
 	out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
 

@@ -80,7 +80,7 @@ struct AlignParams {
 class Aligner {
     const graph_t &G;
 	const AlignParams &params;
-	AStar *astar;
+	AStar *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
 	typedef std::unordered_map<std::pair<int,int>, state_t, pairhash> path_t;
 	typedef std::unordered_map<std::pair<int,int>, edge_t, pairhash> prev_edge_t;
@@ -95,9 +95,6 @@ class Aligner {
 
     Aligner(const graph_t &_G, const AlignParams &_params, AStar *_astar)
 			: G(_G), params(_params), astar(_astar) {
-		assert(G.has_supersource());
-		LOG_INFO << "Mapping init with graph with n=" << G.V.size() << " and m=" << G.E.size();
-		params.print();
 	}
 
 	inline const graph_t& graph() const {

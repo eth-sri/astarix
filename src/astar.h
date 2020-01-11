@@ -11,6 +11,38 @@
 namespace astarix {
 
 class AStar {
+  private:
+	// General params
+	const graph_t &G;
+	const EditCosts &costs;
+
+	int max_prefix_len;
+	cost_t max_prefix_cost;
+	int kMaxStrHash;  								// calculated here, in hash_precomp()
+	bool compress_vertices;
+	bool lazy;
+
+	// Main data struct to be computed
+	//google::sparse_hash_map<unsigned, cost_t> _star;
+	//phmap::flat_hash_map<unsigned, cost_t> _star;
+	phmap::parallel_flat_hash_map<unsigned, cost_t> _star;
+	std::mutex memoizing_mutex;
+
+	// Auxiliary structs
+	std::vector<unsigned> _prev_group_sum;  		// string length -> number of strings with strictly lower length
+	std::vector<int> _vertex2class; 				// vertex to a representative equivalent vertex for which future is calculated
+	std::vector<int> _class2repr;  					// used for `decompresion'
+	std::vector<int> _class2boundary;
+	unsigned _nucl_num[256];
+	int _cache_trees, _cache_misses;
+
+	int classes;  									// number of equivalence classes
+
+	// Currently calculated
+	int compressable_vertices;
+
+	Timer astar_time;
+
   public:
 	AStar(const graph_t &_G, const EditCosts &_costs, int _max_prefix_len, int _max_prefix_cost, bool _compress_vertices)
 		: G(_G),
@@ -89,36 +121,6 @@ class AStar {
 	}
 
   private:
-	// General params
-	const graph_t &G;
-	const EditCosts &costs;
-
-	int max_prefix_len;
-	cost_t max_prefix_cost;
-	int kMaxStrHash;  								// calculated here, in hash_precomp()
-	bool compress_vertices;
-	bool lazy;
-
-	// Main data struct to be computed
-	//google::sparse_hash_map<unsigned, cost_t> _star;
-	//phmap::flat_hash_map<unsigned, cost_t> _star;
-	phmap::parallel_flat_hash_map<unsigned, cost_t> _star;
-
-	// Auxiliary structs
-	std::vector<unsigned> _prev_group_sum;  		// string length -> number of strings with strictly lower length
-	std::vector<int> _vertex2class; 				// vertex to a representative equivalent vertex for which future is calculated
-	std::vector<int> _class2repr;  					// used for `decompresion'
-	std::vector<int> _class2boundary;
-	unsigned _nucl_num[256];
-	int _cache_trees, _cache_misses;
-
-	int classes;  									// number of equivalence classes
-
-	// Currently calculated
-	int compressable_vertices;
-
-	Timer astar_time;
-
 	// returns true if there is a unique ORIG path from u with length rem_len; postcond: pref is the spelling of this path
 	// returns false otherwise
 	bool is_linear(int u, int rem_len, std::string *pref, int *boundary_node);
