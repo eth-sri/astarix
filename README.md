@@ -1,8 +1,9 @@
 # AStarix
 ![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)
 
-AStarix is a sequence-to-graph semi-global aligner based on A* shortest path algorithm.
-It supports general graphs and finds alignments that are optimal according to edit-distance.
+**AStarix** is a sequence-to-graph semi-global aligner based on A* shortest path algorithm.
+It supports general graphs and finds alignments that are optimal according to edit-distance with non-negative weights.
+AStarix parallelizes the alignment of a set of reads.
 
 ## Quick start using Docker
 
@@ -25,11 +26,10 @@ Alternatively to using Docker, you can install AStarix directly on your system.
 
 In order to compile AStarix, you will need to first install:
 
-* [argp](https://www.gnu.org/software/libc/manual/html_node/Argp.html) --
+* [argp](https://www.gnu.org/software/libc/manual/html_node/Argp.html) &ndash;
   argument parsing library
-* [sparsehash](https://github.com/sparsehash/sparsehash) -- hash table for A*
-  heuristic memoization
-* [zlib package](https://www.zlib.net/) -- compression library
+* [zlib](https://www.zlib.net/) &ndash; compression library
+* (optional) [pandas](https://pandas.pydata.org/) &ndash; dataframe library used for testing and evalutaions
 
 We show how to install them in the [Dockerfile](./Dockerfile).
 Other third-party libraries are located in the `/ext` directory and their own licenses apply.
@@ -116,3 +116,8 @@ Optimal sequence-to-graph aligner based on A* shortest path.
       --usage                Give a short usage message
   -V, --version              Print program version
 ```
+
+# Technical details
+
+**AStarix computes** an A* heuristic function __h__ that directs the path search faster by anticipating the upcoming nucleotides to be aligned.
+Once computed, a value of __h__ is memoized in a hash table ([parallel-hashmap](https://github.com/greg7mdp/parallel-hashmap)).
