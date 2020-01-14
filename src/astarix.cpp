@@ -220,9 +220,12 @@ int main(int argc, char **argv) {
 	T.align.start();
     auto start_align_wt = std::chrono::high_resolution_clock::now();
 
+	AlignerTimers total_timers;
+	std::mutex timer_m;
+
 	cout << "Aligning..." << endl << flush;
 	bool calc_mapping_cost = false;
-	if (false && args.threads == 1) {
+	if (args.threads == 1) {
 		FILE *fout = fopen(performance_file.c_str(), "a");
 		for (size_t i=0; i<R.size(); i++) {
 			char line[10000];
@@ -230,6 +233,7 @@ int main(int argc, char **argv) {
 			state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
 					&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s, line);
 			fprintf(fout, "%s", line);
+			total_timers += aligner.read_timers;
 		}
 		fclose(fout);
 	} else {
@@ -249,6 +253,11 @@ int main(int argc, char **argv) {
 					state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
 							&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s, line);
 					profileQueue.enqueue(string(line));
+					{
+						timer_m.lock();
+						total_timers += aligner.read_timers;
+						timer_m.unlock();
+					}
 				}
 			});
 		}
@@ -286,7 +295,7 @@ int main(int argc, char **argv) {
 	std::ostream &out = cout;
 	double astar_hitrate = 100.0 - 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 
-//	double total_map_time = aligner.total_timers.total.get_sec();
+	double total_map_time = total_timers.total.get_sec();
 
 	T.append_to_dict(&stats);
 
@@ -310,14 +319,14 @@ int main(int argc, char **argv) {
 	out << "       == Aligning statistics =="														<< endl;
 	out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp"	<< endl;
 	out << "              Aligning time: " << "wall=" << align_wt.count() << "s, "
-										   << "proc=" << T.align.get_sec() << "s"					<< endl;
-//								<< " (A*: " << 100.0 * aligner.total_timers.astar.get_sec() / total_map_time	<< "%, "
-//								<< "que: " << 100.0 * aligner.total_timers.queue.get_sec() / total_map_time	<< "%, "
-//								<< "dicts: " << 100.0 * aligner.total_timers.dicts.get_sec() / total_map_time	<< "%, "
-//								<< "greedy_match: " << 100.0 * aligner.total_timers.ff.get_sec() / total_map_time	<< "%"
-//								<< ")" << endl;
-//	out << "                Performance: " << R.size() / total_map_time << " reads/s, "
-//											<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl;
+										   << "proc=" << T.align.get_sec() << "s"
+								<< " (A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time	<< "%, "
+								<< "que: " << 100.0 * total_timers.queue.get_sec() / total_map_time	<< "%, "
+								<< "dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time	<< "%, "
+								<< "greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time	<< "%"
+								<< ")" << endl;
+	out << "                Performance: " << R.size() / total_map_time << " reads/s, "
+											<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl;
 	out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
 	out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
 

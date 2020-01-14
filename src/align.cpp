@@ -63,7 +63,6 @@ state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
 		if (curr.i == r.len) {
 			final_state = get_const_path(p, curr.i, curr.v);
 			read_timers.total.stop();
-			total_timers += read_timers;
 			get_best_path_to_state(p, pe, final_state, best_path);
 			return final_state;
 		}
