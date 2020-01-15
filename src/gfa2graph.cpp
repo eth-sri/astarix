@@ -39,7 +39,7 @@ void gfa2graph(GfaGraph &gfa, astarix::graph_t *G) {
 			curr = next;
 		}
 		auto last_letter = node.second.back();
-		for (const auto &neigh: gfa.edges[NodePos{node.first, '+'}]) {
+		for (const auto &neigh: gfa.edges[NodePos(node.first, '+')]) {
 			G->add_edge(curr, node2idx[neigh.id], last_letter, astarix::ORIG);
 		}
 	}
