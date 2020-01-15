@@ -34,9 +34,10 @@ $(ODIR)/%.o: %.cpp $(DEPS)
 test: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
 
-	#$(ASTARIXBIN) align-optimal -t 8 -v 2 -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-default
-	#$(ASTARIXBIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/dijkstra-default
-	#$(TESTSDIR)/compare_profilings.py $(TMPDIR)/ecoli_head10000_linear/astar-default/alignments.tsv $(TMPDIR)/ecoli_head10000_linear/dijkstra-default/alignments.tsv
+	# small
+	$(ASTARIXBIN) align-optimal -t 8 -v 2 -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-default
+	$(ASTARIXBIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/dijkstra-default
+	python3 $(TESTSDIR)/compare_profilings.py $(TMPDIR)/ecoli_head10000_linear/astar-default/alignments.tsv $(TMPDIR)/ecoli_head10000_linear/dijkstra-default/alignments.tsv
 
 	#$(ASTARIXBIN) align-optimal -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-default
 	#$(ASTARIXBIN) align-optimal -a astar-prefix -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -D 5 -f 0 -d 10 -c 3 -M 0 -e 0 -S 1 -G 1 -o $(TMPDIR)/ecoli_head10000_linear/astar-custom
@@ -44,7 +45,11 @@ test: $(ASTARIXBIN)
 	# 10000 reads
 	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default
 	$(ASTARIXBIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/dijkstra-default
-	$(TESTSDIR)/compare_profilings.py $(TMPDIR)/ecoli_head1000000_linear/astar-default/alignments.tsv $(TMPDIR)/ecoli_head1000000_linear/dijkstra-default/alignments.tsv
+	python3 $(TESTSDIR)/compare_profilings.py $(TMPDIR)/ecoli_head1000000_linear/astar-default/alignments.tsv $(TMPDIR)/ecoli_head1000000_linear/dijkstra-default/alignments.tsv
+
+eval: $(ASTARIXBIN)
+	$(shell mkdir -p $(TMPDIR))
+	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default
                     
 .PHONY: all clean
 
