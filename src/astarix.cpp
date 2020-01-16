@@ -36,6 +36,7 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 	state_t ans;
 	
 	ans = aligner->readmap(r, algo, path);
+	//LOG_DEBUG << "popped: " << aligner->read_counters.popped_trie.get() << " from trie vs " << aligner->read_counters.popped_ref.get() << " from ref";
 
 	const auto &astar = aligner->get_astar();
 	const auto &timers = aligner->read_timers;
@@ -114,7 +115,7 @@ int size_sum(const vector<read_t> &R) {
 
 void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
 	if (args->tree_depth == -1) {
-		args->tree_depth = ceil(log(G.nodes()) / log(4.0));
+		args->tree_depth = floor(log(G.nodes()) / log(4.0));
 	}
 }
 
@@ -198,31 +199,61 @@ int main(int argc, char **argv) {
 	vector<read_t> R;
 	clock_t start;
 
+	cout << "Loading reference graph... " << flush;
 	T.read_graph.start();
 	read_graph(&G, args.graph_file, output_dir);
 	T.read_graph.stop();
+	cout << "done." << endl << flush;
 
+	cout << "Loading queries... " << flush;
 	T.read_queries.start();
 	read_queries(args.query_file, &R);
 	T.read_queries.stop();
+	cout << "done." << endl << flush;
 
 	auto_params(G, R, &args);
 
+	cout << "Contructing trie... " << flush;
 	T.construct_trie.start();
 	add_tree(&G, args.tree_depth);
 	T.construct_trie.stop();
+	cout << "done." << endl << flush;
 
 	T.precompute.start();
 	AStar astar(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
 	T.precompute.stop();
 
-	AlignParams align_params(args.costs, args.greedy_match); //, args.tree_depth);
+	AlignParams align_params(args.costs, args.greedy_match);
 	string algo = string(args.algorithm);
 	string perf_s;
 
 	assert(G.has_supersource());
 	LOG_INFO << "Mapping init with graph with n=" << G.V.size() << " and m=" << G.E.size();
 	align_params.print();
+
+	std::ostream &out = cout;
+	{
+		out.setf(ios::fixed, ios::floatfield);
+		out.precision(2);
+		out << endl;
+		out << "       == Input =="                                                                     << endl;
+		out << "              Queries/reads: " << R.size() << " read in " << T.read_queries.t.get_sec() << "s"<< endl;
+		out << "       Reference+Trie graph: " << G.nodes() << " nodes, " << G.edges() << " edges"      << endl;
+		out << "              Graph density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
+		out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp, "
+				"coverage: " << 1.0 * R.size() * (R.front().s.size()-1) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
+		out << "       == General parameters and optimizations == "                                     << endl;
+		out << "             Alignment algo: " << args.algorithm 			 							<< endl;
+		out << "                       Trie: " << "depth=" << args.tree_depth << ", " << G.trie_nodes << " nodes, " << G.trie_edges << " edges"<< endl;
+		out << "                 Edit costs: " << args.costs.match << ", " << args.costs.subst << ", " << args.costs.ins << ", " << args.costs.del
+			<< " (match, subst, ins, del)" << endl;
+		out << "              Greedy match?: " << bool2str(args.greedy_match) 							<< endl;
+		out << "                    Threads: " << args.threads											<< endl;
+		out << "       == A* parameters =="																<< endl;
+		out << "                   Cost cap: " << args.AStarCostCap 									<< endl;
+		out << "   Upcoming seq. length cap: " << args.AStarLengthCap 									<< endl;
+		out << "      Nodes equiv. classes?: " << bool2str(args.AStarNodeEqivClasses) 					<< endl;
+	}
 
     double pushed_rate_sum(0.0), pushed_rate_max(0.0);
     double popped_rate_sum(0.0), popped_rate_max(0.0);
@@ -315,68 +346,47 @@ int main(int argc, char **argv) {
 	T.total.stop();
     auto end_align_wt = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> align_wt = end_align_wt - start_align_wt;
+	cout << "done." << endl << flush;
 
-	std::ostream &out = cout;
-	double astar_missrate = 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
+	{
+		double astar_missrate = 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
+		double total_map_time = total_timers.total.get_sec();
+		double total_mem = MemoryMeasurer::get_mem_gb();
 
-	double total_map_time = total_timers.total.get_sec();
-	double total_mem = MemoryMeasurer::get_mem_gb();
+		out << "       == Aligning statistics =="														<< endl;
+		out << "              Aligning time: " << "wall=" << align_wt.count() << "s, "
+											   << "proc=" << T.align.t.get_sec() << "s"
+									<< " (A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time	<< "%, "
+									<< "que: " << 100.0 * total_timers.queue.get_sec() / total_map_time	<< "%, "
+									<< "dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time	<< "%, "
+									<< "greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time	<< "%"
+									<< ")" << endl;
+		out << "      Memoization miss rate: " << astar_missrate << "%"									<< endl;
+		out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
+		out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
+		out << "A* compressible equiv nodes: " << astar.get_compressable_vertices()
+							<< " (" << 100.0 * astar.get_compressable_vertices() / G.nodes() << "%)"	<< endl;
 
-	out.setf(ios::fixed, ios::floatfield);
-	out.precision(2);
-	out << endl;
-	out << "       == Input =="                                                                     << endl;
-	out << "              Queries/reads: " << R.size() << " read in " << T.read_queries.t.get_sec() << "s"<< endl;
-	out << "       Reference+Trie graph: " << G.nodes() << " nodes, " << G.edges() << " edges"      << endl;
-	out << "                       Trie: " << G.trie_nodes << " nodes, " << G.trie_edges << " edges"<< endl;
-	out << "              Graph density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
-	out << "              Read coverage: " << 1.0 * R.size() * (R.front().s.size()-1) /	((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
-	out << "                    Threads: " << args.threads											<< endl;
-	out << "       == General parameters and optimizations == "                                     << endl;
-	out << "             Alignment algo: " << args.algorithm 			 							<< endl;
-	out << "                 Edit costs: " << args.costs.match << ", " << args.costs.subst << ", " << args.costs.ins << ", " << args.costs.del
-		<< " (match, subst, ins, del)" << endl;
-	out << "                    Threads: " << "1"													<< endl;
-	out << "              Greedy match?: " << bool2str(args.greedy_match) 							<< endl;
-	out << "       == Aligning statistics =="														<< endl;
-	out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp"	<< endl;
-	out << "              Aligning time: " << "wall=" << align_wt.count() << "s, "
-										   << "proc=" << T.align.t.get_sec() << "s"
-								<< " (A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time	<< "%, "
-								<< "que: " << 100.0 * total_timers.queue.get_sec() / total_map_time	<< "%, "
-								<< "dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time	<< "%, "
-								<< "greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time	<< "%"
-								<< ")" << endl;
-	out << "      Memoization miss rate: " << astar_missrate << "%"									<< endl;
-	out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
-	out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
-
-	out << "       == A* parameters =="																<< endl;
-	out << "                   Cost cap: " << args.AStarCostCap 									<< endl;
-	out << "   Upcoming seq. length cap: " << args.AStarLengthCap 									<< endl;
-	out << "      Nodes equiv. classes?: " << bool2str(args.AStarNodeEqivClasses) 					<< endl;
-	out << "  Compressible equiv. nodes: " << astar.get_compressable_vertices()
-						<< " (" << 100.0 * astar.get_compressable_vertices() / G.nodes() << "%)"	<< endl;
-
-	out << "       == Performance =="																<< endl;
-	out << "               Memory: " << " measured | estimated" 									<< endl;
-	out << "                                 total: " << total_mem << " GB | -"		<< endl;
-	out << "                             reference: " << 100.0*T.read_graph.m.get_gb() / total_mem << "% | " << 100.0*b2gb(G.reference_mem_bytes()) / total_mem << "%" << endl;
-	out << "                                 reads: " << 100.0*T.read_queries.m.get_gb() / total_mem << "% | " << 100.0*b2gb(R.size() * R.front().size()) / total_mem << "%" << endl;
-	out << "                                  trie: " << 100.0*T.construct_trie.m.get_gb() / total_mem << "% | " << 100.0*b2gb(G.trie_mem_bytes()) / total_mem << "%" << endl;
-	out << "                   equiv. classes opt.: " << 100.0*T.precompute.m.get_gb() / total_mem << "% | " << 100.0*b2gb(astar.equiv_classes_mem_bytes()) / total_mem << "%" << endl;
-	out << "                        A*-memoization: " << 100.0*T.align.m.get_gb() / total_mem << "% | "
-											<< 100.0*b2gb(astar.table_mem_bytes_lower()) / total_mem << "%-" 
-											<< 100.0*b2gb(astar.table_mem_bytes_upper()) / total_mem << "%"
-											<< " (" << int(astar.table_entrees()) << " entries):" 	<< endl;
-	out << "               Wall runtime: " << T.total.t.get_sec() << " sec"							<< endl;
-	out << "                         reading graph: " << T.read_graph.t.get_sec() << "s" 				<< endl;
-	out << "                       reading queries: " << T.read_queries.t.get_sec() << "s"			<< endl;
-	out << "                        construct trie: " << T.construct_trie.t.get_sec() << "s"			<< endl;
-	out << "                            precompute: " << T.precompute.t.get_sec() << "s"				<< endl;
-	out << "                                 align: " << align_wt.count() << "s <=> "
-														<< R.size() / total_map_time << " reads/s <=> "
-														<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl;
+		out << "       == Performance =="																<< endl;
+		out << "               Memory: " << " measured | estimated" 									<< endl;
+		out << "                                 total: " << total_mem << " GB | -"		<< endl;
+		out << "                             reference: " << 100.0*T.read_graph.m.get_gb() / total_mem << "% | " << 100.0*b2gb(G.reference_mem_bytes()) / total_mem << "%" << endl;
+		out << "                                 reads: " << 100.0*T.read_queries.m.get_gb() / total_mem << "% | " << 100.0*b2gb(R.size() * R.front().size()) / total_mem << "%" << endl;
+		out << "                                  trie: " << 100.0*T.construct_trie.m.get_gb() / total_mem << "% | " << 100.0*b2gb(G.trie_mem_bytes()) / total_mem << "%" << endl;
+		out << "                   equiv. classes opt.: " << 100.0*T.precompute.m.get_gb() / total_mem << "% | " << 100.0*b2gb(astar.equiv_classes_mem_bytes()) / total_mem << "%" << endl;
+		out << "                        A*-memoization: " << 100.0*T.align.m.get_gb() / total_mem << "% | "
+												<< 100.0*b2gb(astar.table_mem_bytes_lower()) / total_mem << "%-" 
+												<< 100.0*b2gb(astar.table_mem_bytes_upper()) / total_mem << "%"
+												<< " (" << int(astar.table_entrees()) << " entries):" 	<< endl;
+		out << "               Wall runtime: " << T.total.t.get_sec() << " sec"							<< endl;
+		out << "                         reading graph: " << T.read_graph.t.get_sec() << "s" 				<< endl;
+		out << "                       reading queries: " << T.read_queries.t.get_sec() << "s"			<< endl;
+		out << "                        construct trie: " << T.construct_trie.t.get_sec() << "s"			<< endl;
+		out << "                            precompute: " << T.precompute.t.get_sec() << "s"				<< endl;
+		out << "                                 align: " << align_wt.count() << "s <=> "
+															<< R.size() / total_map_time << " reads/s <=> "
+															<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl;
+	}
 
 	if (!performance_file.empty()) {
 		FILE *fout = fopen(performance_file.c_str(), "a");
