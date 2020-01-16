@@ -94,6 +94,10 @@ struct graph_t {
 		return E.size() * sizeof(E.front()) + V.size() * sizeof(V.front());
 	}
 
+	size_t total_mem_bytes_capacity() const {
+		return E.capacity() * sizeof(E.front()) + V.capacity() * sizeof(V.front());
+	}
+
 	size_t reference_mem_bytes() const {
 		return total_mem_bytes() - trie_mem_bytes();
 	}

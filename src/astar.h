@@ -42,6 +42,7 @@ class AStar {
 	int compressable_vertices;
 
 	Timer astar_time;
+	std::atomic<int> _entries;
 
   public:
 	AStar(const graph_t &_G, const EditCosts &_costs, int _max_prefix_len, int _max_prefix_cost, bool _compress_vertices)
@@ -53,7 +54,8 @@ class AStar {
 		  lazy(true),
 		  _cache_trees(0), _cache_misses(0),
 		  classes(0),
-		  compressable_vertices(0)
+		  compressable_vertices(0),
+		  _entries(0)
 	{
 		LOG_INFO << "A* Prefix class constructed with:";
 		LOG_INFO << "  max_prefix_len    = " << max_prefix_len;
@@ -86,6 +88,12 @@ class AStar {
 		return max_prefix_len;
 	}
 
+	size_t equiv_classes_mem_bytes() const {
+		return _vertex2class.size() * sizeof(_vertex2class.front()) +
+			_class2repr.size() * sizeof(_class2repr) +
+			_class2boundary.size() * sizeof(_class2boundary);
+	}
+
 	double get_astar_time() const {
 		return astar_time.get_sec();
 	}
@@ -108,6 +116,10 @@ class AStar {
 
 	double table_entrees() const {
 		return _star.size();
+	}
+
+	size_t entries() {
+		return _entries;
 	}
 
 	size_t table_mem_bytes_lower() const {

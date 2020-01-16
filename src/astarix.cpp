@@ -49,7 +49,7 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 		double pushed_rate = (double)aligner->read_counters.pushed.get() / L;
 		double popped_rate = (double)aligner->read_counters.popped.get() / L;
 		double repeat_rate = (double)aligner->_repeated_visits / aligner->read_counters.pushed.get();
-		double astar_hitrate = 100.0 - 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
+		double astar_missrate = 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 		*pushed_rate_sum += pushed_rate;
 		*popped_rate_sum += popped_rate;
 		*repeat_rate_sum += repeat_rate;
@@ -73,7 +73,7 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 				L, s.c_str(), spell(*path).c_str(),
 				ans.cost, starts, pushed_rate,
 				popped_rate, repeat_rate, timers.total.get_sec(),
-				timers.astar.get_sec(), astar_hitrate);
+				timers.astar.get_sec(), astar_missrate);
 		//*perf_s += line;
 		
 		//if (perf_s->length() > 50000) {
@@ -132,10 +132,10 @@ void print_tsv(map<string, string> dict) {
 typedef map<string, string> dict_t;
 
 struct Timers {
-	Timer input, align, read_graph, read_queries, precompute;
+	Timer total, construct_trie, read_graph, read_queries, align, precompute;
 
-	void append_to_dict(dict_t *dict) {
-		(*dict)["input_sec"] = to_string(input.get_sec());
+	void extract_to_dict(dict_t *dict) {
+		//(*dict)["input_sec"] = to_string(input.get_sec());
 		(*dict)["align_sec"] = to_string(align.get_sec());
 	}
 };
@@ -144,7 +144,7 @@ Timers T;
 dict_t stats;   // string key -> string value
 
 int main(int argc, char **argv) {
-	T.input.start();
+	T.total.start();
 
 	args = read_args(argc, argv);
 	std::ios_base::sync_with_stdio(false);
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
 				"len\tread\tspell\t"
 				"cost\tstarts\tpushed\t"
 				"popped\trepeat_rate\tt(map)\t"
-				"t(astar)\tastar_hitrate\n");
+				"t(astar)\tastar_missrate\n");
 		fclose(fout);
 	}
 
@@ -192,7 +192,9 @@ int main(int argc, char **argv) {
 
 	auto_params(G, R, &args);
 
+	T.construct_trie.start();
 	add_tree(&G, args.tree_depth);
+	T.construct_trie.stop();
 
 	T.precompute.start();
 	AStar astar(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
@@ -216,7 +218,6 @@ int main(int argc, char **argv) {
 	precomp_vm /= 1024.0 * 1024.0;  // to GB
 	precomp_rss /= 1024.0 * 1024.0;  // to GB
 
-	T.input.stop();
 	T.align.start();
     auto start_align_wt = std::chrono::high_resolution_clock::now();
 
@@ -234,6 +235,13 @@ int main(int argc, char **argv) {
 					&R[i].edge_path, precomp_vm, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s, line);
 			fprintf(fout, "%s", line);
 			total_timers += aligner.read_timers;
+
+			if (i % (R.size() / 10) == 0) {
+				cout << "A*-memoization at " << 100.0 * i / R.size() << "% of the reads aligned"
+				<< ", entries: " << astar.entries() << ", "
+				<< 100.0*b2gb(astar.table_mem_bytes_lower()) / precomp_vm << "%-"
+				<< 100.0*b2gb(astar.table_mem_bytes_upper()) / precomp_vm << "%" << endl;
+			}
 		}
 		fclose(fout);
 	} else {
@@ -289,15 +297,14 @@ int main(int argc, char **argv) {
 		fclose(fout);
 	}
 	T.align.stop();
+	T.total.stop();
     auto end_align_wt = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> align_wt = end_align_wt - start_align_wt;
 
 	std::ostream &out = cout;
-	double astar_hitrate = 100.0 - 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
+	double astar_missrate = 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 
 	double total_map_time = total_timers.total.get_sec();
-
-	T.append_to_dict(&stats);
 
 	out.setf(ios::fixed, ios::floatfield);
 	out.precision(2);
@@ -308,7 +315,6 @@ int main(int argc, char **argv) {
 													<< ", " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
 	out << "                   Coverate: " << 1.0 * R.size() * (R.front().s.size()-1) /	(G.edges() / 2)	<< endl; // the graph also includes reverse edges
 	out << "                    Threads: " << args.threads											<< endl;
-	out << "           Reading run time: " << T.read_graph.get_sec() << "s" 	<< endl;  // There are the independent forward and reverse graph
 	//out << "                  Read cost: " << "avg=" << total_read_cost / R.size()
 //											<< ", max=" << max_read_cost							<< endl;
 	out << "       == General parameters and optimizations == "                                     << endl;
@@ -331,23 +337,29 @@ int main(int argc, char **argv) {
 	out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
 	out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
 
-	if (algo == "astar-prefix") {
 	out << "       == A* parameters =="																<< endl;
 	out << "                   Cost cap: " << args.AStarCostCap 									<< endl;
 	out << "   Upcoming seq. length cap: " << args.AStarLengthCap 									<< endl;
 	out << "      Nodes equiv. classes?: " << bool2str(args.AStarNodeEqivClasses) 					<< endl;
 	out << "  Compressible equiv. nodes: " << astar.get_compressable_vertices()
 						<< " (" << 100.0 * astar.get_compressable_vertices() / G.nodes() << "%)"	<< endl;
-	out << "    Precomputation run time: " << T.precompute.get_sec() << "s"							<< endl;
-	out << "                     Memory: " << precomp_vm << " GB "
-					    				<< "(reference: " << 100.0*b2gb(G.reference_mem_bytes()) / precomp_vm << "%, " 	
-					    				<< "trie: " << 100.0*b2gb(G.trie_mem_bytes()) / precomp_vm << "%, " 	
-										<< "A*-memoization: "
-										<< 100.0*b2gb(astar.table_mem_bytes_lower()) / precomp_vm << "%-"
-										<< 100.0*b2gb(astar.table_mem_bytes_upper()) / precomp_vm << "%"
-										<< " for " << int(astar.table_entrees()) << " entries)" << endl;
-	out << "       Memoization hit rate: " << astar_hitrate << "%"									<< endl;
-	}
+
+	out << "       == Performance =="																<< endl;
+	out << "               Total memory: " << precomp_vm << " GB"									<< endl;
+	out << "                                 reads: " << 100.0*b2gb(R.size() * R.front().size()) / precomp_vm << "%" << endl;
+	out << "                             reference: " << 100.0*b2gb(G.reference_mem_bytes()) / precomp_vm << "%" << endl;
+	out << "                                  trie: " << 100.0*b2gb(G.trie_mem_bytes()) / precomp_vm << "%" << endl;
+	out << "                        A*-memoization: "
+											<< 100.0*b2gb(astar.table_mem_bytes_lower()) / precomp_vm << "%-" 
+											<< 100.0*b2gb(astar.table_mem_bytes_upper()) / precomp_vm << "%"
+											<< " (" << int(astar.table_entrees()) << " entries):" 	<< endl;
+	out << "                   equiv. classes opt.: " << 100.0*b2gb(astar.equiv_classes_mem_bytes()) / precomp_vm << "%" << endl;
+	out << "                    Runtime: " << T.total.get_sec()										<< endl;
+	out << "                         reading graph: " << T.read_graph.get_sec() << "s" 				<< endl;
+	out << "                       reading queries: " << T.read_queries.get_sec() << "s"			<< endl;
+	out << "                        construct trie: " << T.construct_trie.get_sec() << "s"			<< endl;
+	out << "                            precompute: " << T.precompute.get_sec() << "s"				<< endl;
+	out << "      Memoization miss rate: " << astar_missrate << "%"									<< endl;
 
 	if (!performance_file.empty()) {
 		FILE *fout = fopen(performance_file.c_str(), "a");
@@ -355,6 +367,7 @@ int main(int argc, char **argv) {
 		fclose(fout);
 	}
 
+	T.extract_to_dict(&stats);
 	//print_tsv(stats);
 
     return 0;
