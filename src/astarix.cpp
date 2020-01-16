@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
 	AlignerTimers total_timers;
 	std::mutex timer_m;
 
-	cout << "Aligning..." << endl << flush;
+	cout << "Aligning..." << flush;
 	bool calc_mapping_cost = false;
 	if (args.threads == 1) {
 		FILE *fout = fopen(performance_file.c_str(), "a");
@@ -354,13 +354,6 @@ int main(int argc, char **argv) {
 		double total_mem = MemoryMeasurer::get_mem_gb();
 
 		out << "       == Aligning statistics =="														<< endl;
-		out << "              Aligning time: " << "wall=" << align_wt.count() << "s, "
-											   << "proc=" << T.align.t.get_sec() << "s"
-									<< " (A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time	<< "%, "
-									<< "que: " << 100.0 * total_timers.queue.get_sec() / total_map_time	<< "%, "
-									<< "dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time	<< "%, "
-									<< "greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time	<< "%"
-									<< ")" << endl;
 		out << "      Memoization miss rate: " << astar_missrate << "%"									<< endl;
 		out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
 		out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
@@ -369,7 +362,7 @@ int main(int argc, char **argv) {
 
 		out << "       == Performance =="																<< endl;
 		out << "               Memory: " << " measured | estimated" 									<< endl;
-		out << "                                 total: " << total_mem << " GB | -"		<< endl;
+		out << "                                 total: " << total_mem << "GB | -"		<< endl;
 		out << "                             reference: " << 100.0*T.read_graph.m.get_gb() / total_mem << "% | " << 100.0*b2gb(G.reference_mem_bytes()) / total_mem << "%" << endl;
 		out << "                                 reads: " << 100.0*T.read_queries.m.get_gb() / total_mem << "% | " << 100.0*b2gb(R.size() * R.front().size()) / total_mem << "%" << endl;
 		out << "                                  trie: " << 100.0*T.construct_trie.m.get_gb() / total_mem << "% | " << 100.0*b2gb(G.trie_mem_bytes()) / total_mem << "%" << endl;
@@ -377,15 +370,21 @@ int main(int argc, char **argv) {
 		out << "                        A*-memoization: " << 100.0*T.align.m.get_gb() / total_mem << "% | "
 												<< 100.0*b2gb(astar.table_mem_bytes_lower()) / total_mem << "%-" 
 												<< 100.0*b2gb(astar.table_mem_bytes_upper()) / total_mem << "%"
-												<< " (" << int(astar.table_entrees()) << " entries):" 	<< endl;
+												<< " (" << int(astar.table_entrees()) << " entries)" 	<< endl;
 		out << "               Wall runtime: " << T.total.t.get_sec() << " sec"							<< endl;
-		out << "                         reading graph: " << T.read_graph.t.get_sec() << "s" 				<< endl;
-		out << "                       reading queries: " << T.read_queries.t.get_sec() << "s"			<< endl;
-		out << "                        construct trie: " << T.construct_trie.t.get_sec() << "s"			<< endl;
-		out << "                            precompute: " << T.precompute.t.get_sec() << "s"				<< endl;
-		out << "                                 align: " << align_wt.count() << "s <=> "
+		out << "                     reference loading: " << T.read_graph.t.get_sec() << "s" 			<< endl;
+		out << "                       queries loading: " << T.read_queries.t.get_sec() << "s"			<< endl;
+		out << "                        construct trie: " << T.construct_trie.t.get_sec() << "s"		<< endl;
+		out << "                            precompute: " << T.precompute.t.get_sec() << "s"			<< endl;
+		out << "                                 align: " << align_wt.count() << "s (wall time) => "
 															<< R.size() / total_map_time << " reads/s <=> "
-															<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl;
+															<< size_sum(R) / 1024.0 / total_map_time << " Kbp/s"	<< endl; 
+		out << "                                        " << T.align.t.get_sec() << "s (cpu time)"
+									<< " (A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time	<< "%, "
+									<< "que: " << 100.0 * total_timers.queue.get_sec() / total_map_time	<< "%, "
+									<< "dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time	<< "%, "
+									<< "greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time	<< "%"
+									<< ")" << endl;
 	}
 
 	if (!performance_file.empty()) {
