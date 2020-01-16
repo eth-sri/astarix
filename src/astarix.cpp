@@ -159,6 +159,7 @@ Measurers T;
 dict_t stats;   // string key -> string value
 
 int main(int argc, char **argv) {
+	LOG_DEBUG << "memory " << MemoryMeasurer::get_mem_gb();
 	T.total.start();
 
 	args = read_args(argc, argv);
@@ -253,8 +254,8 @@ int main(int argc, char **argv) {
 			if (i % (R.size() / 10) == 0) {
 				cout << "A*-memoization at " << 100.0 * i / R.size() << "% of the reads aligned"
 				<< ", entries: " << astar.entries() << ", "
-				<< 100.0*b2gb(astar.table_mem_bytes_lower()) / MemoryMeasurer::get_vm_gb() << "%-"
-				<< 100.0*b2gb(astar.table_mem_bytes_upper()) / MemoryMeasurer::get_vm_gb() << "%" << endl;
+				<< 100.0*b2gb(astar.table_mem_bytes_lower()) / MemoryMeasurer::get_mem_gb() << "%-"
+				<< 100.0*b2gb(astar.table_mem_bytes_upper()) / MemoryMeasurer::get_mem_gb() << "%" << endl;
 			}
 		}
 		fclose(fout);
@@ -319,7 +320,7 @@ int main(int argc, char **argv) {
 	double astar_missrate = 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 
 	double total_map_time = total_timers.total.get_sec();
-	double total_mem = MemoryMeasurer::get_vm_gb();
+	double total_mem = MemoryMeasurer::get_mem_gb();
 
 	out.setf(ios::fixed, ios::floatfield);
 	out.precision(2);

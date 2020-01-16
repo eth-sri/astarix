@@ -41,31 +41,6 @@ const char EPS   = 'e';
 // On failure, returns 0.0, 0.0
 // https://stackoverflow.com/questions/669438/how-to-get-memory-usage-at-runtime-using-c
 
-static int parseLine(char* line){
-    // This assumes that a digit will be found and the line ends in " Kb".
-    int i = strlen(line);
-    const char* p = line;
-    while (*p <'0' || *p > '9') p++;
-    line[i-3] = '\0';
-    i = atoi(p);
-    return i;
-}
-
-static int getVmRSSkb(){ //Note: this value is in KB!
-    FILE* file = fopen("/proc/self/status", "r");
-    int result = -1;
-    char line[128];
-
-    while (fgets(line, 128, file) != NULL){
-        if (strncmp(line, "VmRSS:", 6) == 0){
-            result = parseLine(line);
-            break;
-        }
-    }
-    fclose(file);
-    return result;
-}
-
 static void process_mem_usage(double& vm_usage, double& resident_set)
 {
    using std::ios_base;
@@ -153,9 +128,7 @@ class MemoryMeasurer {
 		running = false;
 	}
 
-	static double get_vm_gb() {
-		return getVmRSSkb() / 1024.0 / 1024.0;
-
+	static double get_mem_gb() {
 		double vm, rss;
 		process_mem_usage(vm, rss);
 		return rss / (1024.0 * 1024.0);  // KB to GB
@@ -165,11 +138,11 @@ class MemoryMeasurer {
 	void start() {
 		assert(!running);
 		running = true;
-		start_mem = get_vm_gb();
+		start_mem = get_mem_gb();
 	}
 
 	void stop() {
-		accum_mem += get_vm_gb() - start_mem;
+		accum_mem += get_mem_gb() - start_mem;
 		assert(running);
 		running = false;
 	}
