@@ -110,14 +110,13 @@ class AStar {
 		return _star.size();
 	}
 
-	double table_gb_lower() const {
-		int bits = _star.size() * 4;
-		return bits / 8.0 / 1024.0 / 1024.0 / 1024.0;
+	size_t table_mem_bytes_lower() const {
+		return _star.size() * (sizeof(cost_t) + 1) / _star.load_factor();
 	}
 
-	double table_gb_upper() const {
-		int bits = _star.size() * 10;
-		return bits / 8.0 / 1024.0 / 1024.0 / 1024.0;
+	size_t table_mem_bytes_upper() const {
+		size_t add_size = 0.03 *_star.size() * (sizeof(cost_t) + 1) / 0.4375;
+		return table_mem_bytes_lower() + add_size;
 	}
 
   private:

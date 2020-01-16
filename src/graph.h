@@ -59,9 +59,9 @@ typedef std::vector<state_t> path_t;
 typedef std::vector<edge_t> edge_path_t;
 
 struct graph_t {
-  private:
-	mutable cost_t _min_edge_cost;
-	mutable cost_t _min_edit_cost;
+  //private:
+	//mutable cost_t _min_edge_cost;
+	//mutable cost_t _min_edit_cost;
 
   public:
     std::vector<edge_t> E;  // n linked lists emulated in a stack E
@@ -69,13 +69,15 @@ struct graph_t {
 	// if a node with number 0 exists, it is a supersource
 
 	const char *EdgeTypeStr[5];
+	int trie_nodes, trie_edges;
 
 	graph_t(bool _with_reverse_edges=0)
+			: trie_nodes(0), trie_edges(0)
 			//: with_reverse_edges(_with_reverse_edges)
 			{
 		V.resize(1, -1);  // 0 preserved for a supersource
-		_min_edge_cost = -1;
-		_min_edit_cost = -1;
+		//_min_edge_cost = -1;
+		//_min_edit_cost = -1;
 
 		EdgeTypeStr[ORIG] = "ORIG";
 		EdgeTypeStr[INS] = "ins";
@@ -84,9 +86,16 @@ struct graph_t {
 		EdgeTypeStr[JUMP] = "jump";
 	}
 
-	double GB() const {
-		int bytes = E.size() * sizeof(E.front()) + V.size() * sizeof(V.front());
-		return bytes / 1024.0 / 1024.0 / 1024.0;
+	size_t trie_mem_bytes() const {
+		return trie_edges * sizeof(E.front()) + trie_nodes * sizeof(V.front());
+	}
+
+	size_t total_mem_bytes() const {
+		return E.size() * sizeof(E.front()) + V.size() * sizeof(V.front());
+	}
+
+	size_t reference_mem_bytes() const {
+		return total_mem_bytes() - trie_mem_bytes();
 	}
 
 	int nodes() const {
