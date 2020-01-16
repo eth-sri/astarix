@@ -158,8 +158,8 @@ class MemoryMeasurer {
 
 		double vm, rss;
 		process_mem_usage(vm, rss);
-		//return rss / (1024.0 * 1024.0);  // KB to GB
-		return vm / (1024.0 * 1024.0);  // KB to GB
+		return rss / (1024.0 * 1024.0);  // KB to GB
+		//return vm / (1024.0 * 1024.0);  // KB to GB
 	}
 
 	void start() {
