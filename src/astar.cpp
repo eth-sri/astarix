@@ -80,7 +80,7 @@ int AStar::precompute_A_star_prefix() {
 
 void AStar::compute_astar_cost_from_vertex_and_prefix(cost_t &res, int u, const std::string &prefix,
 													   int boundary_node, int i, cost_t prev_cost) {
-	if ((size_t)i >= prefix.size()) {// || u == boundary_node) {
+	if ((size_t)i >= prefix.size() || u == boundary_node) {
 		if (prev_cost < res) {
 			res = prev_cost;
 		}
