@@ -37,8 +37,6 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 	
 	ans = aligner->readmap(r, algo, path);
 
-	LOG_DEBUG << "popped: " << aligner->read_counters.popped_trie.get() << " from trie vs " << aligner->read_counters.popped_ref.get() << " from ref";
-
 	const auto &astar = aligner->get_astar();
 	const auto &timers = aligner->read_timers;
 
