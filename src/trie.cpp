@@ -15,7 +15,7 @@ typedef vector<pair<int, pair<int, char>>> EdgeList;
 
 struct TrieNode {
 	int node;
-	map<char, TrieNode*> children;
+	unordered_map<char, TrieNode*> children;
 
 	TrieNode(int _node)
 		: node(_node) {}
@@ -30,6 +30,13 @@ struct TrieNode {
 			children[label] = tree_v;
 			new_edges->push_back(make_pair(node, make_pair(v, label)));
 			return tree_v;
+		}
+	}
+
+	void del_node() {
+		for (auto it: children) {
+			it.second->del_node();
+			delete it.second;
 		}
 	}
 };
@@ -77,4 +84,6 @@ void add_tree(graph_t *G, int tree_depth) {
 		std::cerr << "bad_alloc caught: " << ba.what() << '\n';
 		throw;
     }
+
+	tree_root.del_node();
 }

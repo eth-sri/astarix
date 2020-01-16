@@ -27,6 +27,7 @@ struct pairhash {
 
 struct Counters {
 	Counter pushed, popped, greedy_matched;
+	//Counter pushed_trie, popped_trie;
 
 	void clear() {
 		pushed.clear();
@@ -90,7 +91,7 @@ class Aligner {
 	int _repeated_visits;
 
 	// total_counters are aggregating read_counters at the end of every alignment
-	mutable Counters read_counters, total_counters;
+	mutable Counters read_counters;
 	mutable AlignerTimers read_timers;
 
     Aligner(const graph_t &_G, const AlignParams &_params, AStar *_astar)
