@@ -306,6 +306,7 @@ int main(int argc, char **argv) {
 	out << "              Queries/reads: " << R.size() << " read in " << T.read_queries.get_sec() << "s"<< endl;
 	out << "Graph nodes, edges, density: " << G.nodes() << ", " << G.edges()
 													<< ", " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
+	out << "                   Coverate: " << 1.0 * R.size() * (R.front().s.size()-1) /	(G.edges() / 2)	<< endl; // the graph also includes reverse edges
 	out << "                    Threads: " << args.threads											<< endl;
 	out << "           Reading run time: " << T.read_graph.get_sec() << "s" 	<< endl;  // There are the independent forward and reverse graph
 	//out << "                  Read cost: " << "avg=" << total_read_cost / R.size()
@@ -339,10 +340,11 @@ int main(int argc, char **argv) {
 						<< " (" << 100.0 * astar.get_compressable_vertices() / G.nodes() << "%)"	<< endl;
 	out << "    Precomputation run time: " << T.precompute.get_sec() << "s"							<< endl;
 	out << "                     Memory: " << precomp_vm << " GB "
-					    				<< "(graph: " << 100.0*G.GB() / precomp_vm << "%, " 	
+					    				<< "(reference: " << 100.0*b2gb(G.reference_mem_bytes()) / precomp_vm << "%, " 	
+					    				<< "trie: " << 100.0*b2gb(G.trie_mem_bytes()) / precomp_vm << "%, " 	
 										<< "A*-memoization: "
-//										<< 100.0*astar.table_gb_lower() / precomp_vm << "%-"
-										<< "<" << 100.0*astar.table_gb_upper() / precomp_vm << "%"
+										<< 100.0*b2gb(astar.table_mem_bytes_lower()) / precomp_vm << "%-"
+										<< 100.0*b2gb(astar.table_mem_bytes_upper()) / precomp_vm << "%"
 										<< " for " << int(astar.table_entrees()) << " entries)" << endl;
 	out << "       Memoization hit rate: " << astar_hitrate << "%"									<< endl;
 	}

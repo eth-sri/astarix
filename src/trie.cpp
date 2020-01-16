@@ -62,6 +62,9 @@ void add_tree(graph_t *G, int tree_depth) {
 		throw;
     }
 
+	G->trie_nodes = curr_node - G->V.size();
+	G->trie_edges = new_edges.size();
+
 	try {
 		// Add the tree edges to astarix
 		while (G->V.size() < curr_node)
