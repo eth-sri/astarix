@@ -89,8 +89,6 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 }
 
 void read_queries(const char *query_file, vector<read_t> *R) {
-	cout << "Reading queries..." << endl << flush;
-
     read_t r;
 	ifstream query_in(query_file);
 
@@ -161,6 +159,7 @@ dict_t stats;   // string key -> string value
 int main(int argc, char **argv) {
 	LOG_DEBUG << "memory " << MemoryMeasurer::get_mem_gb();
 	T.total.start();
+    auto start_wt = std::chrono::high_resolution_clock::now();
 
 	args = read_args(argc, argv);
 	std::ios_base::sync_with_stdio(false);
@@ -235,14 +234,8 @@ int main(int argc, char **argv) {
 		out.setf(ios::fixed, ios::floatfield);
 		out.precision(2);
 		out << endl;
-		out << "       == Input =="                                                                     << endl;
-		out << "       Reference+Trie graph: " << G.nodes() << " nodes, " << G.edges() << " edges"      << endl;
-		out << "              Graph density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
-		out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp, "
-				"coverage: " << 1.0 * R.size() * (R.front().s.size()-1) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
 		out << "       == General parameters and optimizations == "                                     << endl;
 		out << "             Alignment algo: " << args.algorithm 			 							<< endl;
-		out << "                       Trie: " << "depth=" << args.tree_depth << ", " << G.trie_nodes << " nodes, " << G.trie_edges << " edges"<< endl;
 		out << "                 Edit costs: " << args.costs.match << ", " << args.costs.subst << ", " << args.costs.ins << ", " << args.costs.del
 			<< " (match, subst, ins, del)" << endl;
 		out << "              Greedy match?: " << bool2str(args.greedy_match) 							<< endl;
@@ -251,17 +244,22 @@ int main(int argc, char **argv) {
 		out << "                   Cost cap: " << args.AStarCostCap 									<< endl;
 		out << "   Upcoming seq. length cap: " << args.AStarLengthCap 									<< endl;
 		out << "      Nodes equiv. classes?: " << bool2str(args.AStarNodeEqivClasses) 					<< endl;
+		out << "A* compressible equiv nodes: " << astar.get_compressable_vertices()
+							<< " (" << 100.0 * astar.get_compressable_vertices() / G.nodes() << "%)"	<< endl;
+		out << "       == Data =="                                                                      << endl;
+		out << "         Original reference: " << G.orig_nodes << " nodes, " << G.orig_edges << " edges"<< endl;
+		out << "                       Trie: " << G.trie_nodes << " nodes, " << G.trie_edges << " edges, "
+												<< "depth: " << args.tree_depth << ", "					<< endl;
+		out << "  Reference+ReverseRef+Trie: " << G.nodes() << " nodes, " << G.edges() << " edges, "
+												<< "density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
+		out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp, "
+				"coverage: " << 1.0 * R.size() * (R.front().s.size()-1) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
 		out << endl;
 	}
 
     double pushed_rate_sum(0.0), pushed_rate_max(0.0);
     double popped_rate_sum(0.0), popped_rate_max(0.0);
     double repeat_rate_sum(0.0), repeat_rate_max(0.0);
-
-    //double precomp_vm, precomp_rss;
-    //process_mem_usage(precomp_vm, precomp_rss);
-	//precomp_vm /= 1024.0 * 1024.0;  // to GB
-	//precomp_rss /= 1024.0 * 1024.0;  // to GB
 
 	T.align.start();
     auto start_align_wt = std::chrono::high_resolution_clock::now();
@@ -355,6 +353,7 @@ int main(int argc, char **argv) {
 	T.total.stop();
     auto end_align_wt = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> align_wt = end_align_wt - start_align_wt;
+	std::chrono::duration<double> total_wt = end_align_wt - start_wt;
 	cout << "done." << endl << flush;
 
 	{
@@ -369,8 +368,6 @@ int main(int argc, char **argv) {
 		out << "             Average popped: " << 1.0 * popped_trie_total.get() / (R.size()/args.threads) << " from trie vs "
 											<< 1.0 * popped_ref_total.get() / (R.size()/args.threads) << " from ref"
 											<< " (influenced by greedy match flag)" << endl;
-		out << "A* compressible equiv nodes: " << astar.get_compressable_vertices()
-							<< " (" << 100.0 * astar.get_compressable_vertices() / G.nodes() << "%)"	<< endl;
 		out << " Non-unique best alignments: " << nonunique_best_alignments << " out of " << R.size()	<< endl;
 
 		out << "       == Performance =="																<< endl;
@@ -384,7 +381,7 @@ int main(int argc, char **argv) {
 												<< 100.0*b2gb(astar.table_mem_bytes_lower()) / total_mem << "%-" 
 												<< 100.0*b2gb(astar.table_mem_bytes_upper()) / total_mem << "%"
 												<< " (" << int(astar.table_entrees()) << " entries)" 	<< endl;
-		out << "               Wall runtime: " << T.total.t.get_sec() << " sec"							<< endl;
+		out << "               Wall runtime: " << total_wt.count() << " s"								<< endl;
 		out << "                     reference loading: " << T.read_graph.t.get_sec() << "s" 			<< endl;
 		out << "                       queries loading: " << T.read_queries.t.get_sec() << "s"			<< endl;
 		out << "                        construct trie: " << T.construct_trie.t.get_sec() << "s"		<< endl;

@@ -43,4 +43,7 @@ void gfa2graph(GfaGraph &gfa, astarix::graph_t *G) {
 			G->add_edge(curr, node2idx[neigh.id], last_letter, astarix::ORIG);
 		}
 	}
+
+	G->orig_nodes = G->V.size();
+	G->orig_edges = G->E.size();
 }

@@ -68,11 +68,13 @@ struct graph_t {
     std::vector<int> V;     // E[ V[i] ] -- last added outgoing edge from vertex i
 	// if a node with number 0 exists, it is a supersource
 
+	int orig_nodes, orig_edges;
+
 	const char *EdgeTypeStr[5];
 	int trie_first_node, trie_nodes, trie_edges;
 
 	graph_t(bool _with_reverse_edges=0)
-			: trie_nodes(0), trie_edges(0)
+			: trie_nodes(0), trie_edges(0), orig_nodes(0), orig_edges(0)
 			//: with_reverse_edges(_with_reverse_edges)
 			{
 		V.resize(1, -1);  // 0 preserved for a supersource
