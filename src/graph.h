@@ -69,7 +69,7 @@ struct graph_t {
 	// if a node with number 0 exists, it is a supersource
 
 	const char *EdgeTypeStr[5];
-	int trie_nodes, trie_edges;
+	int trie_first_node, trie_nodes, trie_edges;
 
 	graph_t(bool _with_reverse_edges=0)
 			: trie_nodes(0), trie_edges(0)
@@ -84,6 +84,10 @@ struct graph_t {
 		EdgeTypeStr[DEL] = "del";
 		EdgeTypeStr[SUBST] = "subst";
 		EdgeTypeStr[JUMP] = "jump";
+	}
+
+	bool node_in_trie(int v) const {
+		return v >= trie_first_node;
 	}
 
 	size_t trie_mem_bytes() const {

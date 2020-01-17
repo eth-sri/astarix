@@ -47,6 +47,9 @@ state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
 		
 		prev_cost = Q.top().second.cost;
 		state_t curr = pop(Q);
+		LOG_INFO << "node in tree: " << G.node_in_trie(curr.v);
+		if (G.node_in_trie(curr.v)) read_counters.popped_trie.inc();
+		else read_counters.popped_ref.inc();
 
 		// state (curr.i, curr.v) denotes that the first curr.i-1 characters of the read were already aligned before coming to curr.v. Next to align is curr.i
 
@@ -64,6 +67,12 @@ state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
 			final_state = get_const_path(p, curr.i, curr.v);
 			read_timers.total.stop();
 			get_best_path_to_state(p, pe, final_state, best_path);
+			unique_best = 1;
+			if (!Q.empty()) {
+				state_t next = pop(Q);
+				if (next.i == r.len && EQ(next.cost, curr.cost))
+					unique_best = 0;
+			}
 			return final_state;
 		}
 

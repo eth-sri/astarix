@@ -58,6 +58,7 @@ void add_tree(graph_t *G, int tree_depth) {
 	TrieNode tree_root(0);
 	EdgeList new_edges;
 	int curr_node=G->V.size();
+	G->trie_first_node = curr_node;
 
 	try {
 		// Construct Trie.

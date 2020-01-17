@@ -36,7 +36,6 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 	state_t ans;
 	
 	ans = aligner->readmap(r, algo, path);
-	//LOG_DEBUG << "popped: " << aligner->read_counters.popped_trie.get() << " from trie vs " << aligner->read_counters.popped_ref.get() << " from ref";
 
 	const auto &astar = aligner->get_astar();
 	const auto &timers = aligner->read_timers;
@@ -67,14 +66,14 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 				"%3d\t%10s\t%10s\t"
 				"%8lf\t%6d\t%6lf\t"
 				"%6lf\t%4lf\t%8lf\t"
-				"%8lf\t%2lf\n",
+				"%8lf\t%2lf\t%d\n",
 				args.graph_file, (int)aligner->graph().nodes(),
 				algo.c_str(), astar.get_max_prefix_len(), astar.get_max_prefix_cost(), 100.0 * astar.get_compressable_vertices() / aligner->graph().nodes(),
 				precomp_str.c_str(), r.comment.c_str(), 0.0,
 				L, s.c_str(), spell(*path).c_str(),
 				ans.cost, starts, pushed_rate,
 				popped_rate, repeat_rate, timers.total.get_sec(),
-				timers.astar.get_sec(), astar_missrate);
+				timers.astar.get_sec(), astar_missrate, aligner->unique_best);
 		//*perf_s += line;
 		
 		//if (perf_s->length() > 50000) {
@@ -191,7 +190,7 @@ int main(int argc, char **argv) {
 				"len\tread\tspell\t"
 				"cost\tstarts\tpushed\t"
 				"popped\trepeat_rate\tt(map)\t"
-				"t(astar)\tastar_missrate\n");
+				"t(astar)\tastar_missrate\tunique_best\n");
 		fclose(fout);
 	}
 
@@ -237,7 +236,6 @@ int main(int argc, char **argv) {
 		out.precision(2);
 		out << endl;
 		out << "       == Input =="                                                                     << endl;
-		out << "              Queries/reads: " << R.size() << " read in " << T.read_queries.t.get_sec() << "s"<< endl;
 		out << "       Reference+Trie graph: " << G.nodes() << " nodes, " << G.edges() << " edges"      << endl;
 		out << "              Graph density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
 		out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp, "
@@ -253,6 +251,7 @@ int main(int argc, char **argv) {
 		out << "                   Cost cap: " << args.AStarCostCap 									<< endl;
 		out << "   Upcoming seq. length cap: " << args.AStarLengthCap 									<< endl;
 		out << "      Nodes equiv. classes?: " << bool2str(args.AStarNodeEqivClasses) 					<< endl;
+		out << endl;
 	}
 
     double pushed_rate_sum(0.0), pushed_rate_max(0.0);
@@ -269,6 +268,8 @@ int main(int argc, char **argv) {
 
 	AlignerTimers total_timers;
 	std::mutex timer_m;
+	Counter popped_trie_total, popped_ref_total;
+	std::atomic<bool> nonunique_best_alignments(0);
 
 	cout << "Aligning..." << flush;
 	bool calc_mapping_cost = false;
@@ -281,6 +282,8 @@ int main(int argc, char **argv) {
 					&R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s, line);
 			fprintf(fout, "%s", line);
 			total_timers += aligner.read_timers;
+			if (!aligner.unique_best)
+				nonunique_best_alignments = nonunique_best_alignments+1;
 
 			if (i % (R.size() / 10) == 0) {
 				cout << "A*-memoization at " << 100.0 * i / R.size() << "% of the reads aligned"
@@ -311,6 +314,12 @@ int main(int argc, char **argv) {
 						timer_m.lock();
 						total_timers += aligner.read_timers;
 						timer_m.unlock();
+						if (t == 0) {
+							popped_trie_total.inc( aligner.read_counters.popped_trie.get() );  
+							popped_ref_total.inc( aligner.read_counters.popped_ref.get() );
+						}
+						if (!aligner.unique_best)
+							nonunique_best_alignments = nonunique_best_alignments + 1;
 					}
 				}
 			});
@@ -354,11 +363,15 @@ int main(int argc, char **argv) {
 		double total_mem = MemoryMeasurer::get_mem_gb();
 
 		out << "       == Aligning statistics =="														<< endl;
-		out << "      Memoization miss rate: " << astar_missrate << "%"									<< endl;
 		out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
 		out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
+		out << "      Memoization miss rate: " << astar_missrate << "%"									<< endl;
+		out << "             Average popped: " << 1.0 * popped_trie_total.get() / (R.size()/args.threads) << " from trie vs "
+											<< 1.0 * popped_ref_total.get() / (R.size()/args.threads) << " from ref"
+											<< " (influenced by greedy match flag)" << endl;
 		out << "A* compressible equiv nodes: " << astar.get_compressable_vertices()
 							<< " (" << 100.0 * astar.get_compressable_vertices() / G.nodes() << "%)"	<< endl;
+		out << " Non-unique best alignments: " << nonunique_best_alignments << " out of " << R.size()	<< endl;
 
 		out << "       == Performance =="																<< endl;
 		out << "               Memory: " << " measured | estimated" 									<< endl;
@@ -385,6 +398,7 @@ int main(int argc, char **argv) {
 									<< "dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time	<< "%, "
 									<< "greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time	<< "%"
 									<< ")" << endl;
+		out << " DONE" << endl;
 	}
 
 	if (!performance_file.empty()) {
