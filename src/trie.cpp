@@ -15,28 +15,32 @@ typedef vector<pair<int, pair<int, char>>> EdgeList;
 
 struct TrieNode {
 	int node;
-	unordered_map<char, TrieNode*> children;
+	TrieNode* children[4];
 
 	TrieNode(int _node)
-		: node(_node) {}
+		: node(_node) {
+		children[0] = children[1] = children[2] = children[3] = nullptr;
+	}
 
 	TrieNode* add_node(const graph_t &G, char label, EdgeList *new_edges, int *curr_node) {
-		if (children.find(label) != children.end()) {
-			return children[label];
+		if (children[nucl2num(label)] != nullptr) {
+			return children[nucl2num(label)];
 		} else {
 			int v = *curr_node;
 			++(*curr_node);
 			TrieNode* tree_v = new TrieNode(v);
-			children[label] = tree_v;
+			children[nucl2num(label)] = tree_v;
 			new_edges->push_back(make_pair(node, make_pair(v, label)));
 			return tree_v;
 		}
 	}
 
 	void del_node() {
-		for (auto it: children) {
-			it.second->del_node();
-			delete it.second;
+		for (int i=0; i<4; i++) {
+			if (children[i] != nullptr) {
+				children[i]->del_node();
+				delete children[i];
+			}
 		}
 	}
 };
