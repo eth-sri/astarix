@@ -1,5 +1,5 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -g -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter
+CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter
 
 SRCDIR=src
 EXTDIR=ext
@@ -11,7 +11,7 @@ BINDIR=bin
 TMPDIR=tmp
 
 ASTARIXBIN=$(BINDIR)/astarix
-LIBS=-lm -lz 
+LIBS= #-lm -lz 
 
 _DEPS = $(SRCDIR)/argparse.h $(SRCDIR)/astar.h $(SRCDIR)/gfa2graph.h $(SRCDIR)/graph.h $(SRCDIR)/io.h $(SRCDIR)/align.h $(SRCDIR)/utils.h $(SRCDIR)/trie.h $(EXTDIR)/GraphAligner/GfaGraph.h
 DEPS = $(patsubst %, %, $(_DEPS))
