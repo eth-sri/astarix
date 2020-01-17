@@ -15,18 +15,16 @@ typedef vector<pair<int, pair<int, char>>> EdgeList;
 
 struct TrieNode {
 	int node;
+	int cnt;
 	TrieNode* children[4];
 
 	TrieNode(int _node)
-		: node(_node) {
+		: node(_node), cnt(0) {
 		children[0] = children[1] = children[2] = children[3] = nullptr;
 	}
 
-	int out_degree() const {
-		return (children[0] != nullptr) + (children[1] != nullptr) + (children[2] != nullptr) + (children[3] != nullptr);
-	}
-
 	TrieNode* get_node(char label) {
+		++cnt;
 		auto &p = children[nucl2num(label)];
 		if (p == nullptr)
 			p = new TrieNode(-1);
@@ -62,7 +60,7 @@ void dfs_trie_to_graph(const graph_t &G, int v, int rem_depth, TrieNode *tree_v,
 
 	for (int idx=G.V[v]; idx!=-1; idx=G.E[idx].next) {
 		const edge_t &e = G.E[idx];
-		if (rem_depth == 0 || tree_v->out_degree() == 1) {
+		if (rem_depth == 0 || tree_v->cnt == 1) {
 			// Connect to reference genome.
 			new_edges->push_back(make_pair(tree_v->node, make_pair(e.to, e.label)));
 		} else {
