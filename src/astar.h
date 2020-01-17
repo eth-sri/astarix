@@ -71,11 +71,6 @@ class AStar {
 
 		precompute_A_star_prefix();
 	}
-	
-	// returns the total number of precomputed elements.
-	// space for paths: O(NlogL*?), time for paths: O(MlogL*?)
-	// query will be for O(logL)
-    int precompute_A_star_prefix();
 
 	// heuristic h(node, upcoming string)
 	cost_t h(int v, const std::string &prefix);
@@ -123,15 +118,20 @@ class AStar {
 	}
 
 	size_t table_mem_bytes_lower() const {
-		return _star.size() * (sizeof(cost_t) + 1) / _star.load_factor();
+		return _star.size() * (sizeof(unsigned) + sizeof(cost_t) + 1) / _star.load_factor();
 	}
 
 	size_t table_mem_bytes_upper() const {
-		size_t add_size = 0.03 *_star.size() * (sizeof(cost_t) + 1) / 0.4375;
+		size_t add_size = 0.03 *_star.size() * (sizeof(unsigned) + sizeof(cost_t) + 1) / 0.4375;
 		return table_mem_bytes_lower() + add_size;
 	}
 
   private:
+	// returns the total number of precomputed elements.
+	// space for paths: O(NlogL*?), time for paths: O(MlogL*?)
+	// query will be for O(logL)
+    int precompute_A_star_prefix();
+
 	// returns true if there is a unique ORIG path from u with length rem_len; postcond: pref is the spelling of this path
 	// returns false otherwise
 	bool is_linear(int u, int rem_len, std::string *pref, int *boundary_node);
