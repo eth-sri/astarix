@@ -366,7 +366,6 @@ struct seq_t {
 struct read_t {
     std::string s; // 1-based
     std::string phreds;  // 1-based
-	phred_t phred;  // same for all positions
     int len;  // s[1:len] has len letters
 	//bool with_errors;
 	std::string comment;

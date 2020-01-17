@@ -47,7 +47,7 @@ state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
 		
 		prev_cost = Q.top().second.cost;
 		state_t curr = pop(Q);
-		LOG_INFO << "node in tree: " << G.node_in_trie(curr.v);
+		//LOG_INFO << "node in tree: " << G.node_in_trie(curr.v);
 		if (G.node_in_trie(curr.v)) read_counters.popped_trie.inc();
 		else read_counters.popped_ref.inc();
 

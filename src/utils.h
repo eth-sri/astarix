@@ -20,8 +20,7 @@ namespace astarix {
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define EQ(a, b) ((a<b) ? (b-a) < eps : (a-b) < eps)
 
-typedef double phred_t;
-typedef double cost_t;
+typedef char cost_t;
 typedef char label_t;
 
 class state_t;
