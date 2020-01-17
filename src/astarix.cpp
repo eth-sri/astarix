@@ -32,15 +32,13 @@ void init_logger(const char *log_fn, int verbose) {
 }
 
 state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
-		edge_path_t *path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, string *perf_s, char *line) {
+		edge_path_t *path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, char *line) {
 	state_t ans;
 	
 	ans = aligner->readmap(r, algo, path);
 
 	const auto &astar = aligner->get_astar();
 	const auto &timers = aligner->read_timers;
-
-	//return ans;
 
 	if (!performance_file.empty()) {
 		string precomp_str = "align";
@@ -59,7 +57,6 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 		*popped_rate_max = max(*popped_rate_max, popped_rate);
 		*repeat_rate_max = max(*repeat_rate_max, repeat_rate);
 
-		//char line[10000];
 		line[0] = 0;
 		sprintf(line,
 				"%8s\t%3d\t"
@@ -76,15 +73,6 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 				int(ans.cost), starts, pushed_rate,
 				popped_rate, repeat_rate, timers.total.get_sec(),
 				timers.astar.get_sec(), astar_missrate, aligner->unique_best);
-		//*perf_s += line;
-		
-		//if (perf_s->length() > 50000) {
-		//	FILE *fout = fopen(performance_file.c_str(), "a");
-		//	fprintf(fout, "%s", perf_s->c_str());
-		//	fclose(fout);
-
-		//	perf_s->clear();
-		//}
 	}
 
 	return ans;
@@ -118,15 +106,15 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
 	}
 }
 
-void print_tsv(map<string, string> dict) {
+void print_tsv(map<string, string> dict, ostream &out) {
 	for (auto const &it: dict)
-		cout << it.first << "\t";
-	cout << endl;
+		out << it.first << "\t";
+	out << endl;
 	for (auto const &it: dict) {
 		assert(!it.second.empty());
-		cout << it.second << "\t";
+		out << it.second << "\t";
 	}
-	cout << endl;
+	out << endl;
 }
 
 typedef map<string, string> dict_t;
@@ -150,15 +138,58 @@ struct Measurers {
 	TimeAndMemory total, construct_trie, read_graph, read_queries, align, precompute;
 
 	void extract_to_dict(dict_t *dict) {
-		//(*dict)["input_sec"] = to_string(input.t.get_sec());
+		(*dict)["total_sec"] = to_string(total.t.get_sec());
+		(*dict)["total_gb"] = to_string(total.m.get_gb());
+		(*dict)["construct_trie_sec"] = to_string(construct_trie.t.get_sec());
+		(*dict)["construct_trie_gb"] = to_string(construct_trie.m.get_gb());
+		(*dict)["read_graph_sec"] = to_string(read_graph.t.get_sec());
+		(*dict)["read_graph_gb"] = to_string(read_graph.m.get_gb());
+		(*dict)["read_queries_sec"] = to_string(read_queries.t.get_sec());
+		(*dict)["read_queries_gb"] = to_string(read_queries.m.get_gb());
 		(*dict)["align_sec"] = to_string(align.t.get_sec());
+		(*dict)["align_gb"] = to_string(align.m.get_gb());
+		(*dict)["precompute_sec"] = to_string(precompute.t.get_sec());
+		(*dict)["precompute_gb"] = to_string(precompute.m.get_gb());
 	}
 };
 
-Measurers T;
-dict_t stats;   // string key -> string value
+void extract_args_to_dict(const arguments &args, dict_t *dict) {
+	// io
+	(*dict)["graph_file"] = args.graph_file;
+	(*dict)["query_file"] = args.query_file;
+	(*dict)["algorithm"] = args.algorithm;
+
+	(*dict)["algorithm"] = args.algorithm;
+
+	// edit costs
+	(*dict)["cost_match"] = to_string(args.costs.match);
+	(*dict)["cost_subst"] = to_string(args.costs.subst);
+	(*dict)["cost_ins"] = to_string(args.costs.ins);
+	(*dict)["cost_del"] = to_string(args.costs.del);
+
+	// optimizations
+	(*dict)["greedy_math"] = to_string(args.greedy_match);
+	(*dict)["tree_depth"] = to_string(args.tree_depth);
+	(*dict)["AStarLengthCap"] = to_string(args.AStarLengthCap);
+	(*dict)["AStarCostCap"] = to_string(args.AStarCostCap);
+	(*dict)["AStarNodeEqivClasses"] = to_string(args.AStarNodeEqivClasses);
+
+	// perf
+	(*dict)["threads"] = to_string(args.threads);
+}
 
 int main(int argc, char **argv) {
+	cout << "----" << endl;
+#ifdef NDEBUG
+	cout << "Assert() checks:       OFF" << endl;
+#else
+	cout << "Assert() checks:       ON" << endl;
+#endif
+	cout << "----" << endl;
+
+	Measurers T;
+	dict_t stats;   // string key -> string value
+
 	LOG_DEBUG << "memory " << MemoryMeasurer::get_mem_gb();
 	T.total.start();
     auto start_wt = std::chrono::high_resolution_clock::now();
@@ -166,14 +197,14 @@ int main(int argc, char **argv) {
 	args = read_args(argc, argv);
 	std::ios_base::sync_with_stdio(false);
 
-	string performance_file, info_log_file;
+	string performance_file, info_log_file, stats_file;
 
 	string output_dir = args.output_dir;
 	if (!output_dir.empty()) {
 		assure_dir_exists(args.output_dir);
 		performance_file = output_dir + "/alignments.tsv";
 		info_log_file = output_dir + "/info.log";
-		//stats_log_file = output_dir + "/info.log";
+		stats_file = output_dir + "/stats.log";
 	//if (!output_dir.empty())
 		init_logger(info_log_file.c_str(), args.verbose);
 	}
@@ -219,8 +250,6 @@ int main(int argc, char **argv) {
 	T.construct_trie.stop();
 	cout << "done." << endl << flush;
 
-	string perf_s;
-
 	T.precompute.start();
 	AStar astar(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
 	T.precompute.stop();
@@ -249,7 +278,9 @@ int main(int argc, char **argv) {
 		out << "      Nodes equiv. classes?: " << bool2str(args.AStarNodeEqivClasses) 					<< endl;
 		out << "A* compressible equiv nodes: " << astar.get_compressable_vertices()
 							<< " (" << 100.0 * astar.get_compressable_vertices() / G.nodes() << "%)"	<< endl;
+
 		out << " == Data =="                                                                      << endl;
+		// Note: the trie is built on top of the **doubled** original graph (incl. reverse).
 		out << "         Original reference: " << G.orig_nodes << " nodes, " << G.orig_edges << " edges"<< endl;
 		out << "                       Trie: " << G.trie_nodes << " nodes, " << G.trie_edges << " edges, "
 												<< "depth: " << args.tree_depth 						<< endl;
@@ -258,6 +289,13 @@ int main(int argc, char **argv) {
 		out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp, "
 				"coverage: " << 1.0 * R.size() * (R.front().s.size()-1) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
 		out << endl;
+
+		stats["orig_graph_nodes"] = to_string(G.orig_nodes);
+		stats["orig_graph_edges"] = to_string(G.orig_edges);
+		stats["trie_nodes"] = to_string(G.trie_nodes); 
+		stats["trie_edges"] = to_string(G.trie_edges);
+		stats["total_nodes"] = to_string(G.nodes()); 
+		stats["total_edges"] = to_string(G.edges());
 	}
 
     double pushed_rate_sum(0.0), pushed_rate_max(0.0);
@@ -280,7 +318,7 @@ int main(int argc, char **argv) {
 			char line[10000];
 			Aligner aligner(G, align_params, &astar);
 			state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-					&R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s, line);
+					&R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
 			fprintf(fout, "%s", line);
 			total_timers += aligner.read_timers;
 			if (!aligner.unique_best)
@@ -309,7 +347,7 @@ int main(int argc, char **argv) {
 					char line[10000];
 					Aligner aligner(G, align_params, &astar);
 					state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-							&R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, &perf_s, line);
+							&R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
 					profileQueue.enqueue(string(line));
 					{
 						timer_m.lock();
@@ -384,7 +422,7 @@ int main(int argc, char **argv) {
 				     			<< 100.0*b2gb(astar.table_mem_bytes_lower()) / total_mem << "%-" 
 				     			<< 100.0*b2gb(astar.table_mem_bytes_upper()) / total_mem << "%"
 				     			<< " (" << int(astar.table_entrees()) << " entries)" 	<< endl;
-		out << "    Wall runtime: " << total_wt.count() << " s"								<< endl;
+		out << "    Wall runtime: " << total_wt.count() << "s"							<< endl;
 		out << "       reference loading: " << T.read_graph.t.get_sec() << "s" 			<< endl;
 		out << "         queries loading: " << T.read_queries.t.get_sec() << "s"			<< endl;
 		out << "          construct trie: " << T.construct_trie.t.get_sec() << "s"		<< endl;
@@ -401,14 +439,11 @@ int main(int argc, char **argv) {
 		out << " DONE" << endl;
 	}
 
-	if (!performance_file.empty()) {
-		FILE *fout = fopen(performance_file.c_str(), "a");
-		fprintf(fout, "%s", perf_s.c_str());
-		fclose(fout);
-	}
-
+	extract_args_to_dict(args, &stats);
 	T.extract_to_dict(&stats);
-	//print_tsv(stats);
+	ofstream tsv(stats_file);
+	print_tsv(stats, tsv);
+	tsv.close();
 
     return 0;
 }
