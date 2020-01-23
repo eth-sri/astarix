@@ -5,6 +5,8 @@
 It supports general graphs and finds alignments that are optimal according to edit-distance with non-negative weights.
 AStarix parallelizes the alignment of a set of reads.
 
+A [preprint](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v1) using AStarix has been accepted to [RECOMB2020](https://www.recomb2020.org/).
+
 ## Quick start using Docker
 
 The easiest way to try out AStarix is using [Docker](https://www.docker.com).
