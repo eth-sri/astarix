@@ -5,7 +5,7 @@
 It supports general graphs and finds alignments that are optimal according to edit-distance with non-negative weights.
 AStarix parallelizes the alignment of a set of reads.
 
-A [preprint](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v1) using AStarix has been accepted to [RECOMB2020](https://www.recomb2020.org/).
+A [preprint](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v1) using AStarix has been accepted to [RECOMB2020](https://www.recomb2020.org/). Evaluation scripts are available in the [RECOMB2020_experiments branch](https://github.com/eth-sri/astarix/tree/RECOMB2020_experiments/evals).
 
 ## Quick start using Docker
 
