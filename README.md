@@ -84,7 +84,7 @@ Short aggregated statistics are print to standard output (to redirect, you can a
 
 # Usage
 
-AStarix currently works only in exact/optimal mode (specified using `align-optimal`). Currently supported formats are `.gfa` (for a graph reference) and `.fa`/`.fasta` (for a linear reference). The queries should be in `.fq`/`.fastq` format (the phred values are ignored).
+AStarix currently works only in exact/optimal mode (specified using `align-optimal`). Currently supported formats are `.gfa` without overlapping nodes (for a graph reference) and `.fa`/`.fasta` (for a linear reference). The queries should be in `.fq`/`.fastq` format (the phred values are ignored).
 Tested on Ubuntu 18.04.
 
 ```
