@@ -12,9 +12,11 @@ A [preprint](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v1) using 
 The easiest way to try out AStarix is using [Docker](https://www.docker.com).
 
 ```bash
-# build docker image
+# run docker daemon if not running already
+sudo dockerd
+# build and test the docker image
 sudo docker build -t astarix .
-# run docker image
+# interactively run a new container for further work
 sudo docker run -it --rm --name astarix-container astarix
 ```
 
