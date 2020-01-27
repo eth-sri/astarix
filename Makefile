@@ -42,6 +42,7 @@ test: $(ASTARIXBIN)
 	#$(ASTARIXBIN) align-optimal -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-default
 	#$(ASTARIXBIN) align-optimal -a astar-prefix -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -D 5 -f 0 -d 10 -c 3 -M 0 -e 0 -S 1 -G 1 -o $(TMPDIR)/ecoli_head10000_linear/astar-custom
 
+bigtest:
 	# 10000 reads
 	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default
 	$(ASTARIXBIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/dijkstra-default

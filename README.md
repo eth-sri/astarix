@@ -7,20 +7,18 @@ AStarix parallelizes the alignment of a set of reads.
 
 A [preprint](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v1) using AStarix has been accepted to [RECOMB2020](https://www.recomb2020.org/). Evaluation scripts are available in the [RECOMB2020_experiments branch](https://github.com/eth-sri/astarix/tree/RECOMB2020_experiments/evals).
 
-## Quick start using Docker
+## Using Docker
 
-The easiest way to try out AStarix is using [Docker](https://www.docker.com).
+You can try out AStarix using [Docker](https://www.docker.com).
 
 ```bash
 # run docker daemon if not running already
 sudo dockerd
-# build and test the docker image
+# set up prerequisites, clone and build the current repository and test it
 sudo docker build -t astarix .
 # interactively run a new container for further work
 sudo docker run -it --rm --name astarix-container astarix
 ```
-
-These two commands will set up the prerequisites, clone the current repository, compile it and test it.
 
 ## Manual install
 
@@ -32,8 +30,6 @@ In order to compile AStarix, you will need to first install:
 
 * [argp](https://www.gnu.org/software/libc/manual/html_node/Argp.html) &ndash;
   argument parsing library
-* [zlib](https://www.zlib.net/) &ndash; compression library
-* (optional) [pandas](https://pandas.pydata.org/) &ndash; dataframe library used for testing and evalutaions
 
 We show how to install them in the [Dockerfile](./Dockerfile).
 Other third-party libraries are located in the `/ext` directory and their own licenses apply.
