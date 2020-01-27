@@ -30,6 +30,7 @@ In order to compile AStarix, you will need to first install:
 
 * [argp](https://www.gnu.org/software/libc/manual/html_node/Argp.html) &ndash;
   argument parsing library
+* (optional) [pandas](https://pandas.pydata.org/) &ndash; dataframe library used for testing and evalutaions
 
 We show how to install them in the [Dockerfile](./Dockerfile).
 Other third-party libraries are located in the `/ext` directory and their own licenses apply.
