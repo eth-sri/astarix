@@ -1,4 +1,8 @@
-# AStarix
+<img width="80" alt="AStarix" align="left" src="https://www.sri.inf.ethz.ch/assets/systems/astarix.png"></a><br/>
+<a href="https://www.sri.inf.ethz.ch/"><img width="100" alt="SRILAB" align="right" src="http://safeai.ethz.ch/img/sri-logo.svg"></a><br/>
+
+---
+
 ![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)
 
 **AStarix** is a sequence-to-graph semi-global aligner based on A* shortest path algorithm.
