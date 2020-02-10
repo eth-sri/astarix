@@ -1,4 +1,4 @@
-<img width="80" alt="AStarix" align="left" src="https://www.sri.inf.ethz.ch/assets/systems/astarix.png"></a><br/>
+<img width="100" alt="AStarix" align="left" src="https://www.sri.inf.ethz.ch/assets/systems/astarix.png"><br/>
 <a href="https://www.sri.inf.ethz.ch/"><img width="100" alt="SRILAB" align="right" src="http://safeai.ethz.ch/img/sri-logo.svg"></a><br/>
 
 ---
