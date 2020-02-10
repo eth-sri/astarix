@@ -3,7 +3,6 @@
 
 **AStarix** is a sequence-to-graph semi-global aligner based on A* shortest path algorithm.
 It supports general graphs and finds alignments that are optimal according to edit-distance with non-negative weights.
-AStarix parallelizes the alignment of a set of reads.
 
 A [preprint](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v1) using AStarix has been accepted to [RECOMB2020](https://www.recomb2020.org/). Evaluation scripts are available in the [RECOMB2020_experiments branch](https://github.com/eth-sri/astarix/tree/RECOMB2020_experiments/evals).
 
@@ -122,3 +121,5 @@ Optimal sequence-to-graph aligner based on A* shortest path.
 
 **AStarix computes** an A* heuristic function __h__ that directs the path search faster by anticipating the upcoming nucleotides to be aligned.
 Once computed, a value of __h__ is memoized in a hash table ([parallel-hashmap](https://github.com/greg7mdp/parallel-hashmap)).
+
+AStarix parallelizes the alignment of a set of reads.
