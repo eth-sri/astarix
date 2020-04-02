@@ -1,5 +1,4 @@
-#ifndef ASTARIX_GRAPH_H
-#define ASTARIX_GRAPH_H
+#pragma once
 
 #include <climits>
 #include <fstream>
@@ -406,5 +405,3 @@ class AStarHeuristic {
 };
 
 }
-
-#endif

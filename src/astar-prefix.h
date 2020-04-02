@@ -1,5 +1,4 @@
-#ifndef ASTARIX_ASTAR_PREFIX_H
-#define ASTARIX_ASTAR_PREFIX_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -183,5 +182,3 @@ class AStarPrefix: public AStarHeuristic {
 };
 
 }
-
-#endif

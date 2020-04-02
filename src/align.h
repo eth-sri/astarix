@@ -1,5 +1,4 @@
-#ifndef ASTARIX_Aligner_H
-#define ASTARIX_Aligner_H
+#pragma once
 
 #include <algorithm>
 #include <vector>
@@ -188,5 +187,3 @@ class Aligner {
 };
 
 }
-
-#endif

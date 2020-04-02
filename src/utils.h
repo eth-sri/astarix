@@ -1,5 +1,4 @@
-#ifndef ASTARIX_UTILS_H
-#define ASTARIX_UTILS_H
+#pragma once
 
 #include <algorithm>
 #include <assert.h>
@@ -328,5 +327,3 @@ static bool hasEnding (std::string const &fullString, std::string const &ending)
 }
 
 }
-
-#endif

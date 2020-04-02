@@ -1,5 +1,4 @@
-#ifndef ASTARIX_ASTAR_MATCHING_H
-#define ASTARIX_ASTAR_MATCHING_H
+#pragma once
 
 #include <map>
 #include <string>
@@ -88,5 +87,3 @@ class AStarMatching {
 };
 
 }
-
-#endif

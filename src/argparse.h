@@ -1,5 +1,4 @@
-#ifndef ASTARIX_ARGPARSE_H
-#define ASTARIX_ARGPARSE_H
+#pragma once
 
 #include <argp.h>
 #include <cassert>
@@ -126,5 +125,3 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 }
 
 arguments read_args(int argc, char **argv);
-
-#endif

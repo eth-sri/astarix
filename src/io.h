@@ -1,5 +1,4 @@
-#ifndef ASTARIX_IO_H
-#define ASTARIX_IO_H
+#pragma once
 
 #include <cassert>
 #include <cmath>
@@ -270,5 +269,3 @@ static int output(const graph_t &G, const EditCosts &costs, const read_t &r, con
 }
 
 }
-
-#endif
