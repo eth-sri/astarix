@@ -10,7 +10,14 @@
 
 namespace astarix {
 
-class AStar {
+class AStarHeuristic {
+  public:
+	virtual cost_t h(const read_t &r, const state_t &st) const = 0;
+	virtual void print_params(std::ostream &out) const = 0;
+//	virtual void print_stats() const = 0;
+};
+
+class AStar: public AStarHeuristic {
   private:
 	// General params
 	const graph_t &G;
@@ -23,7 +30,7 @@ class AStar {
 	bool lazy;
 
 	// Main data struct used for memoization
-	phmap::parallel_flat_hash_map<unsigned, cost_t,
+	mutable phmap::parallel_flat_hash_map<unsigned, cost_t,
 							phmap::container_internal::hash_default_hash<unsigned>, \
                             phmap::container_internal::hash_default_eq<unsigned>, \
                             std::allocator<std::pair<const unsigned, cost_t>>, 4, std::mutex> _star;  // with a mutex
@@ -34,54 +41,62 @@ class AStar {
 	std::vector<int> _class2repr;  					// used for `decompresion'
 	std::vector<int> _class2boundary;
 	unsigned _nucl_num[256];
-	int _cache_trees, _cache_misses;
+	mutable int _cache_trees, _cache_misses;
 
 	int classes;  									// number of equivalence classes
 
 	// Currently calculated
 	int compressable_vertices;
 
-	Timer astar_time;
-	std::atomic<int> _entries;
+	mutable std::atomic<int> _entries;
 
   public:
-	AStar(const graph_t &_G, const EditCosts &_costs, int _max_prefix_len, int _max_prefix_cost, bool _compress_vertices)
+	AStar(const graph_t &_G, const EditCosts &_costs)
 		: G(_G),
 		  costs(_costs),
-		  max_prefix_len(_max_prefix_len),
-		  max_prefix_cost(_max_prefix_cost),
-		  compress_vertices(_compress_vertices),
 		  lazy(true),
 		  _cache_trees(0), _cache_misses(0),
 		  classes(0),
 		  compressable_vertices(0),
 		  _entries(0)
 	{
+		// used for hashing
+		_nucl_num['a'] = _nucl_num['A'] = 0;
+		_nucl_num['c'] = _nucl_num['C'] = 1;
+		_nucl_num['g'] = _nucl_num['G'] = 2;
+		_nucl_num['t'] = _nucl_num['T'] = 3;
+	}
+
+    void init(int _max_prefix_len, int _max_prefix_cost, bool _compress_vertices) {
+        max_prefix_len = _max_prefix_len;
+        max_prefix_cost = _max_prefix_cost;
+        compress_vertices = _compress_vertices;
+
 		LOG_INFO << "A* Prefix class constructed with:";
 		LOG_INFO << "  max_prefix_len    = " << max_prefix_len;
 		LOG_INFO << "  max_prefix_cost  = " << max_prefix_cost;
 		LOG_INFO << "  compress_vertices = " << (compress_vertices ? "true" : "false");
 		LOG_INFO << "  lazy              = " << (lazy ? "true" : "false");
 
-		// used for hashing
-		_nucl_num['a'] = _nucl_num['A'] = 0;
-		_nucl_num['c'] = _nucl_num['C'] = 1;
-		_nucl_num['g'] = _nucl_num['G'] = 2;
-		_nucl_num['t'] = _nucl_num['T'] = 3;
-
 		precompute_A_star_prefix();
-	}
+    }
 
-	// heuristic h(node, upcoming string)
-	cost_t h(int v, const std::string &prefix);
+    void print_params(std::ostream &out) const {
+		out << "                   Cost cap: " << max_prefix_cost    					 << std::endl;
+		out << "   Upcoming seq. length cap: " << max_prefix_len    					 << std::endl;
+		out << "      Nodes equiv. classes?: " << bool2str(compress_vertices)        	 << std::endl;
+		out << "A* compressible equiv nodes: " << compressable_vertices
+							<< " (" << 100.0 * compressable_vertices / G.nodes() << "%)" << std::endl;
+    }
 
-	void reset_astar_time() {
-		astar_time.clear();
-	}
+    void print_stats(std::ostream &out) const {
+        out << " eq. classes mem:" << b2gb(equiv_classes_mem_bytes()) << "gb" << std::endl;
+        out << b2gb(table_mem_bytes_lower()) << "gb" 
+		    << b2gb(table_mem_bytes_upper()) << "gb"
+		    << " (" << int(table_entrees()) << " entries)" 	<< std::endl;
+    }
 
-	int get_max_prefix_len() const {
-		return max_prefix_len;
-	}
+	cost_t h(const read_t &r, const state_t &st) const;
 
 	size_t equiv_classes_mem_bytes() const {
 		return _vertex2class.size() * sizeof(_vertex2class.front()) +
@@ -89,17 +104,17 @@ class AStar {
 			_class2boundary.size() * sizeof(_class2boundary);
 	}
 
-	double get_astar_time() const {
-		return astar_time.get_sec();
-	}
-
-	int get_compressable_vertices() const {
-		return compressable_vertices;
-	}
-
 	cost_t get_max_prefix_cost() const {
 		return max_prefix_cost;
 	}
+
+    int get_compressable_vertices() const {
+        return compressable_vertices;
+    }
+
+	//int get_max_prefix_len() const {
+	//	return max_prefix_len;
+	//}
 
 	int get_cache_trees() const {
 		return _cache_trees;
@@ -109,6 +124,7 @@ class AStar {
 		return _cache_misses;
 	}
 
+  private:
 	double table_entrees() const {
 		return _star.size();
 	}
@@ -126,7 +142,6 @@ class AStar {
 		return table_mem_bytes_lower() + add_size;
 	}
 
-  private:
 	// returns the total number of precomputed elements.
 	// space for paths: O(NlogL*?), time for paths: O(MlogL*?)
 	// query will be for O(logL)
@@ -134,17 +149,18 @@ class AStar {
 
 	// returns true if there is a unique ORIG path from u with length rem_len; postcond: pref is the spelling of this path
 	// returns false otherwise
-	bool is_linear(int u, int rem_len, std::string *pref, int *boundary_node);
+	bool is_linear(int u, int rem_len, std::string *pref, int *boundary_node) const;
 
 	// computes the minimum cost for matching the remining read (prefix[i:]) from u
-	void compute_astar_cost_from_vertex_and_prefix(cost_t &res, int u, const std::string &prefix, int boundary_node,
-			int i=0, cost_t prev_cost=0.0);
+	void compute_astar_cost_from_vertex_and_prefix(
+            cost_t &res, int u, const std::string &prefix, int boundary_node,
+			int i=0, cost_t prev_cost=0.0) const;
 
 	// wrapper around compute_astar_cost_from_vertex_and_prefix dealing with memoization
-	cost_t lazy_star_value(unsigned h, int repr, int boundary_node, const std::string &prefix);
+	cost_t lazy_star_value(unsigned h, int repr, int boundary_node, const std::string &prefix) const;
 
 	// translatex (node, prefix) to (hash(eq_class_representative_node(node)), prefix)
-	cost_t astar_from_pos(int v, const std::string &prefix);
+	cost_t astar_from_pos(int v, const std::string &prefix) const;
 
 	void hash_precomp() {
 		int four_power=1;
@@ -161,7 +177,7 @@ class AStar {
 	}
 
 	// returns [0; 4^0+4^1+...+4^max_prefix_len) = [0; kMaxStrHash)
-	unsigned hash_str(const std::string &s) {
+	unsigned hash_str(const std::string &s) const {
 		unsigned h = 0;
 		for (char c: s) {
 			assert(is_nucl(c));
@@ -173,7 +189,7 @@ class AStar {
 	}
 
 	// returns [0; N*2^(2*K+1))
-	unsigned hash(const std::string &s, unsigned cl) {
+	unsigned hash(const std::string &s, unsigned cl) const {
 		unsigned h = hash_str(s) + cl*kMaxStrHash;
 		return h;
 	}

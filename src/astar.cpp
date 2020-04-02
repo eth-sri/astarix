@@ -2,7 +2,7 @@
 
 namespace astarix {
 
-bool AStar::is_linear(int u, int rem_len, std::string *pref, int *boundary_node) {
+bool AStar::is_linear(int u, int rem_len, std::string *pref, int *boundary_node) const {
 	if (rem_len == 0) {
 		(*boundary_node) = u;
 		return true;
@@ -78,8 +78,9 @@ int AStar::precompute_A_star_prefix() {
 	return precomputed_elements;
 }
 
-void AStar::compute_astar_cost_from_vertex_and_prefix(cost_t &res, int u, const std::string &prefix,
-													   int boundary_node, int i, cost_t prev_cost) {
+void AStar::compute_astar_cost_from_vertex_and_prefix(
+        cost_t &res, int u, const std::string &prefix,
+        int boundary_node, int i, cost_t prev_cost) const {
 	if ((size_t)i >= prefix.size() || u == boundary_node) {
 		if (prev_cost < res) {
 			res = prev_cost;
@@ -97,7 +98,7 @@ void AStar::compute_astar_cost_from_vertex_and_prefix(cost_t &res, int u, const 
 	}
 }
 
-cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std::string &prefix) {
+cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std::string &prefix) const {
 	LOG_DEBUG << "Lazy A* query for h=" << h << ", repr=" << repr << ", boundary_node=" << boundary_node << ", prefix=" << prefix;
 
 	++_cache_trees;
@@ -106,11 +107,7 @@ cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std
 		++_cache_misses;
 		cost_t res=0.0;
 		res = max_prefix_cost;
-		Timer curr_time;
-		curr_time.start();
-			compute_astar_cost_from_vertex_and_prefix(res, repr, prefix, boundary_node);
-		curr_time.stop();
-		astar_time += curr_time;
+        compute_astar_cost_from_vertex_and_prefix(res, repr, prefix, boundary_node);
 		++_entries;
 		_star[h] = res;
 		return res;
@@ -119,7 +116,7 @@ cost_t AStar::lazy_star_value(unsigned h, int repr, int boundary_node, const std
 	return it->second;
 }
 
-cost_t AStar::astar_from_pos(int v, const std::string &prefix) {
+cost_t AStar::astar_from_pos(int v, const std::string &prefix) const {
 	LOG_DEBUG << "v=" << v << ", prefix=" << prefix;
 	assert(v < _vertex2class.size());
 	int cl = _vertex2class[v];
@@ -131,11 +128,20 @@ cost_t AStar::astar_from_pos(int v, const std::string &prefix) {
 	return lazy_star_value(h, repr, boundary_node, prefix);
 }
 
-cost_t AStar::h(int v, const std::string &prefix) {
+cost_t AStar::h(const read_t &r, const state_t &st) const {
+    std::string prefix = r.s.substr(st.i, max_prefix_len);
+
 	LOG_FATAL_IF(prefix.length() > (size_t)max_prefix_len)
 		<< "The prefix " << prefix << " with length " << prefix.length() << " should be shorter than " << max_prefix_len;
 	assert(prefix.length() <= (size_t)max_prefix_len);
-	return astar_from_pos(v, prefix);
+	return astar_from_pos(st.v, prefix);
 }
+
+//cost_t AStar::h(int v, const std::string &prefix) {
+//	LOG_FATAL_IF(prefix.length() > (size_t)max_prefix_len)
+//		<< "The prefix " << prefix << " with length " << prefix.length() << " should be shorter than " << max_prefix_len;
+//	assert(prefix.length() <= (size_t)max_prefix_len);
+//	return astar_from_pos(v, prefix);
+//}
 
 }

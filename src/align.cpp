@@ -111,8 +111,9 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
 			push(Q, g, next);
 		} else if (algo == "astar-prefix") {
 			read_timers.astar.start();
-			std::string suff = r.s.substr(i_next, astar->get_max_prefix_len());
-			cost_t h = astar->h(e.to, suff);
+			//std::string suff = r.s.substr(i_next, astar->get_max_prefix_len());
+			//cost_t h = astar->h(e.to, suff);
+			cost_t h = astar->h(r, next);
 			cost_t f = g + h;
 			read_timers.astar.stop();
 			push(Q, f, next);
