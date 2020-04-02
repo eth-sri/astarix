@@ -73,10 +73,10 @@ struct AlignParams {
 		LOG_INFO << "  greedy_match  = " << greedy_match;
 		//LOG_INFO << "  tree depth    = " << _tree_depth;
 		LOG_INFO << "Edit costs: ";
-		LOG_INFO << "  match_cost    = " << costs.match;
-		LOG_INFO << "  mismatch_cost = " << costs.subst;
-		LOG_INFO << "  ins_cost      = " << costs.ins;
-		LOG_INFO << "  del_cost      = " << costs.del;
+		LOG_INFO << "  match_cost    = " << (int)costs.match;
+		LOG_INFO << "  mismatch_cost = " << (int)costs.subst;
+		LOG_INFO << "  ins_cost      = " << (int)costs.ins;
+		LOG_INFO << "  del_cost      = " << (int)costs.del;
 	}
 };
 

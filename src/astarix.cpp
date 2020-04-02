@@ -20,15 +20,14 @@ arguments args;
 
 // plog
 void init_logger(const char *log_fn, int verbose) {
-#ifndef NDEBUG
-	if (log_fn && verbose > 0) {
+	if (verbose > 0) {
+        assert(log_fn);
 		auto level = verbose == 1 ? plog::info : plog::debug;
 		static plog::RollingFileAppender<plog::TxtFormatter> InfoFileAppender(log_fn, 0);
 		plog::init<1>(level, &InfoFileAppender);
 		
 		plog::init(level).addAppender(plog::get<1>());
 	}
-#endif
 }
 
 state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
@@ -49,7 +48,6 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 		double pushed_rate = (double)aligner->read_counters.pushed.get() / L;
 		double popped_rate = (double)aligner->read_counters.popped.get() / L;
 		double repeat_rate = (double)aligner->_repeated_visits / aligner->read_counters.pushed.get();
-		double astar_missrate = -1.0; //100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 		*pushed_rate_sum += pushed_rate;
 		*popped_rate_sum += popped_rate;
 		*repeat_rate_sum += repeat_rate;
@@ -59,20 +57,18 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 
 		line[0] = 0;
 		sprintf(line,
-				"%8s\t%3d\t"
-				"%8s\t%3d\t%d\t%4lf\t"
+				"%8s\t%3d\t%8s\t"
 				"%8s\t%15s\t%8lf\t"
 				"%3d\t%10s\t%10s\t"
 				"%d\t%6d\t%6lf\t"
 				"%6lf\t%4lf\t%8lf\t"
-				"%8lf\t%2lf\t%d\n",
-				args.graph_file, (int)aligner->graph().nodes(),
-				algo.c_str(), -1, int(astar.get_max_prefix_cost()), 100.0 * astar.get_compressable_vertices() / aligner->graph().nodes(),
+				"%8lf\t%d\n",
+				args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
 				precomp_str.c_str(), r.comment.c_str(), 0.0,
 				L, s.c_str(), spell(*path).c_str(),
 				int(ans.cost), starts, pushed_rate,
 				popped_rate, repeat_rate, timers.total.get_sec(),
-				timers.astar.get_sec(), astar_missrate, aligner->unique_best);
+				timers.astar.get_sec(), aligner->unique_best);
 	}
 
 	return ans;
@@ -185,17 +181,11 @@ int main(int argc, char **argv) {
 #else
 	cout << "Assert() checks:       ON" << endl;
 #endif
-	cout << "----" << endl;
-
-	Measurers T;
-	dict_t stats;   // string key -> string value
-
-	LOG_DEBUG << "memory " << MemoryMeasurer::get_mem_gb();
-	T.total.start();
-    auto start_wt = std::chrono::high_resolution_clock::now();
-
 	args = read_args(argc, argv);
 	std::ios_base::sync_with_stdio(false);
+
+	cout << "        verbose:        " << args.verbose << endl;
+	cout << "----" << endl;
 
 	string performance_file, info_log_file, stats_file;
 
@@ -209,20 +199,26 @@ int main(int argc, char **argv) {
 		init_logger(info_log_file.c_str(), args.verbose);
 	}
 
+	Measurers T;
+	dict_t stats;   // string key -> string value
+
+	T.total.start();
+    auto start_wt = std::chrono::high_resolution_clock::now();
+
 	LOG_INFO << " ------------------------------ ";
 	LOG_INFO << "Starting " << to_str(argc, argv);
 	LOG_INFO << " ------------------------------ ";
 	LOG_INFO << " sizeof(edge_t) = " << sizeof(edge_t);
+	//LOG_DEBUG << "memory " << MemoryMeasurer::get_mem_gb();
 
 	if (!performance_file.empty()) {
 		FILE *fout = fopen(performance_file.c_str(), "w");
-		fprintf(fout, "ref\trefsize\t"
-				"algo\tA*-len-cap\tA*-cost-cap\tA*-compressable-vertices\t"
+		fprintf(fout, "ref\trefsize\talgo\t"
 				"operation\treadname\tmemory\t"
 				"len\tread\tspell\t"
 				"cost\tstarts\tpushed\t"
 				"popped\trepeat_rate\tt(map)\t"
-				"t(astar)\tastar_missrate\tunique_best\n");
+				"t(astar)\tunique_best\n");
 		fclose(fout);
 	}
 
@@ -251,8 +247,7 @@ int main(int argc, char **argv) {
 	cout << "done." << endl << flush;
 
 	T.precompute.start();
-	AStar astar(G, args.costs);
-    astar.init(args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+	AStar astar(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
 	T.precompute.stop();
 
 	AlignParams align_params(args.costs, args.greedy_match);
@@ -395,14 +390,12 @@ int main(int argc, char **argv) {
 	cout << "done." << endl << flush;
 
 	{
-		double astar_missrate = 100.0 * astar.get_cache_misses() / astar.get_cache_trees();
 		double total_map_time = total_timers.total.get_sec();
 		double total_mem = MemoryMeasurer::get_mem_gb();
 
 		out << " == Aligning statistics =="														<< endl;
 		out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
 		out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
-		out << "      Memoization miss rate: " << astar_missrate << "%"									<< endl;
 		out << "             Average popped: " << 1.0 * popped_trie_total.get() / (R.size()/args.threads) << " from trie vs "
 											<< 1.0 * popped_ref_total.get() / (R.size()/args.threads) << " from ref"
 											<< " (influenced by greedy match flag)" << endl;
@@ -416,6 +409,7 @@ int main(int argc, char **argv) {
 		out << "                    trie: " << T.construct_trie.m.get_gb() << "gb, " << 100.0*T.construct_trie.m.get_gb() / total_mem << "% | " << 100.0*b2gb(G.trie_mem_bytes()) / total_mem << "%" << endl;
 		out << "     equiv. classes opt.: " << T.precompute.m.get_gb() << "gb, " << 100.0*T.precompute.m.get_gb() / total_mem << "%" << endl;
 		out << "          A*-memoization: " << T.align.m.get_gb() << "gb, " << 100.0*T.align.m.get_gb() / total_mem << endl;
+
         astar.print_stats(out);
 
 		out << "    Wall runtime: " << total_wt.count() << "s"							<< endl;

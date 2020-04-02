@@ -14,7 +14,7 @@ class AStarHeuristic {
   public:
 	virtual cost_t h(const read_t &r, const state_t &st) const = 0;
 	virtual void print_params(std::ostream &out) const = 0;
-//	virtual void print_stats() const = 0;
+	virtual void print_stats(std::ostream &out) const = 0;
 };
 
 class AStar: public AStarHeuristic {
@@ -25,8 +25,9 @@ class AStar: public AStarHeuristic {
 
 	int max_prefix_len;
 	cost_t max_prefix_cost;
-	int kMaxStrHash;  								// calculated here, in hash_precomp()
 	bool compress_vertices;
+
+	int kMaxStrHash;  								// calculated here, in hash_precomp()
 	bool lazy;
 
 	// Main data struct used for memoization
@@ -51,7 +52,8 @@ class AStar: public AStarHeuristic {
 	mutable std::atomic<int> _entries;
 
   public:
-	AStar(const graph_t &_G, const EditCosts &_costs)
+	AStar(const graph_t &_G, const EditCosts &_costs,
+        int _max_prefix_len, cost_t _max_prefix_cost, bool _compress_vertices)
 		: G(_G),
 		  costs(_costs),
 		  lazy(true),
@@ -60,29 +62,30 @@ class AStar: public AStarHeuristic {
 		  compressable_vertices(0),
 		  _entries(0)
 	{
+
 		// used for hashing
 		_nucl_num['a'] = _nucl_num['A'] = 0;
 		_nucl_num['c'] = _nucl_num['C'] = 1;
 		_nucl_num['g'] = _nucl_num['G'] = 2;
 		_nucl_num['t'] = _nucl_num['T'] = 3;
-	}
 
-    void init(int _max_prefix_len, int _max_prefix_cost, bool _compress_vertices) {
         max_prefix_len = _max_prefix_len;
         max_prefix_cost = _max_prefix_cost;
         compress_vertices = _compress_vertices;
-
+        
 		LOG_INFO << "A* Prefix class constructed with:";
-		LOG_INFO << "  max_prefix_len    = " << max_prefix_len;
-		LOG_INFO << "  max_prefix_cost  = " << max_prefix_cost;
-		LOG_INFO << "  compress_vertices = " << (compress_vertices ? "true" : "false");
 		LOG_INFO << "  lazy              = " << (lazy ? "true" : "false");
+		LOG_INFO << "  max_prefix_len    = " << max_prefix_len;
+		LOG_INFO << "  max_prefix_cost  = " << (int)max_prefix_cost;
+		LOG_INFO << "  compress_vertices = " << (compress_vertices ? "true" : "false");
 
 		precompute_A_star_prefix();
-    }
+	}
+
+	cost_t h(const read_t &r, const state_t &st) const;
 
     void print_params(std::ostream &out) const {
-		out << "                   Cost cap: " << max_prefix_cost    					 << std::endl;
+		out << "                   Cost cap: " << (int)max_prefix_cost    					 << std::endl;
 		out << "   Upcoming seq. length cap: " << max_prefix_len    					 << std::endl;
 		out << "      Nodes equiv. classes?: " << bool2str(compress_vertices)        	 << std::endl;
 		out << "A* compressible equiv nodes: " << compressable_vertices
@@ -94,16 +97,13 @@ class AStar: public AStarHeuristic {
         out << b2gb(table_mem_bytes_lower()) << "gb" 
 		    << b2gb(table_mem_bytes_upper()) << "gb"
 		    << " (" << int(table_entrees()) << " entries)" 	<< std::endl;
+		out << "      Memoization miss rate: " << 100.0 * _cache_misses / _cache_trees << "%" << std::endl;
+
+        //-1, int(astar.get_max_prefix_cost()), 100.0 * astar.get_compressable_vertices() / aligner->graph().nodes(),
+        //A*-len-cap\tA*-cost-cap\tA*-compressable-vertices\t"
     }
 
-	cost_t h(const read_t &r, const state_t &st) const;
-
-	size_t equiv_classes_mem_bytes() const {
-		return _vertex2class.size() * sizeof(_vertex2class.front()) +
-			_class2repr.size() * sizeof(_class2repr) +
-			_class2boundary.size() * sizeof(_class2boundary);
-	}
-
+  private:
 	cost_t get_max_prefix_cost() const {
 		return max_prefix_cost;
 	}
@@ -112,19 +112,12 @@ class AStar: public AStarHeuristic {
         return compressable_vertices;
     }
 
-	//int get_max_prefix_len() const {
-	//	return max_prefix_len;
-	//}
-
-	int get_cache_trees() const {
-		return _cache_trees;
+	size_t equiv_classes_mem_bytes() const {
+		return _vertex2class.size() * sizeof(_vertex2class.front()) +
+			_class2repr.size() * sizeof(_class2repr) +
+			_class2boundary.size() * sizeof(_class2boundary);
 	}
 
-	int get_cache_misses() const {
-		return _cache_misses;
-	}
-
-  private:
 	double table_entrees() const {
 		return _star.size();
 	}

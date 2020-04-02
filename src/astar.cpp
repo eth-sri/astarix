@@ -29,7 +29,7 @@ int AStar::precompute_A_star_prefix() {
 	LOG_INFO << "A* precomputation...";
 	assert(_star.empty());
 
-	LOG_INFO << "Using A* prefix len " << max_prefix_len << " and A* max cost " << max_prefix_cost;
+	LOG_INFO << "Using A* prefix len " << max_prefix_len << " and A* max cost " << (int)max_prefix_cost;
 	_vertex2class.resize(G.nodes());
 
 	hash_precomp();  									// computed kMaxStrHash

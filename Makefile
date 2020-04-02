@@ -47,7 +47,7 @@ bigtest:
 
 eval: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default
+	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default -v 0
                     
 .PHONY: all clean
 
