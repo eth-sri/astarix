@@ -11,7 +11,6 @@
 #include <unordered_map>
 
 #include "graph.h"
-#include "astar.h"
 
 #include <plog/Log.h>
 
@@ -83,7 +82,7 @@ struct AlignParams {
 class Aligner {
     const graph_t &G;
 	const AlignParams &params;
-	AStar *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
+	AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
 	typedef std::unordered_map<std::pair<int,int>, state_t, pairhash> path_t;
 	typedef std::unordered_map<std::pair<int,int>, edge_t, pairhash> prev_edge_t;
@@ -97,7 +96,7 @@ class Aligner {
 	mutable Counters read_counters;
 	mutable AlignerTimers read_timers;
 
-    Aligner(const graph_t &_G, const AlignParams &_params, AStar *_astar)
+    Aligner(const graph_t &_G, const AlignParams &_params, AStarHeuristic *_astar)
 			: G(_G), params(_params), astar(_astar), unique_best(-1) {
 	}
 
@@ -105,7 +104,7 @@ class Aligner {
 		return G;
 	}
 
-	inline const AStar& get_astar() const {
+	inline const AStarHeuristic& get_astar() const {
 		return *astar;
 	}
   

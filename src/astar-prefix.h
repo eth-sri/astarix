@@ -1,23 +1,17 @@
-#ifndef ASTARIX_ASTAR_H
-#define ASTARIX_ASTAR_H
+#ifndef ASTARIX_ASTAR_PREFIX_H
+#define ASTARIX_ASTAR_PREFIX_H
 
 #include <string>
 #include <vector>
 #include "phmap.h"  // parallel_hashmap
 
+#include "graph.h"
 #include "utils.h"
 #include "io.h"
 
 namespace astarix {
 
-class AStarHeuristic {
-  public:
-	virtual cost_t h(const read_t &r, const state_t &st) const = 0;
-	virtual void print_params(std::ostream &out) const = 0;
-	virtual void print_stats(std::ostream &out) const = 0;
-};
-
-class AStar: public AStarHeuristic {
+class AStarPrefix: public AStarHeuristic {
   private:
 	// General params
 	const graph_t &G;
@@ -52,7 +46,7 @@ class AStar: public AStarHeuristic {
 	mutable std::atomic<int> _entries;
 
   public:
-	AStar(const graph_t &_G, const EditCosts &_costs,
+	AStarPrefix(const graph_t &_G, const EditCosts &_costs,
         int _max_prefix_len, cost_t _max_prefix_cost, bool _compress_vertices)
 		: G(_G),
 		  costs(_costs),

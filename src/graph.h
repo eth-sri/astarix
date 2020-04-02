@@ -398,6 +398,13 @@ struct read_t {
 	}
 };
 
+class AStarHeuristic {
+  public:
+	virtual cost_t h(const read_t &r, const state_t &st) const = 0;
+	virtual void print_params(std::ostream &out) const = 0;
+	virtual void print_stats(std::ostream &out) const = 0;
+};
+
 }
 
 #endif

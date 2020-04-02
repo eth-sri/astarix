@@ -8,6 +8,7 @@
 
 #include "align.h"
 #include "argparse.h"
+#include "astar-prefix.h"
 #include "concurrentqueue.h"
 #include "graph.h"
 #include "io.h"
@@ -247,7 +248,7 @@ int main(int argc, char **argv) {
 	cout << "done." << endl << flush;
 
 	T.precompute.start();
-	AStar astar(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+	AStarPrefix astar(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
 	T.precompute.stop();
 
 	AlignParams align_params(args.costs, args.greedy_match);
