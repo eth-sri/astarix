@@ -23,9 +23,9 @@ typedef char cost_t;
 typedef char label_t;
 
 class state_t;
-typedef std::pair<cost_t, state_t> 										score_state_t;
+typedef std::pair<cost_t, state_t>                                      score_state_t;
 typedef std::priority_queue<score_state_t, std::vector<score_state_t>, std::greater<score_state_t>>
-																			queue_t;
+                                                                            queue_t;
 const char nucls[] = "ACGT";
 const std::string extended_nucls = "RYKMSWBDHVN";
 const char EPS   = 'e';
@@ -74,192 +74,192 @@ static void process_mem_usage(double& vm_usage, double& resident_set)
 }
 
 static double b2gb(size_t bytes) {
-	return bytes / 1024.0 / 1024.0 / 1024.0;
+    return bytes / 1024.0 / 1024.0 / 1024.0;
 }
 
 class Timer {
-	clock_t start_time;
-	clock_t accum_time;
-	bool running;
+    clock_t start_time;
+    clock_t accum_time;
+    bool running;
 
   public:
-	Timer() : accum_time(0), running(false) {}
+    Timer() : accum_time(0), running(false) {}
 
-	void clear() {
-		accum_time = 0;
-		running = false;
-	}
+    void clear() {
+        accum_time = 0;
+        running = false;
+    }
 
-	void start() {
-		assert(!running);
-		running = true;
-		start_time = std::clock();
-	}
+    void start() {
+        assert(!running);
+        running = true;
+        start_time = std::clock();
+    }
 
-	void stop() {
-		accum_time += std::clock() - start_time;
-		assert(running);
-		running = false;
-	}
+    void stop() {
+        accum_time += std::clock() - start_time;
+        assert(running);
+        running = false;
+    }
 
-	double get_sec() const {
-		assert(!running);
-		return (double)accum_time / (double)CLOCKS_PER_SEC;
-	}
+    double get_sec() const {
+        assert(!running);
+        return (double)accum_time / (double)CLOCKS_PER_SEC;
+    }
 
-	Timer& operator+=(const Timer &b) {
-		accum_time += b.accum_time;
-		return *this;
-	}
+    Timer& operator+=(const Timer &b) {
+        accum_time += b.accum_time;
+        return *this;
+    }
 };
 
 class MemoryMeasurer {
-	double start_mem;
-	double accum_mem;
-	bool running;
+    double start_mem;
+    double accum_mem;
+    bool running;
 
   public:
-	MemoryMeasurer() : accum_mem(0.0), running(false) {}
+    MemoryMeasurer() : accum_mem(0.0), running(false) {}
 
-	void clear() {
-		accum_mem = 0.0;
-		running = false;
-	}
+    void clear() {
+        accum_mem = 0.0;
+        running = false;
+    }
 
-	static double get_mem_gb() {
-		double vm, rss;
-		process_mem_usage(vm, rss);
-		return rss / (1024.0 * 1024.0);  // KB to GB
-		//return vm / (1024.0 * 1024.0);  // KB to GB
-	}
+    static double get_mem_gb() {
+        double vm, rss;
+        process_mem_usage(vm, rss);
+        return rss / (1024.0 * 1024.0);  // KB to GB
+        //return vm / (1024.0 * 1024.0);  // KB to GB
+    }
 
-	void start() {
-		assert(!running);
-		running = true;
-		start_mem = get_mem_gb();
-	}
+    void start() {
+        assert(!running);
+        running = true;
+        start_mem = get_mem_gb();
+    }
 
-	void stop() {
-		accum_mem += get_mem_gb() - start_mem;
-		assert(running);
-		running = false;
-	}
+    void stop() {
+        accum_mem += get_mem_gb() - start_mem;
+        assert(running);
+        running = false;
+    }
 
-	double get_gb() const {
-		assert(!running);
-		return accum_mem;
-	}
+    double get_gb() const {
+        assert(!running);
+        return accum_mem;
+    }
 };
 
 class Counter {
-	typedef int T;
-	T cnt;
+    typedef int T;
+    T cnt;
 
   public:
-	Counter() : cnt(T(0)) {}
+    Counter() : cnt(T(0)) {}
 
-	void clear() {
-		cnt = 0;
-	}
+    void clear() {
+        cnt = 0;
+    }
 
-	void inc() {
-		++cnt;
-	}
+    void inc() {
+        ++cnt;
+    }
 
-	void inc(T a) {
-		cnt += a;
-	}
+    void inc(T a) {
+        cnt += a;
+    }
 
-	T get() const {
-		return cnt;
-	}
+    T get() const {
+        return cnt;
+    }
 };
 static std::string bool2str(bool x) {
-	return x ? "true" : "false";
+    return x ? "true" : "false";
 }
 
 enum EdgeType : char {
-	ORIG, INS, DEL, SUBST, JUMP, EdgeType_after_type
+    ORIG, INS, DEL, SUBST, JUMP, EdgeType_after_type
 };
 
 typedef int nodesz;
 
 struct edge_t {
     nodesz to;    // 4 bytes, the end point of the edge
-	nodesz next;  // 4 bytes, E[next] -- prev added outgoing edge from the same source
+    nodesz next;  // 4 bytes, E[next] -- prev added outgoing edge from the same source
     label_t label; // 1 byte automata label
-	EdgeType type;  // 1 byte
+    EdgeType type;  // 1 byte
 
     edge_t() : to(-1), next(-1), label(EPS), type(ORIG) {}
-	edge_t(int _from, int _to, label_t _label, int _next, EdgeType _type=ORIG, int _node_id=-1, int _offset=-1)
-		: to(_to), next(_next), label(_label), type(_type) {}
+    edge_t(int _from, int _to, label_t _label, int _next, EdgeType _type=ORIG, int _node_id=-1, int _offset=-1)
+        : to(_to), next(_next), label(_label), type(_type) {}
 
-	static edge_t from_cost(int _from, int _to, label_t _label, EdgeType _type) {
-		edge_t e;
-		e.to = _to;
-		e.label = _label;
-		e.type = _type;
-		return e;
-	}
+    static edge_t from_cost(int _from, int _to, label_t _label, EdgeType _type) {
+        edge_t e;
+        e.to = _to;
+        e.label = _label;
+        e.type = _type;
+        return e;
+    }
 };
 
 static inline const char* edgeType2str(EdgeType type) {
-	switch(type) {
-		case ORIG:  return "ORIG";
-		case INS:   return "ins";
-		case DEL:   return "del";
-		case SUBST: return "subst";
-		case JUMP:  return "jump";
-		case EdgeType_after_type: assert(false);
-	}
-	return "?";
+    switch(type) {
+        case ORIG:  return "ORIG";
+        case INS:   return "ins";
+        case DEL:   return "del";
+        case SUBST: return "subst";
+        case JUMP:  return "jump";
+        case EdgeType_after_type: assert(false);
+    }
+    return "?";
 }
 
 class EditCosts {
   public:
-	cost_t match, subst, ins, del;
-	EditCosts() : match(-1), subst(-1), ins(-1), del(-1) {}
-	EditCosts(cost_t _match, cost_t _subst, cost_t _ins, cost_t _del)
-		: match(_match), subst(_subst), ins(_ins), del(_del) {
-	}
-		
-	cost_t edge2score(const edge_t &e) const {
-		switch (e.type) {
-			case ORIG:
-			case JUMP:
-				return match;
-			case SUBST:
-				return subst;
-			case INS:
-				return ins;
-			case DEL:
-				return del;
-			case EdgeType_after_type:
-				assert(false);
-		}
-		std::cerr << "Edge type: " << e.type << std::endl;
-		assert(false && "No such edge type");
-		return -10000.0;
-	}
+    cost_t match, subst, ins, del;
+    EditCosts() : match(-1), subst(-1), ins(-1), del(-1) {}
+    EditCosts(cost_t _match, cost_t _subst, cost_t _ins, cost_t _del)
+        : match(_match), subst(_subst), ins(_ins), del(_del) {
+    }
+        
+    cost_t edge2score(const edge_t &e) const {
+        switch (e.type) {
+            case ORIG:
+            case JUMP:
+                return match;
+            case SUBST:
+                return subst;
+            case INS:
+                return ins;
+            case DEL:
+                return del;
+            case EdgeType_after_type:
+                assert(false);
+        }
+        std::cerr << "Edge type: " << e.type << std::endl;
+        assert(false && "No such edge type");
+        return -10000.0;
+    }
 };
 
 static inline char compl_nucl(char c) {
-	if (c == 'A') return 'T';
-	if (c == 'C') return 'G';
-	if (c == 'G') return 'C';
-	if (c == 'T') return 'A';
-	std::cerr << "Bad nucleotide '" << c << "'" << std::endl;
-	assert(false);
-	return '!';
+    if (c == 'A') return 'T';
+    if (c == 'C') return 'G';
+    if (c == 'G') return 'C';
+    if (c == 'T') return 'A';
+    std::cerr << "Bad nucleotide '" << c << "'" << std::endl;
+    assert(false);
+    return '!';
 }
 
 static inline int nucl2num(char c) {
-	if (c == 'A') return 0;
-	if (c == 'C') return 1;
-	if (c == 'G') return 2;
-	if (c == 'T') return 3;
-	assert(false);
-	return '!';
+    if (c == 'A') return 0;
+    if (c == 'C') return 1;
+    if (c == 'G') return 2;
+    if (c == 'T') return 3;
+    assert(false);
+    return '!';
 }
 
 static inline bool is_nucl(char c) {
@@ -267,54 +267,54 @@ static inline bool is_nucl(char c) {
 }
 
 static std::string to_lower(std::string s) {
-	for (char &c: s)
-		if (c >= 'A' && c <= 'Z')
-			c -= 'A'-'a';
-	return s;
+    for (char &c: s)
+        if (c >= 'A' && c <= 'Z')
+            c -= 'A'-'a';
+    return s;
 }
 
 static inline bool is_letter(char c) {
-	return is_nucl(c) || c == EPS;
+    return is_nucl(c) || c == EPS;
 }
 
 #ifndef NDEBUG
 static bool is_extended_nucl(char nucl) {
-	return extended_nucls.find(nucl) != std::string::npos;
+    return extended_nucls.find(nucl) != std::string::npos;
 }
 
 static bool are_all_nucls(const std::string &s) {
-	for (char c: s) {
-		if (!is_nucl(toupper(c))) {
-			std::cerr << "Not a nucleotide: [" << c << "]" << std::endl;
-			return false;
-		}
-	}
-	return true;
+    for (char c: s) {
+        if (!is_nucl(toupper(c))) {
+            std::cerr << "Not a nucleotide: [" << c << "]" << std::endl;
+            return false;
+        }
+    }
+    return true;
 }
 
 static void write(std::ostream& os, int from, const edge_t &e) {
-	os << from << " " << e.to << " " << e.label << " " << edgeType2str(e.type); 
+    os << from << " " << e.to << " " << e.label << " " << edgeType2str(e.type); 
 }
 #endif
 
 static std::string extended2orignucls(char nucl) {
-	if (nucl == 'R') return "AG";
-	if (nucl == 'Y') return "CT";
-	if (nucl == 'K') return "GT";
-	if (nucl == 'M') return "AC";
-	if (nucl == 'S') return "CG";
-	if (nucl == 'W') return "AT";
-	if (nucl == 'B') return "CGT";
-	if (nucl == 'D') return "AGT";
-	if (nucl == 'H') return "ACT";
-	if (nucl == 'V') return "ACG";
-	if (nucl == 'N') return "ACGT";
-	assert(is_nucl(nucl));
-	return "!";
+    if (nucl == 'R') return "AG";
+    if (nucl == 'Y') return "CT";
+    if (nucl == 'K') return "GT";
+    if (nucl == 'M') return "AC";
+    if (nucl == 'S') return "CG";
+    if (nucl == 'W') return "AT";
+    if (nucl == 'B') return "CGT";
+    if (nucl == 'D') return "AGT";
+    if (nucl == 'H') return "ACT";
+    if (nucl == 'V') return "ACG";
+    if (nucl == 'N') return "ACGT";
+    assert(is_nucl(nucl));
+    return "!";
 }
 
 static inline double sample() {
-	return 1.0 * rand() / INT_MAX;
+    return 1.0 * rand() / INT_MAX;
 }
 
 // https://stackoverflow.com/questions/874134/find-out-if-string-ends-with-another-string-in-c

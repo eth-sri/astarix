@@ -16,17 +16,17 @@ static struct argp_option options[] = {
     { "outdir",         'o', "OUTDIR",        0,  "Output directory" },
     { "tree_depth",     'D', "TREE_DEPTH",    0,  "Suffix tree depth" },
     { "algorithm",      'a', "{dijkstra, astar-prefix}", 0, "Shortest path algorithm" },
-    { "greedy_match",	'f', "GREEDY_MATCH",  0,  "Proceed greedily forward if there is a unique matching outgoing edge" },
+    { "greedy_match",   'f', "GREEDY_MATCH",  0,  "Proceed greedily forward if there is a unique matching outgoing edge" },
     { "astar_len_cap",  'd', "A*_PREFIX_CAP", 0,  "The upcoming sequence length cap for the A* heuristic" },
     { "astar_cost_cap", 'c', "A*_COST_CAP",   0,  "The maximum prefix cost for the A* heuristic" },
     { "astar_equivalence_classes",
-						'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
-//    { "astar_lazy",		'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
-    { "match",			'M', "MATCH_COST",   0,  "Match penalty" },
-    { "subst",	'S', "SUBST_COST",   0,  "Substitution penalty" },
-    { "gap",			'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
-    { "threads",		't', "THREADS",      0,  "Number of threads (default=1)" },
-    { "verbose",		'v', "THREADS",      0,  "Verbosity (default=silent=0, info=1, debug=2)" },
+                        'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
+//    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
+    { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
+    { "subst",  'S', "SUBST_COST",   0,  "Substitution penalty" },
+    { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
+    { "threads",        't', "THREADS",      0,  "Number of threads (default=1)" },
+    { "verbose",        'v', "THREADS",      0,  "Verbosity (default=silent=0, info=1, debug=2)" },
     { 0 }
 };
 
@@ -38,17 +38,17 @@ struct arguments {
     char *output_dir;
     char *algorithm;
 
-	astarix::EditCosts costs;
+    astarix::EditCosts costs;
 
-	bool greedy_match;
+    bool greedy_match;
     int tree_depth;
 
-	int AStarLengthCap;
-	double AStarCostCap;
-	bool AStarNodeEqivClasses;
+    int AStarLengthCap;
+    double AStarCostCap;
+    bool AStarNodeEqivClasses;
 
-	int threads;
-	int verbose;
+    int threads;
+    int verbose;
 };
 
 /* Parse a single option. */
@@ -72,20 +72,20 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             assert(std::strcmp(arg, "dijkstra") == 0 || std::strcmp(arg, "astar-prefix") == 0);
             arguments->algorithm = arg;
             break;
-		case 'f':
-			arguments->greedy_match = (bool)std::stod(arg);
-			break;
+        case 'f':
+            arguments->greedy_match = (bool)std::stod(arg);
+            break;
         case 'd':
-			assert(std::stoi(arg) >= 0);
+            assert(std::stoi(arg) >= 0);
             arguments->AStarLengthCap = std::stoi(arg);
-			break;
+            break;
         case 'c':
-			assert(std::stod(arg) >= 0.0);
-			arguments->AStarCostCap = std::stod(arg);
-			break;
-		case 'e':
-			arguments->AStarNodeEqivClasses = (bool)std::stod(arg);
-			break;
+            assert(std::stod(arg) >= 0.0);
+            arguments->AStarCostCap = std::stod(arg);
+            break;
+        case 'e':
+            arguments->AStarNodeEqivClasses = (bool)std::stod(arg);
+            break;
         case 'o':
             arguments->output_dir = arg;
             break;
@@ -110,7 +110,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             if (state->arg_num >= 3)
                 argp_usage(state);
             assert(std::strcmp(arg, "align-optimal") == 0);
-			arguments->command = arg;
+            arguments->command = arg;
             break;
   
         case ARGP_KEY_END:
