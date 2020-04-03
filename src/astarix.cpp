@@ -315,6 +315,7 @@ int main(int argc, char **argv) {
     auto start_align_wt = std::chrono::high_resolution_clock::now();
 
     AlignerTimers total_timers;
+    int total_cost(0);
     std::mutex timer_m;
     Counter popped_trie_total, popped_ref_total;
     std::atomic<bool> nonunique_best_alignments(0);
@@ -326,10 +327,11 @@ int main(int argc, char **argv) {
         for (size_t i=0; i<R.size(); i++) {
             char line[10000];
             Aligner aligner(G, align_params, astar);
-            state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
+            state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
                     &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
             fprintf(fout, "%s", line);
             total_timers += aligner.read_timers;
+            total_cost += ans.cost;
             if (!aligner.unique_best)
                 nonunique_best_alignments = nonunique_best_alignments+1;
 
@@ -356,12 +358,13 @@ int main(int argc, char **argv) {
                 for (size_t i=from; i<to; i++) {
                     char line[10000];
                     Aligner aligner(G, align_params, astar_local);  // TODO: initialize once
-                    state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
+                    state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
                             &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
                     profileQueue.enqueue(string(line));
                     {
                         // TODO: merge the astar_local to astar stats
                         timer_m.lock();
+                        total_cost += ans.cost;
                         total_timers += aligner.read_timers;
                         timer_m.unlock();
                         if (t == 0) {
@@ -418,6 +421,7 @@ int main(int argc, char **argv) {
         out << "             Average popped: " << 1.0 * popped_trie_total.get() / (R.size()/args.threads) << " from trie vs "
                                             << 1.0 * popped_ref_total.get() / (R.size()/args.threads) << " from ref"
                                             << " (influenced by greedy match flag)" << endl;
+        out << "                 Total cost: " << total_cost << endl;
         out << " Non-unique best alignments: " << nonunique_best_alignments << " out of " << R.size()   << endl;
 
         out << " == Performance =="                                                             << endl;
