@@ -18,8 +18,6 @@
 using namespace std;
 using namespace astarix;
 
-arguments args;
-
 // plog
 void init_logger(const char *log_fn, int verbose) {
 	if (verbose > 0) {
@@ -31,6 +29,23 @@ void init_logger(const char *log_fn, int verbose) {
 		plog::init(level).addAppender(plog::get<1>());
 	}
 }
+
+AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
+    AStarHeuristic* astar;
+
+    if (args.algorithm == "astar-prefix") {
+        astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+    //} else if (args.algorithm == "astar-landmarks") {
+	//    astar = new AStarLandmarks(G, args.costs);
+    } else {
+        cout << "No algorithm " << args.algorithm << endl;
+        assert(false);
+    }
+
+    return astar;
+}
+
+arguments args;
 
 state_t wrap_readmap(const read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
 		edge_path_t *path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, char *line) {
@@ -249,7 +264,7 @@ int main(int argc, char **argv) {
 	cout << "done." << endl << flush;
 
 	T.precompute.start();
-	AStarHeuristic *astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+	AStarHeuristic *astar = AStarHeuristicFactory(G, args);
 	T.precompute.stop();
 
 	AlignParams align_params(args.costs, args.greedy_match);
@@ -336,7 +351,7 @@ int main(int argc, char **argv) {
 			threads[t] = thread([&, t]() {
 				int from = t*bucket_sz;
 				int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
-                AStarHeuristic *astar_local = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+                AStarHeuristic *astar_local = AStarHeuristicFactory(G, args);
 				LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
 				for (size_t i=from; i<to; i++) {
 					char line[10000];
