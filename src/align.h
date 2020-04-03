@@ -81,7 +81,6 @@ struct AlignParams {
 class Aligner {
     const graph_t &G;
     const AlignParams &params;
-    AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
     typedef std::unordered_map<std::pair<int,int>, state_t, pairhash> path_t;
     typedef std::unordered_map<std::pair<int,int>, edge_t, pairhash> prev_edge_t;
@@ -90,6 +89,7 @@ class Aligner {
   public:
     int _repeated_visits;
     int unique_best;
+    AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
     // total_counters are aggregating read_counters at the end of every alignment
     mutable Counters read_counters;
@@ -183,7 +183,7 @@ class Aligner {
     
         r is a 1-based query
     */
-    state_t readmap(read_t r, std::string algo, edge_path_t *best_path);
+    state_t readmap(const read_t &r, std::string algo, edge_path_t *best_path);
 };
 
 }

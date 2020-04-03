@@ -2,8 +2,8 @@
 
 namespace astarix {
 
-state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
-	LOG_DEBUG << "Aligning read " << r.s.substr(1) << " of length " << r.len << " using " << algo;
+state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_path) {
+	LOG_DEBUG << "Aligning read " << r.s << " of length " << r.len << " using " << algo;
 
 	if (algo != "astar-prefix" && algo != "dijkstra") {
 		LOG_ERROR << "No algorithm " << algo;
@@ -37,8 +37,6 @@ state_t Aligner::readmap(read_t r, std::string algo, edge_path_t *best_path) {
 		get_path(p, i, v).optimize(st);        	// to hold the optimal values
 		set_prev_edge(pe, i, v, edge_t());		// for edge_path reconstruction
 	}
-
-	r.s = r.s.substr(1);
 
 	cost_t prev_cost = 0.0;
 	int max_i = 0;
@@ -113,7 +111,7 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
 			read_timers.astar.start();
 			//std::string suff = r.s.substr(i_next, astar->get_max_prefix_len());
 			//cost_t h = astar->h(e.to, suff);
-			cost_t h = astar->h(r, next);
+			cost_t h = astar->h(next);
 			cost_t f = g + h;
 			read_timers.astar.stop();
 			push(Q, f, next);

@@ -385,7 +385,7 @@ struct read_t {
         assert(_grnd_s=="" || _grnd_s[0] != '+');
 
         comment = _comment;
-        s = '@' + _s;
+        s = _s;
         grnd_s = '+' + _grnd_s;
 
         assert(are_all_nucls(_s));
@@ -399,7 +399,9 @@ struct read_t {
 
 class AStarHeuristic {
   public:
-    virtual cost_t h(const read_t &r, const state_t &st) const = 0;
+    virtual void before_every_alignment(const read_t *r) = 0;   // to be invoked once in the beginning of the alignment of each read
+    virtual cost_t h(const state_t &st) const = 0;
+    virtual void after_every_alignment() = 0;
     virtual void print_params(std::ostream &out) const = 0;
     virtual void print_stats(std::ostream &out) const = 0;
 };

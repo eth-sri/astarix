@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "graph.h"
 #include "utils.h"
 #include "io.h"
 
@@ -11,7 +12,7 @@ typedef int node_t;
 
 namespace astarix {
 
-class AStarMatching {
+class AStarLandmarks: public AStarHeuristic {
   private:
     // Parameters
     const graph_t &G;
@@ -24,10 +25,26 @@ class AStarMatching {
     Timer astar_time;
 
   public:
-    AStar(const graph_t &_G, const EditCosts &_costs)
+    AStarLandmarks(const graph_t &_G, const EditCosts &_costs)
         : G(_G), costs(_costs) {
         //LOG_INFO << "A* matching class constructed with:";
         //LOG_INFO << "  pivot_len    = " << pivot_len;
+
+        //void prepare(const read_t &r) {
+        int pivot_len = 30;
+        int pivots = 0;
+        _star.clear();
+        for (int i=r.len-pivot_len+1; i>0; i-=pivot_len)
+            add_pivot(r, i, pivot_len);
+    }
+
+    cost_t h(const read_t &r, const state_t &st) {
+    }
+
+    void print_params(std::ostream &out) {
+    }
+
+    void print_stats(std::ostream &out) {
     }
 
   private:
@@ -55,30 +72,6 @@ class AStarMatching {
 
     void add_pivot(const read_t &r, int start, int pivot_len) {
         exact_match(r, start, pivot_len, start, 0);
-    }
-
-  public:
-    void prepare(const read_t &r) {
-        int pivot_len = 30;
-        int pivots = 0;
-        _star.clear();
-        for (int i=r.len-pivot_len+1; i>0; i-=pivot_len)
-            add_pivot(r, i, pivot_len);
-    }
-
-    // heuristic h(node, upcoming string)
-    cost_t h(node_t v, const std::string &prefix);
-
-    void reset_astar_time() {
-        astar_time.clear();
-    }
-
-    int get_max_prefix_len() const {
-        return max_prefix_len;
-    }
-
-    double get_astar_time() const {
-        return astar_time.get_sec();
     }
 
     size_t get_pivots() {

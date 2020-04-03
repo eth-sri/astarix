@@ -9,6 +9,7 @@
 #include "align.h"
 #include "argparse.h"
 #include "astar-prefix.h"
+//#include "astar-landmarks.h"
 #include "concurrentqueue.h"
 #include "graph.h"
 #include "io.h"
@@ -31,20 +32,20 @@ void init_logger(const char *log_fn, int verbose) {
 	}
 }
 
-state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
+state_t wrap_readmap(const read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
 		edge_path_t *path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, char *line) {
 	state_t ans;
 	
+    aligner->astar->before_every_alignment(&r);
 	ans = aligner->readmap(r, algo, path);
-
-	const auto &astar = aligner->get_astar();
-	const auto &timers = aligner->read_timers;
+    aligner->astar->after_every_alignment();
 
 	if (!performance_file.empty()) {
+        //const auto &astar = aligner->get_astar();
+        const auto &timers = aligner->read_timers;
+
 		string precomp_str = "align";
-		//string pref = r.s.substr(1, astar.get_max_prefix_len());
-		string s = r.s.substr(1);
-		int L = s.size();
+		int L = r.len;
 		int starts = -1;
 		double pushed_rate = (double)aligner->read_counters.pushed.get() / L;
 		double popped_rate = (double)aligner->read_counters.popped.get() / L;
@@ -66,7 +67,7 @@ state_t wrap_readmap(read_t& r, string algo, string performance_file, Aligner *a
 				"%8lf\t%d\n",
 				args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
 				precomp_str.c_str(), r.comment.c_str(), 0.0,
-				L, s.c_str(), spell(*path).c_str(),
+				L, r.s.c_str(), spell(*path).c_str(),
 				int(ans.cost), starts, pushed_rate,
 				popped_rate, repeat_rate, timers.total.get_sec(),
 				timers.astar.get_sec(), aligner->unique_best);
@@ -248,7 +249,7 @@ int main(int argc, char **argv) {
 	cout << "done." << endl << flush;
 
 	T.precompute.start();
-	AStarPrefix astar(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+	AStarHeuristic *astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
 	T.precompute.stop();
 
 	AlignParams align_params(args.costs, args.greedy_match);
@@ -270,7 +271,7 @@ int main(int argc, char **argv) {
 		out << "              Greedy match?: " << bool2str(args.greedy_match) 							<< endl;
 		out << "                    Threads: " << args.threads											<< endl;
 		out << " == A* parameters =="																<< endl;
-        astar.print_params(out);
+        astar->print_params(out);
 
 		out << " == Data =="                                                                      << endl;
 		// Note: the trie is built on top of the **doubled** original graph (incl. reverse).
@@ -309,7 +310,7 @@ int main(int argc, char **argv) {
 		FILE *fout = fopen(performance_file.c_str(), "a");
 		for (size_t i=0; i<R.size(); i++) {
 			char line[10000];
-			Aligner aligner(G, align_params, &astar);
+			Aligner aligner(G, align_params, astar);
 			state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
 					&R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
 			fprintf(fout, "%s", line);
@@ -335,14 +336,16 @@ int main(int argc, char **argv) {
 			threads[t] = thread([&, t]() {
 				int from = t*bucket_sz;
 				int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
+                AStarHeuristic *astar_local = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
 				LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
 				for (size_t i=from; i<to; i++) {
 					char line[10000];
-					Aligner aligner(G, align_params, &astar);
+					Aligner aligner(G, align_params, astar_local);  // TODO: initialize once
 					state_t a_star_ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
 							&R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
 					profileQueue.enqueue(string(line));
 					{
+                        // TODO: merge the astar_local to astar stats
 						timer_m.lock();
 						total_timers += aligner.read_timers;
 						timer_m.unlock();
@@ -411,7 +414,7 @@ int main(int argc, char **argv) {
 		out << "     equiv. classes opt.: " << T.precompute.m.get_gb() << "gb, " << 100.0*T.precompute.m.get_gb() / total_mem << "%" << endl;
 		out << "          A*-memoization: " << T.align.m.get_gb() << "gb, " << 100.0*T.align.m.get_gb() / total_mem << endl;
 
-        astar.print_stats(out);
+        astar->print_stats(out);
 
 		out << "    Wall runtime: " << total_wt.count() << "s"							<< endl;
 		out << "       reference loading: " << T.read_graph.t.get_sec() << "s" 			<< endl;

@@ -129,8 +129,8 @@ cost_t AStarPrefix::astar_from_pos(int v, const std::string &prefix) const {
 	return lazy_star_value(h, repr, boundary_node, prefix);
 }
 
-cost_t AStarPrefix::h(const read_t &r, const state_t &st) const {
-    std::string prefix = r.s.substr(st.i, max_prefix_len);
+cost_t AStarPrefix::h(const state_t &st) const {
+    std::string prefix = r->s.substr(st.i, max_prefix_len);
 
 	LOG_FATAL_IF(prefix.length() > (size_t)max_prefix_len)
 		<< "The prefix " << prefix << " with length " << prefix.length() << " should be shorter than " << max_prefix_len;

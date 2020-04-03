@@ -16,6 +16,8 @@ class AStarPrefix: public AStarHeuristic {
     const graph_t &G;
     const EditCosts &costs;
 
+    const read_t *r;                 // current read to be aligned
+
     int max_prefix_len;
     cost_t max_prefix_cost;
     bool compress_vertices;
@@ -75,7 +77,13 @@ class AStarPrefix: public AStarHeuristic {
         precompute_A_star_prefix();
     }
 
-    cost_t h(const read_t &r, const state_t &st) const;
+    void before_every_alignment(const read_t *_r) {
+        r = _r;
+    }
+
+    cost_t h(const state_t &st) const;
+
+    void after_every_alignment() { }
 
     void print_params(std::ostream &out) const {
         out << "                   Cost cap: " << (int)max_prefix_cost                       << std::endl;
