@@ -9,6 +9,7 @@
 
 // based on http://www.gnu.org/software/libc/manual/html_node/Argp-Example-3.html#Argp-Example-3
 
+// long name, short key, arg name, flags, doc, group (0 is default)
 /* The options we understand. */
 static struct argp_option options[] = {
     { "graph",          'g', "GRAPH",         0,  "Input graph (.gfa)" },
@@ -23,7 +24,7 @@ static struct argp_option options[] = {
                         'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
 //    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
-    { "subst",  'S', "SUBST_COST",   0,  "Substitution penalty" },
+    { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
     { "threads",        't', "THREADS",      0,  "Number of threads (default=1)" },
     { "verbose",        'v', "THREADS",      0,  "Verbosity (default=silent=0, info=1, debug=2)" },

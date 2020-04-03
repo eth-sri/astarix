@@ -324,9 +324,9 @@ int main(int argc, char **argv) {
     bool calc_mapping_cost = false;
     if (args.threads == 1) {
         FILE *fout = fopen(performance_file.c_str(), "a");
+        Aligner aligner(G, align_params, astar);
         for (size_t i=0; i<R.size(); i++) {
             char line[10000];
-            Aligner aligner(G, align_params, astar);
             state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
                     &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
             fprintf(fout, "%s", line);
@@ -354,10 +354,10 @@ int main(int argc, char **argv) {
                 int from = t*bucket_sz;
                 int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
                 AStarHeuristic *astar_local = AStarHeuristicFactory(G, args);
+                Aligner aligner(G, align_params, astar_local);
                 LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
                 for (size_t i=from; i<to; i++) {
                     char line[10000];
-                    Aligner aligner(G, align_params, astar_local);  // TODO: initialize once
                     state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
                             &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
                     profileQueue.enqueue(string(line));
@@ -423,7 +423,7 @@ int main(int argc, char **argv) {
                                             << " (influenced by greedy match flag)" << endl;
         out << "                 Total cost: " << total_cost << endl;
         out << " Non-unique best alignments: " << nonunique_best_alignments << " out of " << R.size()   << endl;
-
+        out << endl;
         out << " == Performance =="                                                             << endl;
         out << "    Memory: " << "                   measured | estimated"                                  << endl;
         out << "                   total: " << total_mem << "gb, 100% | -"      << endl;
@@ -432,7 +432,7 @@ int main(int argc, char **argv) {
         out << "                    trie: " << T.construct_trie.m.get_gb() << "gb, " << 100.0*T.construct_trie.m.get_gb() / total_mem << "% | " << 100.0*b2gb(G.trie_mem_bytes()) / total_mem << "%" << endl;
         out << "     equiv. classes opt.: " << T.precompute.m.get_gb() << "gb, " << 100.0*T.precompute.m.get_gb() / total_mem << "%" << endl;
         out << "          A*-memoization: " << T.align.m.get_gb() << "gb, " << 100.0*T.align.m.get_gb() / total_mem << endl;
-
+        out << endl;
         astar->print_stats(out);
 
         out << "    Wall runtime: " << total_wt.count() << "s"                          << endl;

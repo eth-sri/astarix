@@ -94,11 +94,12 @@ class AStarPrefix: public AStarHeuristic {
     }
 
     void print_stats(std::ostream &out) const {
-        out << " eq. classes mem:" << b2gb(equiv_classes_mem_bytes()) << "gb" << std::endl;
-        out << b2gb(table_mem_bytes_lower()) << "gb" 
-            << b2gb(table_mem_bytes_upper()) << "gb"
-            << " (" << int(table_entrees()) << " entries)"  << std::endl;
-        out << "      Memoization miss rate: " << 100.0 * _cache_misses / _cache_trees << "%" << std::endl;
+        out << "== AStarPrefix specific stats ==" << std::endl;
+        out << "         eq. classes mem: " << b2gb(equiv_classes_mem_bytes()) << "gb" << std::endl;
+        out << "      Table memory usage: " << int(table_entrees()) << " entries "
+                                            << " occupying [" << b2gb(table_mem_bytes_lower())
+                                            << ", " << b2gb(table_mem_bytes_upper()) << "] gb" << std::endl;
+        out << "   Memoization miss rate: " << 100.0 * _cache_misses / _cache_trees << "%" << std::endl;
 
         //-1, int(astar.get_max_prefix_cost()), 100.0 * astar.get_compressable_vertices() / aligner->graph().nodes(),
         //A*-len-cap\tA*-cost-cap\tA*-compressable-vertices\t"

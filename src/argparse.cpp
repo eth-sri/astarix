@@ -19,11 +19,11 @@ arguments read_args(int argc, char **argv) {
     args.output_dir            = NULL;
 
     // Problem statement.
-    args.command               = "align-optimal";
+    args.command               = (char *)"align-optimal";
     args.costs                 = astarix::EditCosts(0, 1, 5, 5);
 
     // Optimization parameters.
-    args.algorithm             = "astar-prefix";
+    args.algorithm             = (char *)"astar-prefix";
     args.tree_depth            = -1;              // auto mode
     args.AStarLengthCap        = 5;
     args.AStarCostCap          = 5;
