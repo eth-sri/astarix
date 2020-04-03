@@ -49,10 +49,7 @@ class state_t {
     }
 };
 
-static std::ostream& operator<<(std::ostream& os, const state_t &st) {
-    os << "(i=" << st.i << ", v=" << st.v << ", cost=" << st.cost << ")";
-    return os;
-}
+std::ostream& operator<<(std::ostream& os, const state_t &st);
 
 typedef std::vector<state_t> path_t;
 typedef std::vector<edge_t> edge_path_t;

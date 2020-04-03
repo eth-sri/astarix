@@ -16,7 +16,7 @@ LIBS= #-lm -lz
 _DEPS = $(SRCDIR)/argparse.h $(SRCDIR)/astar-prefix.h $(SRCDIR)/gfa2graph.h $(SRCDIR)/graph.h $(SRCDIR)/io.h $(SRCDIR)/align.h $(SRCDIR)/utils.h $(SRCDIR)/trie.h $(EXTDIR)/GraphAligner/GfaGraph.h
 DEPS = $(patsubst %, %, $(_DEPS))
 
-_OBJ = $(SRCDIR)/argparse.o $(SRCDIR)/astar-prefix.o $(SRCDIR)/gfa2graph.o $(SRCDIR)/align.o $(SRCDIR)/trie.o $(EXTDIR)/GraphAligner/GfaGraph.o
+_OBJ = $(SRCDIR)/argparse.o $(SRCDIR)/astar-prefix.o $(SRCDIR)/gfa2graph.o $(SRCDIR)/graph.o $(SRCDIR)/align.o $(SRCDIR)/utils.o $(SRCDIR)/trie.o $(EXTDIR)/GraphAligner/GfaGraph.o
 OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ))
 
 LINKFLAGS = $(CPPFLAGS) -Wl,-Bstatic $(LIBS) -Wl,-Bdynamic -Wl,--as-needed -lpthread -pthread -static-libstdc++
