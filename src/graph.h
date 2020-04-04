@@ -74,10 +74,10 @@ struct graph_t {
     int orig_nodes, orig_edges;
 
     const char *EdgeTypeStr[5];
-    int trie_first_node, trie_nodes, trie_edges;
+    int trie_first_node, trie_depth, trie_nodes, trie_edges;
 
     graph_t(bool _with_reverse_edges=0)
-            : trie_nodes(0), trie_edges(0), orig_nodes(0), orig_edges(0)
+            : trie_nodes(0), trie_depth(0), trie_edges(0), orig_nodes(0), orig_edges(0)
             //: with_reverse_edges(_with_reverse_edges)
             {
         V.resize(1, -1);  // 0 preserved for a supersource

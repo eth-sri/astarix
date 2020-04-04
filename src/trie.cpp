@@ -79,6 +79,7 @@ void add_tree(graph_t *G, int tree_depth, bool fixed_trie_depth) {
     EdgeList new_edges;
     int curr_node=G->V.size();
     G->trie_first_node = curr_node;
+    G->trie_depth = tree_depth;
 
     try {
         // Construct Trie.
