@@ -67,6 +67,10 @@ struct graph_t {
     std::vector<int> V;     // E[ V[i] ] -- last added outgoing edge from vertex i
     // if a node with number 0 exists, it is a supersource
 
+    // reverse edges
+    std::vector<edge_t> E_rev;  // n linked lists emulated in a stack E
+    std::vector<int> V_rev;     // E[ V[i] ] -- last added outgoing edge from vertex i
+
     int orig_nodes, orig_edges;
 
     const char *EdgeTypeStr[5];
@@ -77,6 +81,7 @@ struct graph_t {
             //: with_reverse_edges(_with_reverse_edges)
             {
         V.resize(1, -1);  // 0 preserved for a supersource
+        V_rev.resize(1, -1);  // 0 preserved for a supersource
         //_min_edge_cost = -1;
         //_min_edit_cost = -1;
 
@@ -119,6 +124,9 @@ struct graph_t {
     void init(int _n, int _m) {
         V.resize(_n, -1);  // 0 preserved for a supersource
         E.reserve(_m);
+
+        V_rev.resize(_n, -1);  // 0 preserved for a supersource
+        E_rev.reserve(_m);
     }
 
     bool has_supersource() const {
@@ -131,21 +139,28 @@ struct graph_t {
 
     int add_node() {
         V.push_back(-1);
+        V_rev.push_back(-1);
         return V.size()-1;
     }
 
-    void add_edge(int from, edge_t e) {
-        E.push_back(e);
-        V[from] = (int)E.size()-1;
-    }
+    //void add_edge(int from, edge_t e) {
+    //    E.push_back(e);
+    //    V[from] = (int)E.size()-1;
+    //}
 
     void add_edge(int a, int b, char label, EdgeType type, int node_id=-1, int offset=-1) {
         LOG_FATAL_IF(!(a >= 0 && a < nodes())) << "edge with a=" << a << ", b=" << b << ", nodes=" << nodes();
         assert(a >= 0 && a < nodes());
         assert(b >= 0 && b < nodes());
+
         edge_t e(a, b, label, V[a], type, node_id, offset);
         E.push_back(e);
         V[a] = (int)E.size()-1;
+
+        // rev_edge
+        edge_t e_rev(b, a, label, V_rev[a], type, node_id, offset);  // TODO: remove unused params
+        E_rev.push_back(e_rev);
+        V_rev[b] = (int)E_rev.size()-1;
     }
 
     void add_seq(int from, const std::string &seq, int to) {
