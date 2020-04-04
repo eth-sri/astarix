@@ -35,8 +35,9 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
 
     if (args.algorithm == "astar-prefix") {
         astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
-    //} else if (args.algorithm == "astar-landmarks") {
-    //    astar = new AStarLandmarks(G, args.costs);
+    } else if (args.algorithm == "astar-landmarks") {
+        assert(args.);
+//        astar = new AStarLandmarks(G, args.costs);
     } else {
         cout << "No algorithm " << args.algorithm << endl;
         assert(false);
@@ -259,7 +260,7 @@ int main(int argc, char **argv) {
 
     cout << "Contructing trie... " << flush;
     T.construct_trie.start();
-    add_tree(&G, args.tree_depth);
+    add_tree(&G, args.tree_depth, args.fixed_trie_depth);
     T.construct_trie.stop();
     cout << "done." << endl << flush;
 

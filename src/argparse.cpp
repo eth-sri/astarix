@@ -25,6 +25,7 @@ arguments read_args(int argc, char **argv) {
     // Optimization parameters.
     args.algorithm             = (char *)"astar-prefix";
     args.tree_depth            = -1;              // auto mode
+    args.fixed_trie_depth      = false;           // leafs can be shallower if `true`
     args.AStarLengthCap        = 5;
     args.AStarCostCap          = 5;
 

@@ -52,7 +52,7 @@ void dfs_construct_trie(const graph_t &G, int v, int rem_depth, TrieNode *tree_v
     }
 }
 
-void dfs_trie_to_graph(const graph_t &G, int v, int rem_depth, TrieNode *tree_v, EdgeList *new_edges, int *curr_node) {
+void dfs_trie_to_graph(const graph_t &G, int v, int rem_depth, TrieNode *tree_v, EdgeList *new_edges, int *curr_node, bool fixed_trie_depth) {
     if (tree_v->node == -1) {
         tree_v->node = *curr_node;
         ++(*curr_node);
@@ -60,21 +60,21 @@ void dfs_trie_to_graph(const graph_t &G, int v, int rem_depth, TrieNode *tree_v,
 
     for (int idx=G.V[v]; idx!=-1; idx=G.E[idx].next) {
         const edge_t &e = G.E[idx];
-        if (rem_depth == 0 || tree_v->cnt == 1) {
+        if (rem_depth == 0 || (!fixed_trie_depth && tree_v->cnt == 1)) {
             // Connect to reference genome.
             new_edges->push_back(make_pair(tree_v->node, make_pair(e.to, e.label)));
         } else {
             // Connect to deeper trie node.
             TrieNode *next_tree_v = tree_v->get_node(e.label);
             bool new_edge = (next_tree_v->node == -1);
-            dfs_trie_to_graph(G, e.to, rem_depth-1, next_tree_v, new_edges, curr_node);
+            dfs_trie_to_graph(G, e.to, rem_depth-1, next_tree_v, new_edges, curr_node, fixed_trie_depth);
             if (new_edge)
                 new_edges->push_back(make_pair(tree_v->node, make_pair(next_tree_v->node, e.label)));
         }
     }
 }
 
-void add_tree(graph_t *G, int tree_depth) {
+void add_tree(graph_t *G, int tree_depth, bool fixed_trie_depth) {
     TrieNode tree_root(0);
     EdgeList new_edges;
     int curr_node=G->V.size();
@@ -86,7 +86,7 @@ void add_tree(graph_t *G, int tree_depth) {
             dfs_construct_trie(*G, i, tree_depth, &tree_root);
         // Extrect edges to be added to the graph.
         for (int i=1; i<G->V.size(); i++)
-            dfs_trie_to_graph(*G, i, tree_depth, &tree_root, &new_edges, &curr_node);
+            dfs_trie_to_graph(*G, i, tree_depth, &tree_root, &new_edges, &curr_node, fixed_trie_depth);
     } catch (std::bad_alloc& ba) {
         std::cerr << "new_edges.size(): " << new_edges.size() << '\n';
         std::cerr << "bad_alloc caught: " << ba.what() << '\n';

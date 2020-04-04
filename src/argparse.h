@@ -16,6 +16,7 @@ static struct argp_option options[] = {
     { "query",          'q', "QUERY",         0,  "Input queries/reads (.fq, .fastq)" },
     { "outdir",         'o', "OUTDIR",        0,  "Output directory" },
     { "tree_depth",     'D', "TREE_DEPTH",    0,  "Suffix tree depth" },
+    { "fixed_trie_depth",1001, "FIXED_TRIE_DEPTH",    0,  "Some leafs depth can be less than tree_depth (variable=0, fixed=1)" },
     { "algorithm",      'a', "{dijkstra, astar-prefix}", 0, "Shortest path algorithm" },
     { "greedy_match",   'f', "GREEDY_MATCH",  0,  "Proceed greedily forward if there is a unique matching outgoing edge" },
     { "astar_len_cap",  'd', "A*_PREFIX_CAP", 0,  "The upcoming sequence length cap for the A* heuristic" },
@@ -43,6 +44,7 @@ struct arguments {
 
     bool greedy_match;
     int tree_depth;
+    bool fixed_trie_depth;
 
     int AStarLengthCap;
     double AStarCostCap;
@@ -68,6 +70,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             break;
         case 'D':
             arguments->tree_depth = std::stoi(arg);
+            break;
+        case 1001:
+            arguments->fixed_trie_depth = (bool)std::stod(arg);
             break;
         case 'a':
             assert(std::strcmp(arg, "dijkstra") == 0 || std::strcmp(arg, "astar-prefix") == 0);
