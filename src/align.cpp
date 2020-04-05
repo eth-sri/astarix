@@ -5,10 +5,10 @@ namespace astarix {
 state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_path) {
     LOG_DEBUG << "Aligning read " << r.s << " of length " << r.len << " using " << algo;
 
-    if (algo != "astar-prefix" && algo != "dijkstra") {
-        LOG_ERROR << "No algorithm " << algo;
-        assert(false);
-    }
+    //if (algo != "astar-prefix" && algo != "dijkstra") {
+    //    LOG_ERROR << "No algorithm " << algo;
+    //    assert(false);
+    //}
 
     // Clean up
     read_timers.clear();
@@ -107,17 +107,13 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
 
         if (algo == "dijkstra") {
             push(Q, g, next);
-        } else if (algo == "astar-prefix") {
+        } else {
             read_timers.astar.start();
-            //std::string suff = r.s.substr(i_next, astar->get_max_prefix_len());
-            //cost_t h = astar->h(e.to, suff);
             cost_t h = astar->h(next);
             cost_t f = g + h;
             read_timers.astar.stop();
+
             push(Q, f, next);
-        } else {
-            LOG_FATAL << "Algorithm " << algo << " not supported.";
-            assert(false);
         }
     }
 }

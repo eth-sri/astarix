@@ -3,13 +3,14 @@
 #include <algorithm>
 #include <dirent.h>
 #include <errno.h>
+#include <stdexcept>
 #include <map>
 #include <thread>
 
 #include "align.h"
 #include "argparse.h"
 #include "astar-prefix.h"
-//#include "astar-landmarks.h"
+#include "astar-landmarks.h"
 #include "concurrentqueue.h"
 #include "graph.h"
 #include "io.h"
@@ -22,25 +23,29 @@ using namespace astarix;
 void init_logger(const char *log_fn, int verbose) {
     if (verbose > 0) {
         assert(log_fn);
-        auto level = verbose == 1 ? plog::info : plog::debug;
-        static plog::RollingFileAppender<plog::TxtFormatter> InfoFileAppender(log_fn, 0);
-        plog::init<1>(level, &InfoFileAppender);
-        
-        plog::init(level).addAppender(plog::get<1>());
+        auto level = verbose == 1 ? plog::info : plog::verbose;
+
+        //static plog::RollingFileAppender<plog::TxtFormatter> InfoFileAppender(log_fn, 0);
+        //plog::init<1>(level, &InfoFileAppender);
+        //plog::init(level).addAppender(plog::get<1>());
+
+        plog::init(level, log_fn);
     }
 }
 
 AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     AStarHeuristic* astar;
 
-    if (args.algorithm == "astar-prefix") {
+    // TODO: add dijkstra
+    if (string(args.algorithm) == "astar-prefix") {
         astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
-    } else if (args.algorithm == "astar-landmarks") {
-        assert(args.);
-//        astar = new AStarLandmarks(G, args.costs);
+    } else if (string(args.algorithm) == "astar-landmarks") {
+        if (!args.fixed_trie_depth)
+            throw invalid_argument("astar-landmarks algorithm can only be used with fixed_trie_depth flag on.");
+        astar = new AStarLandmarks(G, args.costs);
     } else {
         cout << "No algorithm " << args.algorithm << endl;
-        assert(false);
+        throw invalid_argument("Unknown algorithm.");
     }
 
     return astar;
@@ -118,6 +123,7 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
     if (args->tree_depth == -1) {
         args->tree_depth = floor(log(G.nodes()) / log(4.0));
     }
+    assert(args->tree_depth > 0);
 }
 
 void print_tsv(map<string, string> dict, ostream &out) {
@@ -320,6 +326,9 @@ int main(int argc, char **argv) {
     std::mutex timer_m;
     Counter popped_trie_total, popped_ref_total;
     std::atomic<bool> nonunique_best_alignments(0);
+
+    assert(G.E.size() == G.E_rev.size());  // TODO: remove
+    assert(G.V.size() == G.V_rev.size());  // TODO: remove
 
     cout << "Aligning..." << flush;
     bool calc_mapping_cost = false;

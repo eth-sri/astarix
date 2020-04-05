@@ -75,7 +75,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             arguments->fixed_trie_depth = (bool)std::stod(arg);
             break;
         case 'a':
-            assert(std::strcmp(arg, "dijkstra") == 0 || std::strcmp(arg, "astar-prefix") == 0);
+            //assert(std::strcmp(arg, "dijkstra") == 0 || std::strcmp(arg, "astar-prefix") == 0);
             arguments->algorithm = arg;
             break;
         case 'f':

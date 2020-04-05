@@ -44,6 +44,6 @@ void gfa2graph(GfaGraph &gfa, astarix::graph_t *G) {
         }
     }
 
-    G->orig_nodes = G->V.size();
-    G->orig_edges = G->E.size();
+    G->orig_nodes = G->nodes();
+    G->orig_edges = G->edges();
 }

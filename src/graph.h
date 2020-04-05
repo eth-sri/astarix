@@ -75,6 +75,7 @@ struct graph_t {
 
     const char *EdgeTypeStr[5];
     int trie_first_node, trie_depth, trie_nodes, trie_edges;
+    bool fixed_trie_depth;
 
     graph_t(bool _with_reverse_edges=0)
             : trie_nodes(0), trie_depth(0), trie_edges(0), orig_nodes(0), orig_edges(0)
@@ -93,7 +94,11 @@ struct graph_t {
     }
 
     bool node_in_trie(int v) const {
-        return v >= trie_first_node;
+        return v >= trie_first_node || v == 0;
+    }
+
+    int get_trie_depth() const {
+        return trie_depth;
     }
 
     size_t trie_mem_bytes() const {
@@ -133,6 +138,7 @@ struct graph_t {
         return V[0] != -1;
     }
 
+    // TODO: remove
     bool has_node(int u) const {
         return V[u] != -1;
     }
@@ -158,7 +164,7 @@ struct graph_t {
         V[a] = (int)E.size()-1;
 
         // rev_edge
-        edge_t e_rev(b, a, label, V_rev[a], type, node_id, offset);  // TODO: remove unused params
+        edge_t e_rev(b, a, label, V_rev[b], type, node_id, offset);  // TODO: remove unused params
         E_rev.push_back(e_rev);
         V_rev[b] = (int)E_rev.size()-1;
     }
@@ -294,6 +300,50 @@ struct graph_t {
             return !(lhs == rhs);
         }
     };
+    
+    // Iterator over reverse edges.
+    class orig_rev_edge_iterator;
+    orig_rev_edge_iterator begin_orig_rev_edges(int v) const { return orig_rev_edge_iterator(this, v); }
+    orig_rev_edge_iterator end_orig_rev_edges() const { return orig_rev_edge_iterator(this, -1); }
+
+    // Iterator of the original outgoing edges in the graph (excluding edit-edges).
+    class orig_rev_edge_iterator {
+        const graph_t *g;
+        int curr_edge_idx;
+
+      public:
+        using value_type = edge_t;
+        using reference = edge_t;
+        using iterator_category = std::input_iterator_tag;
+        using pointer = edge_t*;
+        using difference_type = void;
+
+        orig_rev_edge_iterator(const graph_t *G, int _v)
+            : g(G), curr_edge_idx(_v != -1 ? G->V_rev[_v] : -1) {
+        }
+
+        const reference operator*() const { return g->E_rev[curr_edge_idx]; }
+        const pointer operator->() const { return (const pointer)&(g->E_rev[curr_edge_idx]); }
+
+        orig_rev_edge_iterator& operator++() {  // preincrement
+            curr_edge_idx = g->E_rev[curr_edge_idx].next;
+            return *this;
+        }
+
+        const orig_rev_edge_iterator& operator++(int) { // postincrement
+            const auto tmp = this;
+            ++(*this);
+            return *tmp;
+        }
+
+        friend bool operator==(orig_rev_edge_iterator const& lhs, orig_rev_edge_iterator const& rhs) {
+            return lhs.curr_edge_idx == rhs.curr_edge_idx;
+        }
+
+        friend bool operator!=(orig_rev_edge_iterator const& lhs, orig_rev_edge_iterator const& rhs) {
+            return !(lhs == rhs);
+        }
+    };
 
     class all_matching_edge_iterator;
 
@@ -406,8 +456,8 @@ struct read_t {
         assert(are_all_nucls(_s));
 
         if (_phreds != "") {
+            assert(s.length() == _phreds.length());
             phreds = '@' + _phreds;
-            assert(s.length() == phreds.length());
         }
     }
 };

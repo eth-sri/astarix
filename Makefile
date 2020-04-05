@@ -1,5 +1,5 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -DNDEBUG -std=c++14 -O3 -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter -Wno-missing-field-initializers
+CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter -Wno-missing-field-initializers
 
 SRCDIR=src
 EXTDIR=ext
@@ -13,7 +13,7 @@ TMPDIR=tmp
 ASTARIXBIN=$(BINDIR)/astarix
 LIBS= #-lm -lz 
 
-_DEPS = $(SRCDIR)/argparse.h $(SRCDIR)/astar-prefix.h $(SRCDIR)/gfa2graph.h $(SRCDIR)/graph.h $(SRCDIR)/io.h $(SRCDIR)/align.h $(SRCDIR)/utils.h $(SRCDIR)/trie.h $(EXTDIR)/GraphAligner/GfaGraph.h
+_DEPS = $(SRCDIR)/argparse.h $(SRCDIR)/astar-prefix.h $(SRCDIR)/astar-landmarks.h $(SRCDIR)/gfa2graph.h $(SRCDIR)/graph.h $(SRCDIR)/io.h $(SRCDIR)/align.h $(SRCDIR)/utils.h $(SRCDIR)/trie.h $(EXTDIR)/GraphAligner/GfaGraph.h
 DEPS = $(patsubst %, %, $(_DEPS))
 
 _OBJ = $(SRCDIR)/argparse.o $(SRCDIR)/astar-prefix.o $(SRCDIR)/gfa2graph.o $(SRCDIR)/align.o $(SRCDIR)/utils.o $(SRCDIR)/trie.o $(EXTDIR)/GraphAligner/GfaGraph.o
@@ -47,7 +47,8 @@ bigtest:
 
 eval: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default -v 0
+	$(ASTARIXBIN) align-optimal -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default -v 2 --fixed_trie_depth 1 -a astar-landmarks
+	#$(ASTARIXBIN) align-optimal -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default -v 0 --fixed_trie_depth 1 -a astar-prefix
                     
 .PHONY: all clean
 

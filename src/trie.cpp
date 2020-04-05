@@ -80,14 +80,19 @@ void add_tree(graph_t *G, int tree_depth, bool fixed_trie_depth) {
     int curr_node=G->V.size();
     G->trie_first_node = curr_node;
     G->trie_depth = tree_depth;
+    G->fixed_trie_depth = fixed_trie_depth;
+
+    LOG_INFO << " Nodes of the trie >= " << G->trie_first_node;
+    LOG_INFO << "          Trie depth: " << G->trie_depth;
+    LOG_INFO << "    Fixed trie depth: " << G->fixed_trie_depth;
 
     try {
         // Construct Trie.
         for (int i=1; i<G->V.size(); i++)
-            dfs_construct_trie(*G, i, tree_depth, &tree_root);
+            dfs_construct_trie(*G, i, tree_depth-1, &tree_root);
         // Extrect edges to be added to the graph.
         for (int i=1; i<G->V.size(); i++)
-            dfs_trie_to_graph(*G, i, tree_depth, &tree_root, &new_edges, &curr_node, fixed_trie_depth);
+            dfs_trie_to_graph(*G, i, tree_depth-1, &tree_root, &new_edges, &curr_node, fixed_trie_depth);
     } catch (std::bad_alloc& ba) {
         std::cerr << "new_edges.size(): " << new_edges.size() << '\n';
         std::cerr << "bad_alloc caught: " << ba.what() << '\n';
