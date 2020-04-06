@@ -94,7 +94,6 @@ class AStarPrefix: public AStarHeuristic {
     }
 
     void print_stats(std::ostream &out) const {
-        out << "== AStarPrefix specific stats ==" << std::endl;
         out << "         eq. classes mem: " << b2gb(equiv_classes_mem_bytes()) << "gb" << std::endl;
         out << "      Table memory usage: " << int(table_entrees()) << " entries "
                                             << " occupying [" << b2gb(table_mem_bytes_lower())

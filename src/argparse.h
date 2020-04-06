@@ -24,6 +24,7 @@ static struct argp_option options[] = {
     { "astar_equivalence_classes",
                         'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
 //    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
+    { "astar_landmark_len",  2001, "A*_LANDMARK_LEN", 0,  "The length of the A* landmarks." },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
@@ -46,9 +47,13 @@ struct arguments {
     int tree_depth;
     bool fixed_trie_depth;
 
+    // A*-prefix params
     int AStarLengthCap;
     double AStarCostCap;
     bool AStarNodeEqivClasses;
+
+    // A*-landmark params
+    int astar_landmark_len;
 
     int threads;
     int verbose;
@@ -91,6 +96,10 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             break;
         case 'e':
             arguments->AStarNodeEqivClasses = (bool)std::stod(arg);
+            break;
+        case 2001:
+            assert(std::stoi(arg) >= 5);
+            arguments->astar_landmark_len = std::stod(arg);
             break;
         case 'o':
             arguments->output_dir = arg;

@@ -46,7 +46,7 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     } else if (algo == "astar-landmarks") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-landmarks algorithm can only be used with fixed_trie_depth flag on.");
-        astar = new AStarLandmarks(G, args.costs);
+        astar = new AStarLandmarks(G, args.costs, args.astar_landmark_len);
     } else if (algo == "dijkstra") { 
         astar = new DijkstraDummy();
     } else {
@@ -308,7 +308,7 @@ int main(int argc, char **argv) {
                                                 << "depth: " << args.tree_depth                         << endl;
         out << "  Reference+ReverseRef+Trie: " << G.nodes() << " nodes, " << G.edges() << " edges, "
                                                 << "density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
-        out << "                      Reads: " << R.size() << " x " << R.front().s.size()-1 << "bp, "
+        out << "                      Reads: " << R.size() << " x " << R.front().len << "bp, "
                 "coverage: " << 1.0 * R.size() * (R.front().s.size()-1) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
         out << endl;
 
@@ -440,6 +440,8 @@ int main(int argc, char **argv) {
         out << "                 Total cost: " << total_cost << endl;
         out << " Non-unique best alignments: " << nonunique_best_alignments << " out of " << R.size()   << endl;
         out << endl;
+        out << " == Heuristic stats (" << args.algorithm << ") ==" << std::endl;
+        astar->print_stats(out);
         out << " == Performance =="                                                             << endl;
         out << "    Memory: " << "                   measured | estimated"                                  << endl;
         out << "                   total: " << total_mem << "gb, 100% | -"      << endl;
@@ -449,8 +451,6 @@ int main(int argc, char **argv) {
         out << "     equiv. classes opt.: " << T.precompute.m.get_gb() << "gb, " << 100.0*T.precompute.m.get_gb() / total_mem << "%" << endl;
         out << "          A*-memoization: " << T.align.m.get_gb() << "gb, " << 100.0*T.align.m.get_gb() / total_mem << endl;
         out << endl;
-        astar->print_stats(out);
-
         out << "    Wall runtime: " << total_wt.count() << "s"                          << endl;
         out << "       reference loading: " << T.read_graph.t.get_sec() << "s"          << endl;
         out << "         queries loading: " << T.read_queries.t.get_sec() << "s"            << endl;

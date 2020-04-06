@@ -19,8 +19,8 @@ class AStarLandmarks: public AStarHeuristic {
     const EditCosts &costs;
 
     // Updated separately for every read
-    int pivots, pivot_length;
-    const read_t *last_r;
+    int pivots, pivot_len;
+    const read_t *r_;
 
     // H[u] := number of exactly aligned pivots after node `u`
     // It is safe to increase more to H than needed.
@@ -33,10 +33,9 @@ class AStarLandmarks: public AStarHeuristic {
     int landmark_matches;
 
   public:
-    AStarLandmarks(const graph_t &_G, const EditCosts &_costs)
-        : G(_G), costs(_costs) {
+    AStarLandmarks(const graph_t &_G, const EditCosts &_costs, int _pivot_len)
+        : G(_G), costs(_costs), pivot_len(_pivot_len)  {
         H.resize(G.nodes());
-        pivot_length = 30;
         reads = 0;
         landmark_matches = 0;
         //LOG_INFO << "A* matching class constructed with:";
@@ -53,25 +52,31 @@ class AStarLandmarks: public AStarHeuristic {
     // f(<u,i>) := |{ (s,j) \in pivot | exists v: exists path from u->v of length exactly (j-i) and s aligns exactly from v }|,
     // 
     // where P is the number of pivots
+    // Accounts only for the last landmarks.
     // O(1)
     cost_t h(const state_t &st) const {
-        int cnt = __builtin_popcount(H[st.v]);
-        assert(pivots >= cnt);
+        int max_landmarks_to_end = (r_->len - st.i - 1) / pivot_len;
+        int h_remaining = H[st.v] & ((1<<max_landmarks_to_end)-1);
+        int matching_landmarks = __builtin_popcount(h_remaining);
+        assert(max_landmarks_to_end >= matching_landmarks);
+        cost_t res = (max_landmarks_to_end - matching_landmarks) * costs.get_min_mismatch_cost();
         LOG_DEBUG << "h(" << st.i << ", " << st.v << ") = ("
-                  << pivots << "-" << cnt << ") * " << costs.get_min_mismatch_cost();
-        return (pivots - cnt) * costs.get_min_mismatch_cost();
+                  << max_landmarks_to_end << "-" << matching_landmarks << ") * "
+                  << costs.get_min_mismatch_cost()
+                  << " = " << res;
+        return res;
     }
 
     // Cut r into chunks of length pivot_len, starting from the end.
     void before_every_alignment(const read_t *r) {
         ++reads;
-        last_r = r;
-        pivots = gen_pivots_and_update(r, pivot_length, +1);
+        r_ = r;
+        pivots = gen_pivots_and_update(r, pivot_len, +1);
     }
 
     void after_every_alignment() {
         // Revert the updates by adding -1 instead of +1.
-        gen_pivots_and_update(last_r, pivot_length, -1);
+        gen_pivots_and_update(r_, pivot_len, -1);
 
         // TODO: removedebug
         for(int i=0; i<H.size(); i++)
@@ -79,10 +84,10 @@ class AStarLandmarks: public AStarHeuristic {
     }
 
     void print_params(std::ostream &out) const {
+        out << "   landmark length: " << pivot_len << " bp" << std::endl;
     }
 
     void print_stats(std::ostream &out) const {
-        out << " == AStarixLandmarks == " << std::endl;
         out << " Total landmark matches for all reads: " << landmark_matches
             << "(" << 1.0*landmark_matches/reads << " per read)" << std::endl;
     }
@@ -102,12 +107,11 @@ class AStarLandmarks: public AStarHeuristic {
     // TODO: optimize with string nodes
     // Returns if the the supersource was reached at least once.
     bool update_path_backwards(int p, int i, node_t v, int dval) {
-        LOG_DEBUG << "Backwards trace: (" << i << ", " << v << ")";
+        LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
         if (dval == +1) H[v] |= 1<<p;   // fire p-th bit
         else H[v] &= ~(1<<p);  // remove p-th bit
-        LOG_DEBUG << "H[" << v << "] = " << H[v];
-        //assert(H[v] >= 0);
-        //assert(H[v] <= pivots);
+        LOG_DEBUG_IF(dval == +1) << "H[" << v << "] = " << H[v];
+        assert(__builtin_popcount(H[v]) <= pivots);
 
         if (i == 0) {
             assert(v == 0);  // supersource is reached; no need to update H[0]
@@ -118,7 +122,9 @@ class AStarLandmarks: public AStarHeuristic {
         for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
             // TODO: iterate edges from the trie separately from the edges from the graph
             if (should_proceed_backwards_to(i-1, it->to)) {
-                assert(update_path_backwards(p, i-1, it->to, dval));
+                LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
+                bool success = update_path_backwards(p, i-1, it->to, dval);
+                assert(success);
                 at_least_one_path = true; // debug
             }
         }
@@ -130,7 +136,9 @@ class AStarLandmarks: public AStarHeuristic {
     // In case of success, v is the 
     // Returns a list of (shift_from_start, v) with matches
     void match_pivot_and_update(const read_t *r, int p, int start, int pivot_len, int i, node_t v, int dval) {
+        LOG_DEBUG_IF(dval == +1) << "Match forward pivot " << p << "[" << start << ", " << start+pivot_len << ") to state (" << i << ", " << v << ")";
         if (i < start + pivot_len) {
+            // TODO: match without recursion if unitig
             // Match exactly down the trie and then through the original graph.
             for (auto it=G.begin_orig_edges(v); it!=G.end_orig_edges(); ++it)
                 if (it->label == r->s[i])
@@ -141,8 +149,9 @@ class AStarLandmarks: public AStarHeuristic {
 //                match_pivot_and_update(r, start, pivot_len, i+1, it->to, dval);
         } else {
             assert(!G.node_in_trie(v));
-            LOG_DEBUG << "Updating for pivot (" << i << ", " << v << ") with dval=" << dval;
-            assert(update_path_backwards(p, i, v, dval));
+            LOG_DEBUG_IF(dval == +1) << "Updating for pivot " << p << "(" << i << ", " << v << ") with dval=" << dval;
+            bool success = update_path_backwards(p, i, v, dval);
+            assert(success);
 
             ++landmark_matches;  // debug info
         }
@@ -154,7 +163,7 @@ class AStarLandmarks: public AStarHeuristic {
     // Returns the number of pivots.
     int gen_pivots_and_update(const read_t *r, int pivot_len, int dval) {
         int pivots = 0;
-        for (int i=r->len-pivot_len+1; i>0; i-=pivot_len) {
+        for (int i=r->len-pivot_len; i>=0; i-=pivot_len) {
             // pivot from [i, i+pivot_len)
             match_pivot_and_update(r, pivots, i, pivot_len, i, 0, dval);
             pivots++;

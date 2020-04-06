@@ -3,7 +3,7 @@
 namespace astarix {
 
 state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_path) {
-    LOG_DEBUG << "Aligning read " << r.s << " of length " << r.len << " using " << algo;
+    LOG_DEBUG << "Aligning read " << r.comment << ": " << r.s << " of length " << r.len << " using " << algo;
 
     // Clean up
     read_timers.clear();
@@ -105,7 +105,9 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
         cost_t f = g + h;
         read_timers.astar.stop();
 
-        LOG_DEBUG << "Push (" << next.i << ", " << next.v << ") with f=g+h = " << g << " + " << h;
+        LOG_DEBUG << "From (" << curr.i << ", " << curr.v << ") "
+            << "through edge (" << e.label << ", " << edgeType2str(e.type) << ") "
+            << "push (" << next.i << ", " << next.v << ") with f=g+h = " << g << " + " << h << " = " << f;
         push(Q, f, next);
     }
 }
