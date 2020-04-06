@@ -9,12 +9,15 @@
 
 #include "align.h"
 #include "argparse.h"
-#include "astar-prefix.h"
-#include "astar-landmarks.h"
 #include "concurrentqueue.h"
 #include "graph.h"
 #include "io.h"
 #include "trie.h"
+
+// A* heuristics
+#include "dijkstra.h"
+#include "astar-prefix.h"
+#include "astar-landmarks.h"
 
 using namespace std;
 using namespace astarix;
@@ -29,20 +32,23 @@ void init_logger(const char *log_fn, int verbose) {
         //plog::init<1>(level, &InfoFileAppender);
         //plog::init(level).addAppender(plog::get<1>());
 
-        plog::init(level, log_fn);
+        plog::init(level, log_fn, 1000000);
     }
 }
 
 AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     AStarHeuristic* astar;
+    string algo = args.algorithm;
 
     // TODO: add dijkstra
-    if (string(args.algorithm) == "astar-prefix") {
+    if (algo == "astar-prefix") {
         astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
-    } else if (string(args.algorithm) == "astar-landmarks") {
+    } else if (algo == "astar-landmarks") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-landmarks algorithm can only be used with fixed_trie_depth flag on.");
         astar = new AStarLandmarks(G, args.costs);
+    } else if (algo == "dijkstra") { 
+        astar = new DijkstraDummy();
     } else {
         cout << "No algorithm " << args.algorithm << endl;
         throw invalid_argument("Unknown algorithm.");
