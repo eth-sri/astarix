@@ -298,9 +298,10 @@ int main(int argc, char **argv) {
                                     << int(args.costs.ins) << ", " << int(args.costs.del) << " (match, subst, ins, del)" << endl;
         out << "              Greedy match?: " << bool2str(args.greedy_match)                           << endl;
         out << "                    Threads: " << args.threads                                          << endl;
+        out << endl;
         out << " == A* parameters =="                                                               << endl;
         astar->print_params(out);
-
+        out << endl;
         out << " == Data =="                                                                      << endl;
         // Note: the trie is built on top of the **doubled** original graph (incl. reverse).
         out << "         Original reference: " << G.orig_nodes << " nodes, " << G.orig_edges << " edges"<< endl;
@@ -442,6 +443,7 @@ int main(int argc, char **argv) {
         out << endl;
         out << " == Heuristic stats (" << args.algorithm << ") ==" << std::endl;
         astar->print_stats(out);
+        out << endl;
         out << " == Performance =="                                                             << endl;
         out << "    Memory: " << "                   measured | estimated"                                  << endl;
         out << "                   total: " << total_mem << "gb, 100% | -"      << endl;

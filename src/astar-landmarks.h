@@ -21,9 +21,11 @@ class AStarLandmarks: public AStarHeuristic {
     // Updated separately for every read
     int pivots, pivot_len;
     const read_t *r_;
+    int shifts_allowed_;  // number of deletions accomodated in first trie_depth nucleotides
 
     // H[u] := number of exactly aligned pivots after node `u`
     // It is safe to increase more to H than needed.
+    // TODO: make H dependent on the distance to the landmark
     std::vector<int> H;
 //    std::vector<int> visited;  // == +1 if a node has already been added to H; -1 if a node has already been subtracted from H
     //std::unordered_map<node_t, cost_t> _star;
@@ -31,6 +33,7 @@ class AStarLandmarks: public AStarHeuristic {
     // stats
     int reads;
     int landmark_matches;
+    int paths_considered_;
 
   public:
     AStarLandmarks(const graph_t &_G, const EditCosts &_costs, int _pivot_len)
@@ -38,6 +41,8 @@ class AStarLandmarks: public AStarHeuristic {
         H.resize(G.nodes());
         reads = 0;
         landmark_matches = 0;
+        shifts_allowed_ = 5;
+        paths_considered_ = 0;
         //LOG_INFO << "A* matching class constructed with:";
         //LOG_INFO << "  pivot_len    = " << pivot_len;
     }
@@ -90,6 +95,7 @@ class AStarLandmarks: public AStarHeuristic {
     void print_stats(std::ostream &out) const {
         out << " Total landmark matches for all reads: " << landmark_matches
             << "(" << 1.0*landmark_matches/reads << " per read)" << std::endl;
+        out << "                     Paths considered: " << paths_considered_ << std::endl;
     }
 
   private:
@@ -106,7 +112,7 @@ class AStarLandmarks: public AStarHeuristic {
     // `H[u]+=dval` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
     // TODO: optimize with string nodes
     // Returns if the the supersource was reached at least once.
-    bool update_path_backwards(int p, int i, node_t v, int dval) {
+    bool update_path_backwards(int p, int i, node_t v, int dval, int shifts_remaining) {
         LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
         if (dval == +1) H[v] |= 1<<p;   // fire p-th bit
         else H[v] &= ~(1<<p);  // remove p-th bit
@@ -115,6 +121,7 @@ class AStarLandmarks: public AStarHeuristic {
 
         if (i == 0) {
             assert(v == 0);  // supersource is reached; no need to update H[0]
+            ++paths_considered_;
             return true;
         }
 
@@ -122,8 +129,14 @@ class AStarLandmarks: public AStarHeuristic {
         for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
             // TODO: iterate edges from the trie separately from the edges from the graph
             if (should_proceed_backwards_to(i-1, it->to)) {
+                // Go back freely to accomodate deletions.
+                if (i-1 == G.get_trie_depth() && !G.node_in_trie(it->to)) {
+                    if (shifts_remaining > 0)
+                        update_path_backwards(p, i, it->to, dval, shifts_remaining-1);
+                }
+
                 LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
-                bool success = update_path_backwards(p, i-1, it->to, dval);
+                bool success = update_path_backwards(p, i-1, it->to, dval, shifts_remaining);
                 assert(success);
                 at_least_one_path = true; // debug
             }
@@ -150,7 +163,7 @@ class AStarLandmarks: public AStarHeuristic {
         } else {
             assert(!G.node_in_trie(v));
             LOG_DEBUG_IF(dval == +1) << "Updating for pivot " << p << "(" << i << ", " << v << ") with dval=" << dval;
-            bool success = update_path_backwards(p, i, v, dval);
+            bool success = update_path_backwards(p, i, v, dval, shifts_allowed_);
             assert(success);
 
             ++landmark_matches;  // debug info

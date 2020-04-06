@@ -49,9 +49,13 @@ bigtest:
 
 eval: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default -v 0 --fixed_trie_depth 1 -a astar-landmarks
-	$(ASTARIXBIN) align-optimal -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default -v 0 --fixed_trie_depth 1 -a astar-prefix
+	$(ASTARIXBIN) align-optimal -a astar-landmarks -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default -v 0 --fixed_trie_depth 1
+	$(ASTARIXBIN) align-optimal -a astar-prefix -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default -v 0 --fixed_trie_depth 1
                     
+eval_long: $(ASTARIXBIN)
+	$(shell mkdir -p $(TMPDIR))
+	$(ASTARIXBIN) align-optimal -a astar-landmarks -t 8 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/long.fq -o $(TMPDIR)/ecoli_head1000000_linear_long_reads/astar-default -v 0 --fixed_trie_depth 1
+
 .PHONY: all clean
 
 clean:
