@@ -178,7 +178,7 @@ class EditCosts {
     }
 
     cost_t get_min_mismatch_cost() const {
-        return std::min(std::min(match, subst), std::min(ins, del));
+        return std::min(subst, std::min(ins, del));
     }
         
     cost_t edge2score(const edge_t &e) const {

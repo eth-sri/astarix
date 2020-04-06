@@ -57,6 +57,8 @@ class AStarLandmarks: public AStarHeuristic {
     cost_t h(const state_t &st) const {
         int cnt = __builtin_popcount(H[st.v]);
         assert(pivots >= cnt);
+        LOG_DEBUG << "h(" << st.i << ", " << st.v << ") = ("
+                  << pivots << "-" << cnt << ") * " << costs.get_min_mismatch_cost();
         return (pivots - cnt) * costs.get_min_mismatch_cost();
     }
 
@@ -101,16 +103,16 @@ class AStarLandmarks: public AStarHeuristic {
     // Returns if the the supersource was reached at least once.
     bool update_path_backwards(int p, int i, node_t v, int dval) {
         LOG_DEBUG << "Backwards trace: (" << i << ", " << v << ")";
-        if (i == 0) {
-            assert(v == 0);  // supersource is reached; no need to update H[0]
-            return true;
-        }
-
         if (dval == +1) H[v] |= 1<<p;   // fire p-th bit
         else H[v] &= ~(1<<p);  // remove p-th bit
         LOG_DEBUG << "H[" << v << "] = " << H[v];
         //assert(H[v] >= 0);
         //assert(H[v] <= pivots);
+
+        if (i == 0) {
+            assert(v == 0);  // supersource is reached; no need to update H[0]
+            return true;
+        }
 
         bool at_least_one_path = false;
         for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
