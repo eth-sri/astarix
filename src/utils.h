@@ -138,6 +138,11 @@ class Counter {
     T get() const {
         return cnt;
     }
+
+    Counter& operator+=(const Counter &b) {
+        cnt += b.cnt;
+        return *this;
+    }
 };
 
 static std::string bool2str(bool x) {

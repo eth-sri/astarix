@@ -26,6 +26,7 @@ struct pairhash {
 struct Counters {
     Counter pushed, popped, greedy_matched;
     Counter popped_trie, popped_ref;
+    Counter explored_states;
 
     void clear() {
         pushed.clear();
@@ -33,6 +34,17 @@ struct Counters {
         greedy_matched.clear();
         popped_trie.clear();
         popped_ref.clear();
+        explored_states.clear();
+    }
+
+    Counters& operator+=(const Counters &b) {
+        pushed += b.pushed;
+        popped += b.popped;
+        greedy_matched += b.greedy_matched;
+        popped_trie += b.popped_trie;
+        popped_ref += b.popped_ref;
+        explored_states += b.explored_states;
+        return *this;
     }
 };
 

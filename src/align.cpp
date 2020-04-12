@@ -40,6 +40,8 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         
         prev_cost = Q.top().second.cost;
         state_t curr = pop(Q);
+        read_counters.explored_states.inc();
+
         //LOG_INFO << "node in tree: " << G.node_in_trie(curr.v);
         if (G.node_in_trie(curr.v)) read_counters.popped_trie.inc();
         else read_counters.popped_ref.inc();
@@ -127,6 +129,7 @@ state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, cons
         }
 
         curr = next;
+        read_counters.explored_states.inc();
     }
 
     read_timers.ff.stop();

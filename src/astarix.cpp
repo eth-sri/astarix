@@ -60,7 +60,8 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
 arguments args;
 
 state_t wrap_readmap(const read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
-        edge_path_t *path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, char *line) {
+        edge_path_t *path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, char *line,
+       Counters *all_reads_counters) {
     state_t ans;
     
     aligner->astar->before_every_alignment(&r);
@@ -83,6 +84,8 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
         *pushed_rate_max = max(*pushed_rate_max, pushed_rate);
         *popped_rate_max = max(*popped_rate_max, popped_rate);
         *repeat_rate_max = max(*repeat_rate_max, repeat_rate);
+
+        *all_reads_counters += aligner->read_counters;
 
         line[0] = 0;
         sprintf(line,
@@ -334,6 +337,7 @@ int main(int argc, char **argv) {
     int total_cost(0);
     std::mutex timer_m;
     Counter popped_trie_total, popped_ref_total;
+    Counters all_reads_counters;
     std::atomic<bool> nonunique_best_alignments(0);
 
     assert(G.E.size() == G.E_rev.size());  // TODO: remove
@@ -347,7 +351,7 @@ int main(int argc, char **argv) {
         for (size_t i=0; i<R.size(); i++) {
             char line[10000];
             state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-                    &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
+                    &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &all_reads_counters);
             fprintf(fout, "%s", line);
             total_timers += aligner.read_timers;
             total_cost += ans.cost;
@@ -378,7 +382,7 @@ int main(int argc, char **argv) {
                 for (size_t i=from; i<to; i++) {
                     char line[10000];
                     state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-                            &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line);
+                            &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &all_reads_counters);
                     profileQueue.enqueue(string(line));
                     {
                         // TODO: merge the astar_local to astar stats
@@ -435,8 +439,9 @@ int main(int argc, char **argv) {
         double total_mem = MemoryMeasurer::get_mem_gb();
 
         out << " == Aligning statistics =="                                                     << endl;
-        out << "   Explored rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
-        out << "     Expand rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
+        out << "   Explored rate (avg, max): " << 1.0*all_reads_counters.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
+        out << "    Pushed  rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
+        out << "     Popped rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
         out << "             Average popped: " << 1.0 * popped_trie_total.get() / (R.size()/args.threads) << " from trie vs "
                                             << 1.0 * popped_ref_total.get() / (R.size()/args.threads) << " from ref"
                                             << " (influenced by greedy match flag)" << endl;
