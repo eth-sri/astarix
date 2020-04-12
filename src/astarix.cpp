@@ -46,7 +46,12 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     } else if (algo == "astar-landmarks") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-landmarks algorithm can only be used with fixed_trie_depth flag on.");
-        astar = new AStarLandmarks(G, args.costs, args.astar_landmark_len);
+
+        if (args.astar_max_waymark_errors == 0) 
+            astar = new AStarLandmarks(G, args.costs, args.astar_landmark_len);
+        else 
+            astar = new AStarLandmarksWithErrors(G, args.costs, args.astar_landmark_len,
+                                                 args.astar_max_waymark_errors);
     } else if (algo == "dijkstra") { 
         astar = new DijkstraDummy();
     } else {
@@ -64,9 +69,13 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
        Counters *all_reads_counters) {
     state_t ans;
     
-    aligner->astar->before_every_alignment(&r);
+    // prepare read
+    aligner->astar_before_every_alignment(&r);
+
     ans = aligner->readmap(r, algo, path);
-    aligner->astar->after_every_alignment();
+
+    // return preparation to previous state
+    aligner->astar_after_every_alignment();
 
     if (!performance_file.empty()) {
         //const auto &astar = aligner->get_astar();
@@ -389,6 +398,7 @@ int main(int argc, char **argv) {
                         timer_m.lock();
                         total_cost += ans.cost;
                         total_timers += aligner.read_timers;
+            
                         timer_m.unlock();
                         if (t == 0) {
                             popped_trie_total.inc( aligner.read_counters.popped_trie.get() );  
@@ -460,20 +470,21 @@ int main(int argc, char **argv) {
         out << "     equiv. classes opt.: " << T.precompute.m.get_gb() << "gb, " << 100.0*T.precompute.m.get_gb() / total_mem << "%" << endl;
         out << "          A*-memoization: " << T.align.m.get_gb() << "gb, " << 100.0*T.align.m.get_gb() / total_mem << endl;
         out << endl;
-        out << "    Wall runtime: " << total_wt.count() << "s"                          << endl;
+        out << "   Total wall runtime:    " << total_wt.count() << "s"                  << endl;
         out << "       reference loading: " << T.read_graph.t.get_sec() << "s"          << endl;
-        out << "         queries loading: " << T.read_queries.t.get_sec() << "s"            << endl;
+        out << "         queries loading: " << T.read_queries.t.get_sec() << "s"        << endl;
         out << "          construct trie: " << T.construct_trie.t.get_sec() << "s"      << endl;
         out << "              precompute: " << T.precompute.t.get_sec() << "s"          << endl;
         out << "                   align: " << align_wt.count() << "s (wall time) => "
                                             << R.size() / total_map_time << " reads/s <=> "
                                             << size_sum(R) / 1024.0 / total_map_time << " Kbp/s"    << endl; 
-        out << "                          " << T.align.t.get_sec() << "s (cpu time)"
-                     << " (A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time   << "%, "
-                     << "que: " << 100.0 * total_timers.queue.get_sec() / total_map_time    << "%, "
-                     << "dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time  << "%, "
-                     << "greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time  << "%"
-                     << ")" << endl;
+        out << endl;
+        out << " Total align cpu time:    " << T.align.t.get_sec() << "s (cpu time)"    << endl;
+        out << "                      A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time   << "%, "   << endl;
+        out << "        A* prepare_reads: " << 100.0 * total_timers.astar_prepare_reads.get_sec() / total_map_time    << "%, " << endl;
+        out << "                     que: " << 100.0 * total_timers.queue.get_sec() / total_map_time    << "%, " << endl;
+        out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time  << "%, " << endl;
+        out << "            greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time  << "%" << endl;
         out << " DONE" << endl;
     }
 

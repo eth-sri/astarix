@@ -50,12 +50,14 @@ struct Counters {
 
 struct AlignerTimers {
     Timer queue, ff, dicts, astar, total;
+    Timer astar_prepare_reads;
 
     void clear() {
         queue.clear();
         ff.clear();
         dicts.clear();
         astar.clear();
+        astar_prepare_reads.clear();
         total.clear();
     }
 
@@ -64,6 +66,7 @@ struct AlignerTimers {
         ff += b.ff;
         dicts += b.dicts;
         astar += b.astar;
+        astar_prepare_reads += b.astar_prepare_reads;
         total += b.total;
         return *this;
     }
@@ -117,6 +120,18 @@ class Aligner {
 
     inline const AStarHeuristic& get_astar() const {
         return *astar;
+    }
+
+    inline void astar_before_every_alignment(const read_t *r) {
+        read_timers.astar_prepare_reads.start();
+        astar->before_every_alignment(r);
+        read_timers.astar_prepare_reads.stop();
+    }
+
+    inline void astar_after_every_alignment() {
+        read_timers.astar_prepare_reads.start();
+        astar->after_every_alignment();
+        read_timers.astar_prepare_reads.stop();
     }
   
   private:
