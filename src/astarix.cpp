@@ -260,13 +260,13 @@ int main(int argc, char **argv) {
     T.read_graph.start();
     read_graph(&G, args.graph_file, output_dir);
     T.read_graph.stop();
-    cout << "done." << endl << flush;
+    cout << "done in " << T.read_graph.t.get_sec() << "s."  << endl << flush;
 
     cout << "Loading queries... " << flush;
     T.read_queries.start();
     read_queries(args.query_file, &R);
     T.read_queries.stop();
-    cout << "done." << endl << flush;
+    cout << "done in " << T.read_queries.t.get_sec() << "s." << endl << flush;
 
     auto_params(G, R, &args);
 
@@ -274,11 +274,13 @@ int main(int argc, char **argv) {
     T.construct_trie.start();
     add_tree(&G, args.tree_depth, args.fixed_trie_depth);
     T.construct_trie.stop();
-    cout << "done." << endl << flush;
+    cout << "done in " << T.construct_trie.t.get_sec() << "s." << endl << flush;
 
+    cout << "Initializing A* heuristic... " << flush;
     T.precompute.start();
     AStarHeuristic *astar = AStarHeuristicFactory(G, args);
     T.precompute.stop();
+    cout << "done in " << T.precompute.t.get_sec() << "s." << endl << flush;
 
     AlignParams align_params(args.costs, args.greedy_match);
     string algo = string(args.algorithm);
@@ -426,7 +428,7 @@ int main(int argc, char **argv) {
     auto end_align_wt = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> align_wt = end_align_wt - start_align_wt;
     std::chrono::duration<double> total_wt = end_align_wt - start_wt;
-    cout << "done." << endl << flush;
+    cout << "done in " << T.align.t.get_sec() << "s." << endl << flush;
 
     {
         double total_map_time = total_timers.total.get_sec();
