@@ -74,10 +74,11 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
     cost_t h(const state_t &st) const {
         int all_waymarks_to_end = (r_->len - st.i - 1) / pivot_len;
 
-        int total_errors = max_waymark_errors*all_waymarks_to_end;  // the maximum number of errors
+        int total_errors = (max_waymark_errors+1)*all_waymarks_to_end;  // the maximum number of errors
         int not_used_mask = -1;   // at first no waymark is used: 111...11111 (in binary)
         for (int errors=0; errors<=max_waymark_errors; errors++) {
             int h_remaining = H[errors][st.v] & not_used_mask & ((1<<all_waymarks_to_end)-1);
+            assert((H[errors][st.v] & not_used_mask & ((1<<all_waymarks_to_end)-1)) == (H[errors][st.v] & ((1<<all_waymarks_to_end)-1)));
             int matching_waymarks = __builtin_popcount(h_remaining);
             assert(matching_waymarks <= all_waymarks_to_end);
             not_used_mask &= ~h_remaining;  // remove the bits for used waymarks
