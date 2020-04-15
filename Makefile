@@ -79,7 +79,7 @@ eval_long300_90: $(ASTARIXBIN)
 
 eval_long300_05: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIXBIN) align-optimal -a astar-landmarks -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/long300_05.fq -o $(TMPDIR)/ecoli_head1000000_linear_long_reads/astar-waymark_errors_2 -v 2 --fixed_trie_depth 1 --astar_max_waymark_errors 2 -G 1 -S 1 --astar_waymark_len 11 --tree_depth 13
+	$(ASTARIXBIN) align-optimal -a astar-landmarks -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/long300_05.fq -o $(TMPDIR)/ecoli_head1000000_linear_long_reads/astar-waymark_errors_2 -v 0 --fixed_trie_depth 1 --astar_max_waymark_errors 2 -G 1 -S 1 --astar_waymark_len 15 --tree_depth 13
 
 eval_manual: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))

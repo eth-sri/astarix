@@ -151,19 +151,21 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
     // Proceed if node is in the trie and it is time for the trie,
     //   or if the node is not in the trie and it is too early for the trie.
     // trie_depth is the number of node levels (including the supersource)
-    bool should_proceed_backwards_to(int i, node_t v) {
-        bool time_for_trie = i < G.get_trie_depth();
-        bool node_in_trie = G.node_in_trie(v);
-        //LOG_DEBUG << "next node: " << v << ", time_for_trie: " << time_for_trie << ", node_in_trie: " << node_in_trie;
-        return !(time_for_trie ^ node_in_trie);
-    }
+    //bool should_proceed_backwards_to(int i, node_t v) {
+    //    bool time_for_trie = i < G.get_trie_depth();
+    //    bool node_in_trie = G.node_in_trie(v);
+    //    //LOG_DEBUG << "next node: " << v << ", time_for_trie: " << time_for_trie << ", node_in_trie: " << node_in_trie;
+    //    return !(time_for_trie ^ node_in_trie);
+    //}
+
+    int diff(int a, int b) { return abs(a-b); }
 
     // `H[u]+=dval` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
     // TODO: optimize with string nodes
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
     bool update_path_backwards(int p, int i, node_t v, int dval, int shifts_remaining, int errors) {
-        //LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
+        LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
         if (dval == +1) {
             if (!(H[errors][v] & (1<<p))) {
                 ++marked_states;
@@ -175,8 +177,8 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         //LOG_DEBUG_IF(dval == +1) << "H[" << errors << "][" << v << "] = " << H[errors][v];
         //assert(__builtin_popcount(H[errors][v]) <= waymarks);
 
-        if (i == 0) {
-            assert(v == 0);  // supersource is reached; no need to update H[0]
+        if (v == 0) {
+            assert(i == 0);  // supersource is reached; no need to update H[0]
             ++paths_considered;
             return true;
         }
@@ -184,17 +186,11 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         bool at_least_one_path = false;
         for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
             // TODO: iterate edges from the trie separately from the edges from the graph
-            if (should_proceed_backwards_to(i-1, it->to)) {
-                // Go back freely to accomodate deletions.
-                if (i-1 == G.get_trie_depth() && !G.node_in_trie(it->to)) {
-                    if (shifts_remaining > 0)
-                        update_path_backwards(p, i, it->to, dval, shifts_remaining-1, errors);
-                }
-
-                //LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
-                bool success = update_path_backwards(p, i-1, it->to, dval, shifts_remaining, errors);
-                //assert(success);
-                at_least_one_path = true; // debug
+            LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
+            if ( (G.node_in_trie(v))  // (1) already in trie
+              || (diff(i-1, G.get_trie_depth()) <= shifts_remaining)  // (2) time to go to trie
+              || (i-1 > G.get_trie_depth() && !G.node_in_trie(it->to))) {  // (3) proceed back
+                update_path_backwards(p, i-1, it->to, dval, shifts_remaining, errors);
             }
         }
 
