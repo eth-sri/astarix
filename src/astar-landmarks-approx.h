@@ -200,14 +200,14 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         if (i < start + pivot_len) {
             // TODO: match without recursion if unitig
             // Match exactly down the trie and then through the original graph.
-            //for (auto it=G.begin_all_edges(v); it!=G.end_all_edges(); ++it)
-            for (auto it=G.begin_orig_edges(v); it!=G.end_orig_edges(); ++it)
-                if (it->label == r->s[i]) {
-                    int new_remaining_errors = remaining_errors;
-                    //int new_remaining_errors = remaining_errors - (it->type != ORIG);
-                    //if (new_remaining_errors >= 0)
-                        match_waymark_and_update(r, p, start, pivot_len, i+1, it->to, dval, new_remaining_errors);
-                }
+            for (auto it=G.begin_all_matching_edges(v, r->s[i]); it!=G.end_all_edges(); ++it) {
+                int new_remaining_errors = remaining_errors;
+                LOG_DEBUG << "edge: " << it->label << ", " << edgeType2str(it->type);
+                if (it->type != ORIG && it->type != JUMP)  // ORIG in the graph, JUMP in the trie
+                    --new_remaining_errors;
+                if (new_remaining_errors >= 0)
+                    match_waymark_and_update(r, p, start, pivot_len, i+1, it->to, dval, new_remaining_errors);
+            }
 //        } else if (G.node_in_trie(v)) {
 //            // Climb the trie.
 //            for (auto it=G.begin_orig_edges(v); it!=G.end_orig_edges(); ++it)
