@@ -1,5 +1,4 @@
-bin/
-obj/
+debug/
+release/
 tmp/
 out/
-debug.log
