@@ -44,6 +44,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
     int waymark_matches_;   
     int paths_considered_;  
     int marked_states_;     
+    cost_t best_heuristic_sum_;
 
   public:
     AStarWaymarksWithErrors(const graph_t &_G, const EditCosts &_costs, int _pivot_len, int _max_waymark_errors, int _shifts_allowed)
@@ -55,6 +56,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         waymark_matches_ = 0;
         paths_considered_ = 0;
         marked_states_ = 0;
+        best_heuristic_sum_ = 0;
         //LOG_INFO << "A* matching class constructed with:";
         //LOG_INFO << "  pivot_len    = " << pivot_len;
     }
@@ -75,9 +77,9 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         int all_waymarks_to_end = (r_->len - st.i - 1) / pivot_len;
 
         int total_errors = (max_waymark_errors+1)*all_waymarks_to_end;  // the maximum number of errors
-        int not_used_mask = -1;   // at first no waymark is used: 111...11111 (in binary)
+        int not_used_mask = ((1<<all_waymarks_to_end)-1);   // at first no waymark is used: 111...11111 (in binary)
         for (int errors=0; errors<=max_waymark_errors; errors++) {
-            int h_remaining = H[errors][st.v] & not_used_mask & ((1<<all_waymarks_to_end)-1);
+            int h_remaining = H[errors][st.v] & not_used_mask;
             int matching_waymarks = __builtin_popcount(h_remaining);
             assert(matching_waymarks <= all_waymarks_to_end);
             not_used_mask &= ~h_remaining;  // remove the bits for used waymarks
@@ -86,9 +88,9 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         }
         
         cost_t res = total_errors * costs.get_min_mismatch_cost();
-        LOG_DEBUG << "h(" << st.i << ", " << st.v << ") = "
-                  << total_errors << " * " << costs.get_min_mismatch_cost()
-                  << " = " << res;
+        //LOG_DEBUG << "h(" << st.i << ", " << st.v << ") = "
+        //          << total_errors << " * " << costs.get_min_mismatch_cost()
+        //          << " = " << res;
         return res;
     }
 
@@ -102,16 +104,20 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         r_ = r;
         waymarks = gen_waymarks_and_update(r, pivot_len, +1);
 
-        LOG_INFO << r->comment << " A* waymarks stats: "
-                 << waymarks << " waymarks " 
-                 << "matching at " << waymark_matches << " graph positions "
-                 << "and generating " << paths_considered << " paths "
-                 << "over " << marked_states << " states.";
-
         waymarks_ += waymarks;
         waymark_matches_ += waymark_matches;
         paths_considered_ += paths_considered;
         marked_states_ += marked_states;
+        best_heuristic_sum_ += h(state_t(0.0, 0, 0, -1, -1));
+
+        LOG_INFO << r->comment << " A* waymarks stats: "
+                 << waymarks << " waymarks " 
+                 << "matching at " << waymark_matches << " graph positions "
+                 << "and generating " << paths_considered << " paths "
+                 << "over " << marked_states << " states"
+                 << "with best heuristic " << h(state_t(0.0, 0, 0, -1, -1)) << " "
+                 << "out of possible " << (max_waymark_errors+1)*waymarks;
+//                 << "which compensates for <= " << (max_waymark_errors+1)*waymarks - h(state_t(0.0, 0, 0, -1, -1)) << " errors";
     }
 
     void after_every_alignment() {
@@ -125,7 +131,9 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
     }
 
     void print_params(std::ostream &out) const {
-        out << "   waymark length: " << pivot_len << " bp" << std::endl;
+        out << "     waymark length: " << pivot_len << " bp"                        << std::endl;
+        out << " max waymark errors: " << max_waymark_errors                        << std::endl;
+        out << "     shifts allowed: " << shifts_allowed_                           << std::endl;
     }
 
     void print_stats(std::ostream &out) const {
@@ -135,6 +143,8 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
             << "(" << 1.0*waymark_matches_/reads_ << " per read)"                   << std::endl;
         out << "                    Paths considered: " << paths_considered_        << std::endl;
         out << "                  Graph nodes marked: " << marked_states_           << std::endl;
+        out << "                Best heuristic (avg): " << (double)best_heuristic_sum_/reads_ << std::endl;
+//        out << "                 Max heursitic value: " << ?? << std::endl;
     }
 
   private:
@@ -144,7 +154,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
     bool should_proceed_backwards_to(int i, node_t v) {
         bool time_for_trie = i < G.get_trie_depth();
         bool node_in_trie = G.node_in_trie(v);
-        LOG_DEBUG << "next node: " << v << ", time_for_trie: " << time_for_trie << ", node_in_trie: " << node_in_trie;
+        //LOG_DEBUG << "next node: " << v << ", time_for_trie: " << time_for_trie << ", node_in_trie: " << node_in_trie;
         return !(time_for_trie ^ node_in_trie);
     }
 
@@ -153,7 +163,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
     bool update_path_backwards(int p, int i, node_t v, int dval, int shifts_remaining, int errors) {
-        LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
+        //LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
         if (dval == +1) {
             if (!(H[errors][v] & (1<<p))) {
                 ++marked_states;
@@ -162,7 +172,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         } else {
             H[errors][v] &= ~(1<<p);  // remove p-th bit
         }
-        LOG_DEBUG_IF(dval == +1) << "H[" << errors << "][" << v << "] = " << H[errors][v];
+        //LOG_DEBUG_IF(dval == +1) << "H[" << errors << "][" << v << "] = " << H[errors][v];
         //assert(__builtin_popcount(H[errors][v]) <= waymarks);
 
         if (i == 0) {
@@ -181,7 +191,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
                         update_path_backwards(p, i, it->to, dval, shifts_remaining-1, errors);
                 }
 
-                LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
+                //LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
                 bool success = update_path_backwards(p, i-1, it->to, dval, shifts_remaining, errors);
                 //assert(success);
                 at_least_one_path = true; // debug
@@ -195,8 +205,8 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
     // In case of success, v is the 
     // Returns a list of (shift_from_start, v) with matches
     void match_waymark_and_update(const read_t *r, int p, int start, int pivot_len, int i, node_t v, int dval, int remaining_errors) {
-        LOG_DEBUG_IF(dval == +1) << "Match forward pivot " << p << "[" << start << ", " << start+pivot_len << ") to state (" << i << ", " << v << ")"
-                                 << " with " << remaining_errors << " remaining errors.";
+        //LOG_DEBUG_IF(dval == +1) << "Match forward pivot " << p << "[" << start << ", " << start+pivot_len << ") to state (" << i << ", " << v << ")"
+        //                         << " with " << remaining_errors << " remaining errors.";
         if (i < start + pivot_len) {
             // TODO: match without recursion if unitig
             // Match exactly down the trie and then through the original graph.
@@ -217,7 +227,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
 //                match_waymark_and_update(r, start, pivot_len, i+1, it->to, dval);
         } else {
             assert(!G.node_in_trie(v));
-            LOG_INFO_IF(dval == +1) << "Updating for waymark " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_waymark_errors-remaining_errors << " errrors.";
+            //LOG_INFO_IF(dval == +1) << "Updating for waymark " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_waymark_errors-remaining_errors << " errrors.";
             bool success = update_path_backwards(p, i, v, dval, shifts_allowed_, max_waymark_errors-remaining_errors);
             assert(success);
 
