@@ -135,6 +135,7 @@ class AStarLandmarksExact: public AStarHeuristic {
 
     // `H[u]+=dval` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
     // TODO: optimize with string nodes
+    // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
     bool update_path_backwards(int p, int i, node_t v, int dval, int shifts_remaining) {
         LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
@@ -143,8 +144,9 @@ class AStarLandmarksExact: public AStarHeuristic {
                 ++marked_states;
                 H[v] |= 1<<p;   // fire p-th bit
             }
+        } else {
+            H[v] &= ~(1<<p);  // remove p-th bit
         }
-        else H[v] &= ~(1<<p);  // remove p-th bit
         LOG_DEBUG_IF(dval == +1) << "H[" << v << "] = " << H[v];
         //assert(__builtin_popcount(H[v]) <= waymarks);
 

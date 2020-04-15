@@ -183,7 +183,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
 
                 LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
                 bool success = update_path_backwards(p, i-1, it->to, dval, shifts_remaining, errors);
-                assert(success);
+                //assert(success);
                 at_least_one_path = true; // debug
             }
         }
@@ -202,11 +202,14 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
             // Match exactly down the trie and then through the original graph.
             for (auto it=G.begin_all_matching_edges(v, r->s[i]); it!=G.end_all_edges(); ++it) {
                 int new_remaining_errors = remaining_errors;
-                LOG_DEBUG << "edge: " << it->label << ", " << edgeType2str(it->type);
+                int new_i = i;
+                //LOG_DEBUG << "edge: " << it->label << ", " << edgeType2str(it->type);
+                if (it->type != DEL)
+                    ++new_i;
                 if (it->type != ORIG && it->type != JUMP)  // ORIG in the graph, JUMP in the trie
                     --new_remaining_errors;
                 if (new_remaining_errors >= 0)
-                    match_waymark_and_update(r, p, start, pivot_len, i+1, it->to, dval, new_remaining_errors);
+                    match_waymark_and_update(r, p, start, pivot_len, new_i, it->to, dval, new_remaining_errors);
             }
 //        } else if (G.node_in_trie(v)) {
 //            // Climb the trie.
@@ -214,7 +217,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
 //                match_waymark_and_update(r, start, pivot_len, i+1, it->to, dval);
         } else {
             assert(!G.node_in_trie(v));
-            LOG_DEBUG_IF(dval == +1) << "Updating for pivot " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_waymark_errors-remaining_errors << " errrors.";
+            LOG_INFO_IF(dval == +1) << "Updating for waymark " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_waymark_errors-remaining_errors << " errrors.";
             bool success = update_path_backwards(p, i, v, dval, shifts_allowed_, max_waymark_errors-remaining_errors);
             assert(success);
 

@@ -41,7 +41,7 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     AStarHeuristic* astar;
     string algo = args.algorithm;
 
-    int shifts_allowed = 25;
+    int shifts_allowed = 50;
 
     // TODO: add dijkstra
     if (algo == "astar-prefix") {
@@ -366,6 +366,7 @@ int main(int argc, char **argv) {
             state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
                     &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &all_reads_counters);
             fprintf(fout, "%s", line);
+            fflush(fout);
             total_timers += aligner.read_timers;
             total_cost += ans.cost;
             if (!aligner.unique_best)
