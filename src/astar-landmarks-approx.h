@@ -178,7 +178,7 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
         //assert(__builtin_popcount(H[errors][v]) <= waymarks);
 
         if (v == 0) {
-            assert(i == 0);  // supersource is reached; no need to update H[0]
+//            assert(i == 0);  // supersource is reached; no need to update H[0]
             ++paths_considered;
             return true;
         }
@@ -190,7 +190,8 @@ class AStarWaymarksWithErrors: public AStarHeuristic {
             if ( (G.node_in_trie(v))  // (1) already in trie
               || (diff(i-1, G.get_trie_depth()) <= shifts_remaining)  // (2) time to go to trie
               || (i-1 > G.get_trie_depth() && !G.node_in_trie(it->to))) {  // (3) proceed back
-                update_path_backwards(p, i-1, it->to, dval, shifts_remaining, errors);
+                bool success = update_path_backwards(p, i-1, it->to, dval, shifts_remaining, errors);
+                if (success) at_least_one_path = true;
             }
         }
 

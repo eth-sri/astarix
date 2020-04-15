@@ -27,6 +27,7 @@ struct Counters {
     Counter pushed, popped, greedy_matched;
     Counter popped_trie, popped_ref;
     Counter explored_states;
+    Counter repeated_visits;
 
     void clear() {
         pushed.clear();
@@ -35,6 +36,7 @@ struct Counters {
         popped_trie.clear();
         popped_ref.clear();
         explored_states.clear();
+        repeated_visits.clear();
     }
 
     Counters& operator+=(const Counters &b) {
@@ -44,6 +46,7 @@ struct Counters {
         popped_trie += b.popped_trie;
         popped_ref += b.popped_ref;
         explored_states += b.explored_states;
+        repeated_visits += b.repeated_visits;
         return *this;
     }
 };
@@ -102,7 +105,6 @@ class Aligner {
     typedef std::unordered_map<std::pair<int,int>, bool, pairhash> visited_t;       // not needed; for performance analysis only
 
   public:
-    int _repeated_visits;
     int unique_best;
     AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 

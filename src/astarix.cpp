@@ -90,7 +90,7 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
         int starts = -1;
         double pushed_rate = (double)aligner->read_counters.pushed.get() / L;
         double popped_rate = (double)aligner->read_counters.popped.get() / L;
-        double repeat_rate = (double)aligner->_repeated_visits / aligner->read_counters.pushed.get();
+        double repeat_rate = (double)aligner->read_counters.repeated_visits.get() / aligner->read_counters.pushed.get();
         *pushed_rate_sum += pushed_rate;
         *popped_rate_sum += popped_rate;
         *repeat_rate_sum += repeat_rate;
@@ -454,13 +454,16 @@ int main(int argc, char **argv) {
         double total_mem = MemoryMeasurer::get_mem_gb();
 
         out << " == Aligning statistics =="                                                     << endl;
-        out << "   Explored rate (avg, max): " << 1.0*all_reads_counters.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
-        out << "    Pushed  rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
+        out << "        Explored rate (avg): " << 1.0*all_reads_counters.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
+        out << "     Pushed rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
         out << "     Popped rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
         out << "             Average popped: " << 1.0 * popped_trie_total.get() / (R.size()/args.threads) << " from trie vs "
                                             << 1.0 * popped_ref_total.get() / (R.size()/args.threads) << " from ref"
                                             << " (influenced by greedy match flag)" << endl;
         out << "                 Total cost: " << total_cost << endl;
+#ifndef NDEBUG
+        out << "      Repeated states (avg): " << 1.0*all_reads_counters.repeated_visits.get() / R.size() / R[0].len << " states/read_bp" << endl;
+#endif
         out << " Non-unique best alignments: " << nonunique_best_alignments << " out of " << R.size()   << endl;
         out << endl;
         out << " == Heuristic stats (" << args.algorithm << ") ==" << std::endl;

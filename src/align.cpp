@@ -9,7 +9,6 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
     read_timers.clear();
     read_timers.total.start();
     read_counters.clear();
-    _repeated_visits = 0;
     best_path->clear();
 
     // Local vars
@@ -51,7 +50,7 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
 #ifndef NDEBUG
         // this check is not needed as our heuristic is consistent
         if (visited(vis, curr.i, curr.v)) {  // not correct if a new seed is used
-            ++_repeated_visits;
+            read_counters.repeated_visits.inc();
             //continue;
         }
         visited(vis, curr.i, curr.v) = true;
