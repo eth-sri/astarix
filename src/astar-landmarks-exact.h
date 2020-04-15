@@ -12,14 +12,18 @@ typedef int node_t;
 
 namespace astarix {
 
-class AStarLandmarks: public AStarHeuristic {
+///////////////////////////////////////
+// in case max_waymark_errors == 0
+///////////////////////////////////////
+
+class AStarLandmarksExact: public AStarHeuristic {
   private:
     // Fixed parameters
     const graph_t &G;
     const EditCosts &costs;
 
     // Updated separately for every read
-    int pivots, pivot_len;
+    int pivot_len;
     const read_t *r_;
     int shifts_allowed_;  // number of deletions accomodated in first trie_depth nucleotides
 
@@ -31,18 +35,27 @@ class AStarLandmarks: public AStarHeuristic {
     //std::unordered_map<node_t, cost_t> _star;
 
     // stats
+    int waymarks;
+    int waymark_matches;
+    int paths_considered;
+    int marked_states;
+
+    // stats for all reads
     int reads;
-    int landmark_matches;
+    int waymarks_;
+    int waymark_matches_;
     int paths_considered_;
+    int marked_states_;
 
   public:
-    AStarLandmarks(const graph_t &_G, const EditCosts &_costs, int _pivot_len)
-        : G(_G), costs(_costs), pivot_len(_pivot_len)  {
+    AStarLandmarksExact(const graph_t &_G, const EditCosts &_costs, int _pivot_len, int _shifts_allowed)
+        : G(_G), costs(_costs), pivot_len(_pivot_len), shifts_allowed_(_shifts_allowed)  {
         H.resize(G.nodes());
         reads = 0;
-        landmark_matches = 0;
-        shifts_allowed_ = 5;
+        waymarks_ = 0;
+        waymark_matches_ = 0;
         paths_considered_ = 0;
+        marked_states_ = 0;
         //LOG_INFO << "A* matching class constructed with:";
         //LOG_INFO << "  pivot_len    = " << pivot_len;
     }
@@ -75,8 +88,16 @@ class AStarLandmarks: public AStarHeuristic {
     // Cut r into chunks of length pivot_len, starting from the end.
     void before_every_alignment(const read_t *r) {
         ++reads;
+        waymark_matches = 0;
+        paths_considered = 0;
+        marked_states = 0;
         r_ = r;
-        pivots = gen_pivots_and_update(r, pivot_len, +1);
+        waymarks = gen_pivots_and_update(r, pivot_len, +1);
+
+        waymarks_ += waymarks;
+        waymark_matches_ += waymark_matches;
+        paths_considered_ += paths_considered;
+        marked_states_ += marked_states;
     }
 
     void after_every_alignment() {
@@ -93,9 +114,12 @@ class AStarLandmarks: public AStarHeuristic {
     }
 
     void print_stats(std::ostream &out) const {
-        out << " Total landmark matches for all reads: " << landmark_matches
-            << "(" << 1.0*landmark_matches/reads << " per read)" << std::endl;
-        out << "                     Paths considered: " << paths_considered_ << std::endl;
+        out << "        For all reads:"                                             << std::endl;
+        out << "                             Waymarks: " << waymarks_               << std::endl;
+        out << " Total landmark matches for all reads: " << waymark_matches_
+            << "(" << 1.0*waymark_matches_/reads << " per read)"                    << std::endl;
+        out << "                     Paths considered: " << paths_considered_       << std::endl;
+        out << "                   Graph nodes marked: " << marked_states_          << std::endl;
     }
 
   private:
@@ -114,14 +138,19 @@ class AStarLandmarks: public AStarHeuristic {
     // Returns if the the supersource was reached at least once.
     bool update_path_backwards(int p, int i, node_t v, int dval, int shifts_remaining) {
         LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
-        if (dval == +1) H[v] |= 1<<p;   // fire p-th bit
+        if (dval == +1) {
+            if (!(H[v] & (1<<p))) {
+                ++marked_states;
+                H[v] |= 1<<p;   // fire p-th bit
+            }
+        }
         else H[v] &= ~(1<<p);  // remove p-th bit
         LOG_DEBUG_IF(dval == +1) << "H[" << v << "] = " << H[v];
-        assert(__builtin_popcount(H[v]) <= pivots);
+        //assert(__builtin_popcount(H[v]) <= waymarks);
 
         if (i == 0) {
             assert(v == 0);  // supersource is reached; no need to update H[0]
-            ++paths_considered_;
+            ++paths_considered;
             return true;
         }
 
@@ -166,7 +195,7 @@ class AStarLandmarks: public AStarHeuristic {
             bool success = update_path_backwards(p, i, v, dval, shifts_allowed_);
             assert(success);
 
-            ++landmark_matches;  // debug info
+            ++waymark_matches;
         }
     }
 
@@ -175,13 +204,13 @@ class AStarLandmarks: public AStarHeuristic {
     //   add dval to H[u] for all nodes u on the path of match-length exactly `i` from supersource `0` to `v`
     // Returns the number of pivots.
     int gen_pivots_and_update(const read_t *r, int pivot_len, int dval) {
-        int pivots = 0;
+        int waymarks = 0;
         for (int i=r->len-pivot_len; i>=0; i-=pivot_len) {
             // pivot from [i, i+pivot_len)
-            match_pivot_and_update(r, pivots, i, pivot_len, i, 0, dval);
-            pivots++;
+            match_pivot_and_update(r, waymarks, i, pivot_len, i, 0, dval);
+            waymarks++;
         }
-        return pivots;
+        return waymarks;
     }
 };
 

@@ -17,7 +17,8 @@
 // A* heuristics
 #include "dijkstra.h"
 #include "astar-prefix.h"
-#include "astar-landmarks.h"
+#include "astar-landmarks-approx.h"
+#include "astar-landmarks-exact.h"
 
 using namespace std;
 using namespace astarix;
@@ -40,18 +41,21 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     AStarHeuristic* astar;
     string algo = args.algorithm;
 
+    int shifts_allowed = 25;
+
     // TODO: add dijkstra
     if (algo == "astar-prefix") {
         astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+    } else if (algo == "astar-landmarks-exact") {
+        if (!args.fixed_trie_depth)
+            throw invalid_argument("astar-landmarks-exact algorithm can only be used with fixed_trie_depth flag on.");
+        if (args.astar_max_waymark_errors != 0) 
+            throw invalid_argument("astar-landmarks-exact needs astar_max_waymark_errors flag set to 0.");
+        astar = new AStarLandmarksExact(G, args.costs, args.astar_landmark_len, shifts_allowed);
     } else if (algo == "astar-landmarks") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-landmarks algorithm can only be used with fixed_trie_depth flag on.");
-
-        if (args.astar_max_waymark_errors == 0) 
-            astar = new AStarLandmarks(G, args.costs, args.astar_landmark_len);
-        else 
-            astar = new AStarLandmarksWithErrors(G, args.costs, args.astar_landmark_len,
-                                                 args.astar_max_waymark_errors);
+        astar = new AStarWaymarksWithErrors(G, args.costs, args.astar_landmark_len, args.astar_max_waymark_errors, shifts_allowed);
     } else if (algo == "dijkstra") { 
         astar = new DijkstraDummy();
     } else {

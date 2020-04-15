@@ -33,6 +33,7 @@ arguments read_args(int argc, char **argv) {
     args.greedy_match          = true;
     args.AStarNodeEqivClasses  = true;
     args.astar_landmark_len    = 15;
+    args.astar_max_waymark_errors = 2;
 
     args.threads               = 1;
     args.verbose               = 0;
