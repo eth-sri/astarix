@@ -483,9 +483,9 @@ int main(int argc, char **argv) {
                                             << R.size() / total_map_time << " reads/s <=> "
                                             << size_sum(R) / 1024.0 / total_map_time << " Kbp/s"    << endl; 
         out << endl;
+        out << "        A* prepare_reads: " << total_timers.astar_prepare_reads.get_sec() << "s" << endl;
         out << " Total align cpu time:    " << T.align.t.get_sec() << "s (cpu time)"    << endl;
         out << "                      A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time   << "%, "   << endl;
-        out << "        A* prepare_reads: " << 100.0 * total_timers.astar_prepare_reads.get_sec() / total_map_time    << "%, " << endl;
         out << "                     que: " << 100.0 * total_timers.queue.get_sec() / total_map_time    << "%, " << endl;
         out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time  << "%, " << endl;
         out << "            greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time  << "%" << endl;

@@ -39,6 +39,7 @@ test: $(ASTARIXBIN)
 	# small
 	$(ASTARIXBIN) align-optimal -a astar-landmarks-exact -t 1 -v 2 -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-landmarks-exact --fixed_trie_depth 1 --astar_max_waymark_errors 0
 	$(ASTARIXBIN) align-optimal -a astar-landmarks       -t 1 -v 2 -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-landmarks-approx --fixed_trie_depth 1 --astar_max_waymark_errors 0
+	$(ASTARIXBIN) align-optimal -a astar-landmarks       -t 1 -v 2 -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-landmarks-approx --fixed_trie_depth 1 --astar_max_waymark_errors 1
 	#$(ASTARIXBIN) align-optimal -a astar-prefix -t 8 -v 2 -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/astar-prefix
 	#$(ASTARIXBIN) align-optimal -a dijkstra -g $(DATADIR)/ecoli_head10000_linear/graph.gfa -q $(DATADIR)/ecoli_head10000_linear/illumina.fq -o $(TMPDIR)/ecoli_head10000_linear/dijkstra-default
 
