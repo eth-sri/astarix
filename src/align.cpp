@@ -9,6 +9,7 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
     read_timers.clear();
     read_timers.total.start();
     read_counters.clear();
+    read_counters.pushed_hist.resize(r.len);
     best_path->clear();
 
     // Local vars
@@ -67,6 +68,8 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
                 if (next.i == r.len && EQ(next.cost, curr.cost))
                     unique_best = 0;
             }
+            assert(all_read_counters_.find(r.comment) == all_read_counters_.end());
+            all_read_counters_[r.comment] = read_counters;
             return final_state;
         }
 
