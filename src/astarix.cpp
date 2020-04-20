@@ -159,6 +159,34 @@ void print_tsv(map<string, string> dict, ostream &out) {
     out << endl;
 }
 
+void print_hist(Aligner aligner, string hist_file) {
+    ofstream out(hist_file);
+    auto &all_counters = aligner.all_read_counters_;
+
+    int max_size = 0;
+    for (auto const &counters: all_counters) 
+        max_size = max(max_size, (int)counters.second.pushed_hist.size());
+
+    out << "read";
+    for (int i=0; i<max_size; i++)
+        out << "\t" << i;
+    out << "\n";
+
+    for (auto const &counters: all_counters) {
+        out << counters.first;
+        int i=0;
+        for (auto const &x: counters.second.pushed_hist) {
+            out << "\t" << x.get();
+            ++i;
+        }
+        for (; i<max_size; i++)
+            out << "\t" << 0;
+        out << "\n";
+    }
+    out << endl;
+    out.close();
+}
+
 typedef map<string, string> dict_t;
 
 struct Measurers {
@@ -233,7 +261,7 @@ int main(int argc, char **argv) {
     cout << "        verbose:        " << args.verbose << endl;
     cout << "----" << endl;
 
-    string performance_file, info_log_file, stats_file;
+    string performance_file, info_log_file, stats_file, hist_file;
 
     string output_dir = args.output_dir;
     if (!output_dir.empty()) {
@@ -241,6 +269,7 @@ int main(int argc, char **argv) {
         performance_file = output_dir + "/alignments.tsv";
         info_log_file = output_dir + "/info.log";
         stats_file = output_dir + "/stats.log";
+        hist_file = output_dir + "/hist.log";
     //if (!output_dir.empty())
         init_logger(info_log_file.c_str(), args.verbose);
     }
@@ -380,6 +409,8 @@ int main(int argc, char **argv) {
             //}
         }
         fclose(fout);
+
+        print_hist(aligner, hist_file);
     } else {
         moodycamel::ConcurrentQueue<string> profileQueue { 50, args.threads, args.threads };
         std::vector<thread> threads(args.threads);
@@ -498,9 +529,13 @@ int main(int argc, char **argv) {
 
     extract_args_to_dict(args, &stats);
     T.extract_to_dict(&stats);
-    ofstream tsv(stats_file);
-    print_tsv(stats, tsv);
-    tsv.close();
+
+    {
+        ofstream tsv(stats_file);
+        print_tsv(stats, tsv);
+        tsv.close();
+    }
+
 
     return 0;
 }

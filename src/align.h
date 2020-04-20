@@ -29,6 +29,8 @@ struct Counters {
     Counter explored_states;
     Counter repeated_visits;
 
+    std::vector<Counter> pushed_hist;  // pushed_hist[i] -- number of pushed states <*,i>
+
     void clear() {
         pushed.clear();
         popped.clear();
@@ -37,6 +39,7 @@ struct Counters {
         popped_ref.clear();
         explored_states.clear();
         repeated_visits.clear();
+        pushed_hist.clear();
     }
 
     Counters& operator+=(const Counters &b) {
@@ -47,6 +50,13 @@ struct Counters {
         popped_ref += b.popped_ref;
         explored_states += b.explored_states;
         repeated_visits += b.repeated_visits;
+
+        if (pushed_hist.size() < b.pushed_hist.size())
+            pushed_hist.resize(b.pushed_hist.size());
+        for (int i=0; i<pushed_hist.size(); i++)
+            if (i < b.pushed_hist.size())
+                pushed_hist[i] += b.pushed_hist[i];
+
         return *this;
     }
 };
@@ -109,8 +119,10 @@ class Aligner {
     AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
     // total_counters are aggregating read_counters at the end of every alignment
-    mutable Counters read_counters;
+    mutable std::unordered_map<std::string, Counters> all_read_counters_;
     mutable AlignerTimers read_timers;
+
+    mutable Counters read_counters;
 
     Aligner(const graph_t &_G, const AlignParams &_params, AStarHeuristic *_astar)
             : G(_G), params(_params), astar(_astar), unique_best(-1) {
@@ -139,6 +151,7 @@ class Aligner {
   private:
     inline void push(queue_t &Q, cost_t sort_cost, const state_t &st) {
         read_counters.pushed.inc();
+        read_counters.pushed_hist[st.i].inc();
         read_timers.queue.start();
             Q.push(score_state_t(sort_cost, st));
         read_timers.queue.stop();
