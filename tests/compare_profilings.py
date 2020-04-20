@@ -22,7 +22,7 @@ if __name__ == "__main__":
     a = read_tsv(sys.argv[1])
     b = read_tsv(sys.argv[2])
 
-    print(a.columns)
+    #print(a.columns)
     if equal(a.index.to_series(), b.index.to_series()):
         if equal(a['spell'], b['spell']):
             if equal(a['cost'], b['cost']):

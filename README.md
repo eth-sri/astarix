@@ -1,9 +1,12 @@
-# AStarix
+<img width="100" alt="AStarix" align="left" src="https://www.sri.inf.ethz.ch/assets/systems/astarix.png"><br/>
+<a href="https://www.sri.inf.ethz.ch/"><img width="100" alt="SRILAB" align="right" src="http://safeai.ethz.ch/img/sri-logo.svg"></a><br/>
+
+---
+
 ![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)
 
 **AStarix** is a sequence-to-graph semi-global aligner based on A* shortest path algorithm.
 It supports general graphs and finds alignments that are optimal according to edit-distance with non-negative weights.
-AStarix parallelizes the alignment of a set of reads.
 
 A [preprint](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v1) using AStarix has been accepted to [RECOMB2020](https://www.recomb2020.org/). Evaluation scripts are available in the [RECOMB2020_experiments branch](https://github.com/eth-sri/astarix/tree/RECOMB2020_experiments/evals).
 
@@ -22,11 +25,11 @@ sudo docker run -it --rm --name astarix-container astarix
 
 ## Manual install
 
-Alternatively to using Docker, you can install AStarix directly on your system.
+Alternatively to using Docker, you can install `AStarix` directly on your system.
 
 ### Prerequisites
 
-In order to compile AStarix, you will need to first install:
+In order to compile `AStarix`, you will need to first install:
 
 * [argp](https://www.gnu.org/software/libc/manual/html_node/Argp.html) &ndash;
   argument parsing library
@@ -44,7 +47,7 @@ make test
 
 # Example run
 
-This is an example run of AStarix on a toy data: aligning 100 simulated Illumina reads to a linear graph from the first 10000bp of Escherichia coli. You can expect a similar summary printed to standard output:
+This is an example run of `AStarix` on a toy data: aligning 100 simulated Illumina reads to a linear graph from the first 10000bp of Escherichia coli. You can expect a similar summary printed to standard output:
 
 ```
 $ bin/astarix align-optimal -g data/ecoli_head10000_linear.gfa -q data/illumina.fq -o tmp/astar-default
@@ -83,7 +86,7 @@ Short aggregated statistics are print to standard output (to redirect, you can a
 
 # Usage
 
-AStarix currently works only in exact/optimal mode (specified using `align-optimal`). Currently supported formats are `.gfa` without overlapping nodes (for a graph reference) and `.fa`/`.fasta` (for a linear reference). The queries should be in `.fq`/`.fastq` format (the phred values are ignored).
+`AStarix` currently works only in exact/optimal mode (specified using `align-optimal`). Currently supported formats are `.gfa` without overlapping nodes (for a graph reference) and `.fa`/`.fasta` (for a linear reference). The queries should be in `.fq`/`.fastq` format (the phred values are ignored).
 Tested on Ubuntu 18.04.
 
 ```
@@ -120,5 +123,35 @@ Optimal sequence-to-graph aligner based on A* shortest path.
 
 # Technical details
 
-**AStarix computes** an A* heuristic function __h__ that directs the path search faster by anticipating the upcoming nucleotides to be aligned.
+`AStarix` computes an A* heuristic function __h__ that directs the path search faster by anticipating the upcoming nucleotides to be aligned.
 Once computed, a value of __h__ is memoized in a hash table ([parallel-hashmap](https://github.com/greg7mdp/parallel-hashmap)).
+
+`AStarix` parallelizes the alignment of a set of reads.
+
+# Historical note
+The development of the `AStarix` algorithm is only possible because of a
+multitude of conceptual inventions, including:
+
+* [Dijkstra's
+  algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm) (1959) &ndash;
+  provably optimal (given non-negative edges), provably fast (polynomial worst
+  case) greedy shortest path algorithm that considers first the nodes closest to
+  the start
+* [Levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance)
+  (1965) &ndash; the variant of _edit distance_ that considers insertions, deletions
+  and subtitutions
+* [A* algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm) (1968) &ndash; extension of Dijkstra's algorithm that also considers a heuristic
+  estimate of the remaining path length; provably optimal (using an
+  _admissibile_/_optimistic_ heuristic), not slower than Dijkstra in the worst
+  case (assuming a _consistent_ heuristic), crucial for the result optimality,
+  may enormously speed up Dijkstra's algorithm (in average case) when used with
+  an informative heuristic
+* [Suffix tree](https://en.wikipedia.org/wiki/Suffix_tree) (1973) &ndash; data
+  structure used to directly search from all possible starting places of a string
+
+Among the countless other indirect influences, most notable conceptual works include:
+* [Alan Turing's early program proof
+  work](https://fi.ort.edu.uy/innovaportal/file/20124/1/09-turing_checking_a_large_routine_earlyproof.pdf)
+  (1949) 
+* [Automata theory](https://en.wikipedia.org/wiki/Automata_theory)
+* [Dynamic programming](https://en.wikipedia.org/wiki/Dynamic_programming)
