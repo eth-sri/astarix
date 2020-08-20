@@ -24,8 +24,8 @@ static struct argp_option options[] = {
     { "astar_equivalence_classes",
                         'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
 //    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
-    { "astar_waymark_len",  2001, "A*_WAYMARK_LEN", 0,  "The length of the A* waymarks." },
-    { "astar_max_waymark_errors",  2002, "A*_MAX_WAYMARK_ERRORS", 0,  "The maximum number of errors to a waymark that a match can have." },
+    { "astar_seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
+    { "astar_max_seeds_errors",  2002, "A*_MAX_SEED_ERRORS", 0,  "The maximum number of errors to a seed that a match can have." },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
@@ -53,9 +53,9 @@ struct arguments {
     double AStarCostCap;
     bool AStarNodeEqivClasses;
 
-    // A*-waymark params
-    int astar_waymark_len;
-    int astar_max_waymark_errors;
+    // A*-seeds params
+    int astar_seeds_len;
+    int astar_max_seeds_errors;
 
     int threads;
     int verbose;
@@ -101,11 +101,11 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             break;
         case 2001:
             assert(std::stoi(arg) >= 5);
-            arguments->astar_waymark_len = std::stod(arg);
+            arguments->astar_seeds_len = std::stod(arg);
             break;
         case 2002:
             assert(std::stoi(arg) >= 0);
-            arguments->astar_max_waymark_errors = std::stod(arg);
+            arguments->astar_max_seeds_errors = std::stod(arg);
             break;
         case 'o':
             arguments->output_dir = arg;
