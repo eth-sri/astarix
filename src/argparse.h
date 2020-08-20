@@ -25,7 +25,7 @@ static struct argp_option options[] = {
                         'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
 //    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
     { "astar_seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
-    { "astar_max_seeds_errors",  2002, "A*_MAX_SEED_ERRORS", 0,  "The maximum number of errors to a seed that a match can have." },
+    { "astar_seeds_max_errors",  2002, "A*_MAX_SEED_ERRORS", 0,  "The maximum number of errors to a seed that a match can have." },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
@@ -54,8 +54,10 @@ struct arguments {
     bool AStarNodeEqivClasses;
 
     // A*-seeds params
-    int astar_seeds_len;
-    int astar_max_seeds_errors;
+    struct AStarSeedsArgs {
+        int seed_len;
+        int max_seed_errors;
+    } astar_seeds;
 
     int threads;
     int verbose;
@@ -101,11 +103,11 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             break;
         case 2001:
             assert(std::stoi(arg) >= 5);
-            arguments->astar_seeds_len = std::stod(arg);
+            arguments->astar_seeds.seed_len = std::stod(arg);
             break;
         case 2002:
             assert(std::stoi(arg) >= 0);
-            arguments->astar_max_seeds_errors = std::stod(arg);
+            arguments->astar_seeds.max_seed_errors = std::stod(arg);
             break;
         case 'o':
             arguments->output_dir = arg;

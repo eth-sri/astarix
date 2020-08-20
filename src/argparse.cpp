@@ -32,8 +32,8 @@ arguments read_args(int argc, char **argv) {
     // Sound optimizations turned ON by default.
     args.greedy_match          = true;
     args.AStarNodeEqivClasses  = true;
-    args.astar_seeds_len     = 15;
-    args.astar_max_seeds_errors = 2;
+    args.astar_seeds.seed_len        = 15;
+    args.astar_seeds.max_seed_errors = 2;
 
     args.threads               = 1;
     args.verbose               = 0;

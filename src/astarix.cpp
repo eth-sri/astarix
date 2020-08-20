@@ -49,13 +49,14 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     } else if (algo == "astar-seeds-exact") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-seeds-exact algorithm can only be used with fixed_trie_depth flag on.");
-        if (args.astar_max_seeds_errors != 0) 
-            throw invalid_argument("astar-seeds-exact needs astar_max_seeds_errors flag set to 0.");
-        astar = new AStarSeedsExact(G, args.costs, args.astar_seeds_len, shifts_allowed);
+        //if (args.astar_seeds_max_errors != 0) 
+        //    throw invalid_argument("astar-seeds-exact needs astar_seeds_max_errors flag set to 0.");
+        astar = new AStarSeedsExact(G, args.costs, args.astar_seeds.seed_len, shifts_allowed);
     } else if (algo == "astar-seeds") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
-        astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds_len, args.astar_max_seeds_errors, shifts_allowed);
+        //astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds_len, args.astar_seeds_max_errors, shifts_allowed);
+        astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds, shifts_allowed);
     } else if (algo == "dijkstra") { 
         astar = new DijkstraDummy();
     } else {
@@ -494,6 +495,7 @@ int main(int argc, char **argv) {
         out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time  << "%, " << endl;
         out << "            greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time  << "%" << endl;
         out << " DONE" << endl;
+        out << endl;
     }
 
     extract_args_to_dict(args, &stats);

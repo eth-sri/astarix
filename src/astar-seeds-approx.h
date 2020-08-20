@@ -17,10 +17,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // Fixed parameters
     const graph_t &G;
     const EditCosts &costs;
-    const int max_seed_errors;
+    const arguments::AStarSeedsArgs args;
 
     // Updated separately for every read
-    int pivot_len;
     const read_t *r_;
     const int shifts_allowed_;  // number of deletions accomodated in first trie_depth nucleotides
 
@@ -47,9 +46,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     cost_t best_heuristic_sum_;
 
   public:
-    AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, int _pivot_len, int _max_seed_errors, int _shifts_allowed)
-        : G(_G), costs(_costs), pivot_len(_pivot_len), max_seed_errors(_max_seed_errors), shifts_allowed_(_shifts_allowed) {
-        for (int i=0; i<=max_seed_errors; i++)
+    AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, arguments::AStarSeedsArgs _args, int _shifts_allowed)
+        : G(_G), costs(_costs), args(_args), shifts_allowed_(_shifts_allowed) {
+        for (int i=0; i<=args.max_seed_errors; i++)
             H[i].resize(G.nodes());
         reads_ = 0;
         seeds_ = 0;
@@ -58,33 +57,33 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         marked_states_ = 0;
         best_heuristic_sum_ = 0;
         //LOG_INFO << "A* matching class constructed with:";
-        //LOG_INFO << "  pivot_len    = " << pivot_len;
+        //LOG_INFO << "  seed_len    = " << args.seed_len;
     }
 
     // assume only hamming distance (substitutions)
-    // every seed is a a pair (s,j), s.t. s=r[j...j+pivot_len)
+    // every seed is a a pair (s,j), s.t. s=r[j...j+seed_len)
     //                              j2       j1       j0
     // r divided into seeds: ----|---s2---|---s1---|---s0---|
     // alignment:                u  v2       v1       v0
     //
     // h(<u,i>) := P - f(<u,i>)
-    // f(<u,i>) := |{ (s,j) \in pivot | exists v: exists path from u->v of length exactly (j-i) and s aligns exactly from v }|,
+    // f(<u,i>) := |{ (s,j) \in seed | exists v: exists path from u->v of length exactly (j-i) and s aligns exactly from v }|,
     // 
     // where P is the number of seeds
     // Accounts only for the last seeds.
     // O(1)
     cost_t h(const state_t &st) const {
-        int all_seeds_to_end = (r_->len - st.i - 1) / pivot_len;
+        int all_seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
 
-        int total_errors = (max_seed_errors+1)*all_seeds_to_end;  // the maximum number of errors
+        int total_errors = (args.max_seed_errors+1)*all_seeds_to_end;  // the maximum number of errors
         int not_used_mask = ((1<<all_seeds_to_end)-1);   // at first no seed is used: 111...11111 (in binary)
-        for (int errors=0; errors<=max_seed_errors; errors++) {
+        for (int errors=0; errors<=args.max_seed_errors; errors++) {
             int h_remaining = H[errors][st.v] & not_used_mask;
             int matching_seeds = __builtin_popcount(h_remaining);
             assert(matching_seeds <= all_seeds_to_end);
             not_used_mask &= ~h_remaining;  // remove the bits for used seeds
 
-            total_errors -= matching_seeds*(max_seed_errors+1-errors); // for 0 errors, lower the heuristic by max_seed_errors+1
+            total_errors -= matching_seeds*(args.max_seed_errors+1-errors); // for 0 errors, lower the heuristic by max_seed_errors+1
         }
         
         cost_t res = total_errors * costs.get_min_mismatch_cost();
@@ -94,7 +93,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         return res;
     }
 
-    // Cut r into chunks of length pivot_len, starting from the end.
+    // Cut r into chunks of length seed_len, starting from the end.
     void before_every_alignment(const read_t *r) {
         ++reads_;
         paths_considered = 0;
@@ -102,7 +101,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         seed_matches = 0;
 
         r_ = r;
-        seeds = gen_seeds_and_update(r, pivot_len, +1);
+        seeds = gen_seeds_and_update(r, +1);
 
         seeds_ += seeds;
         seed_matches_ += seed_matches;
@@ -116,13 +115,13 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                  << "and generating " << paths_considered << " paths "
                  << "over " << marked_states << " states"
                  << "with best heuristic " << h(state_t(0.0, 0, 0, -1, -1)) << " "
-                 << "out of possible " << (max_seed_errors+1)*seeds;
-//                 << "which compensates for <= " << (max_seed_errors+1)*seeds - h(state_t(0.0, 0, 0, -1, -1)) << " errors";
+                 << "out of possible " << (args.max_seed_errors+1)*seeds;
+//                 << "which compensates for <= " << (args.max_seed_errors+1)*seeds - h(state_t(0.0, 0, 0, -1, -1)) << " errors";
     }
 
     void after_every_alignment() {
         // Revert the updates by adding -1 instead of +1.
-        gen_seeds_and_update(r_, pivot_len, -1);
+        gen_seeds_and_update(r_, -1);
 
         // TODO: removedebug
         for(int e=0; e<MAX_SEED_ERRORS; e++)
@@ -131,8 +130,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     void print_params(std::ostream &out) const {
-        out << "     seed length: " << pivot_len << " bp"                        << std::endl;
-        out << " max seed errors: " << max_seed_errors                        << std::endl;
+        out << "     seed length: " << args.seed_len << " bp"                    << std::endl;
+        out << " max seed errors: " << args.max_seed_errors                      << std::endl;
         out << "     shifts allowed: " << shifts_allowed_                           << std::endl;
     }
 
@@ -198,13 +197,13 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         return at_least_one_path;
     }
 
-    // Assumes that pivot_len <= D so there are no duplicating outgoing labels.
+    // Assumes that seed_len <= D so there are no duplicating outgoing labels.
     // In case of success, v is the 
     // Returns a list of (shift_from_start, v) with matches
-    void match_seed_and_update(const read_t *r, int p, int start, int pivot_len, int i, node_t v, int dval, int remaining_errors) {
-        //LOG_DEBUG_IF(dval == +1) << "Match forward pivot " << p << "[" << start << ", " << start+pivot_len << ") to state (" << i << ", " << v << ")"
+    void match_seed_and_update(const read_t *r, int p, int start, int i, node_t v, int dval, int remaining_errors) {
+        //LOG_DEBUG_IF(dval == +1) << "Match forward seed " << p << "[" << start << ", " << start+seed_len << ") to state (" << i << ", " << v << ")"
         //                         << " with " << remaining_errors << " remaining errors.";
-        if (i < start + pivot_len) {
+        if (i < start + args.seed_len) {
             // TODO: match without recursion if unitig
             // Match exactly down the trie and then through the original graph.
             for (auto it=G.begin_all_matching_edges(v, r->s[i]); it!=G.end_all_edges(); ++it) {
@@ -216,31 +215,31 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 if (it->type != ORIG && it->type != JUMP)  // ORIG in the graph, JUMP in the trie
                     --new_remaining_errors;
                 if (new_remaining_errors >= 0)
-                    match_seed_and_update(r, p, start, pivot_len, new_i, it->to, dval, new_remaining_errors);
+                    match_seed_and_update(r, p, start, new_i, it->to, dval, new_remaining_errors);
             }
 //        } else if (G.node_in_trie(v)) {
 //            // Climb the trie.
 //            for (auto it=G.begin_orig_edges(v); it!=G.end_orig_edges(); ++it)
-//                match_seed_and_update(r, start, pivot_len, i+1, it->to, dval);
+//                match_seed_and_update(r, start, i+1, it->to, dval);
         } else {
             assert(!G.node_in_trie(v));
             //LOG_INFO_IF(dval == +1) << "Updating for seed " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_seed_errors-remaining_errors << " errrors.";
-            bool success = update_path_backwards(p, i, v, dval, shifts_allowed_, max_seed_errors-remaining_errors);
+            bool success = update_path_backwards(p, i, v, dval, shifts_allowed_, args.max_seed_errors-remaining_errors);
             assert(success);
 
             ++seed_matches;  // debug info
         }
     }
 
-    // Split r into pivots of length pivot_len.
-    // For each exact occurence of a pivot (i,v) in the graph,
+    // Split r into seeds of length seed_len.
+    // For each exact occurence of a seed (i,v) in the graph,
     //   add dval to H[u] for all nodes u on the path of match-length exactly `i` from supersource `0` to `v`
-    // Returns the number of pivots.
-    int gen_seeds_and_update(const read_t *r, int pivot_len, int dval) {
+    // Returns the number of seeds.
+    int gen_seeds_and_update(const read_t *r, int dval) {
         int seeds = 0;
-        for (int i=r->len-pivot_len; i>=0; i-=pivot_len) {
-            // pivot from [i, i+pivot_len)
-            match_seed_and_update(r, seeds, i, pivot_len, i, 0, dval, max_seed_errors);
+        for (int i=r->len-args.seed_len; i>=0; i-=args.seed_len) {
+            // seed from [i, i+seed_len)
+            match_seed_and_update(r, seeds, i, i, 0, dval, args.max_seed_errors);
             seeds++;
         }
         return seeds;
