@@ -25,7 +25,7 @@ class AStarSeedsExact: public AStarHeuristic {
     // Updated separately for every read
     int pivot_len;
     const read_t *r_;
-    int shifts_allowed_;  // number of deletions accomodated in first trie_depth nucleotides
+    int max_indels_;  // number of deletions accomodated in first trie_depth nucleotides
 
     // H[u] := number of exactly aligned pivots after node `u`
     // It is safe to increase more to H than needed.
@@ -48,8 +48,8 @@ class AStarSeedsExact: public AStarHeuristic {
     int marked_states_;
 
   public:
-    AStarSeedsExact(const graph_t &_G, const EditCosts &_costs, int _pivot_len, int _shifts_allowed)
-        : G(_G), costs(_costs), pivot_len(_pivot_len), shifts_allowed_(_shifts_allowed)  {
+    AStarSeedsExact(const graph_t &_G, const EditCosts &_costs, int _pivot_len, int _max_indels)
+        : G(_G), costs(_costs), pivot_len(_pivot_len), max_indels_(_max_indels)  {
         H.resize(G.nodes());
         reads = 0;
         seeds_ = 0;
@@ -194,7 +194,7 @@ class AStarSeedsExact: public AStarHeuristic {
         } else {
             assert(!G.node_in_trie(v));
             LOG_DEBUG_IF(dval == +1) << "Updating for pivot " << p << "(" << i << ", " << v << ") with dval=" << dval;
-            bool success = update_path_backwards(p, i, v, dval, shifts_allowed_);
+            bool success = update_path_backwards(p, i, v, dval, max_indels_);
             assert(success);
 
             ++seed_matches;

@@ -41,8 +41,6 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     AStarHeuristic* astar;
     string algo = args.algorithm;
 
-    int shifts_allowed = 50;
-
     // TODO: add dijkstra
     if (algo == "astar-prefix") {
         astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
@@ -51,12 +49,12 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
             throw invalid_argument("astar-seeds-exact algorithm can only be used with fixed_trie_depth flag on.");
         //if (args.astar_seeds_max_errors != 0) 
         //    throw invalid_argument("astar-seeds-exact needs astar_seeds_max_errors flag set to 0.");
-        astar = new AStarSeedsExact(G, args.costs, args.astar_seeds.seed_len, shifts_allowed);
+        astar = new AStarSeedsExact(G, args.costs, args.astar_seeds.seed_len, args.astar_seeds.max_indels);
     } else if (algo == "astar-seeds") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
-        //astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds_len, args.astar_seeds_max_errors, shifts_allowed);
-        astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds, shifts_allowed);
+        //astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds_len, args.astar_seeds_max_errors, max_indels);
+        astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds);
     } else if (algo == "dijkstra") { 
         astar = new DijkstraDummy();
     } else {

@@ -73,7 +73,8 @@ eval150: $(ASTARIXBIN)
 
 eval250: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0
+	$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_max_indels 5
+	$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_max_indels 10
 	$(ASTARIXBIN) align-optimal -a astar-prefix -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1
 
 # pbsim --data-type CLR --depth 2 --model_qc ../pbsim_profiles/model_qc_clr ecoli.fasta

@@ -21,7 +21,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
     // Updated separately for every read
     const read_t *r_;
-    const int shifts_allowed_;  // number of deletions accomodated in first trie_depth nucleotides
 
     // H[u] := number of exactly aligned seeds after node `u`
     // It is safe to increase more to H than needed.
@@ -46,8 +45,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     cost_t best_heuristic_sum_;
 
   public:
-    AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, arguments::AStarSeedsArgs _args, int _shifts_allowed)
-        : G(_G), costs(_costs), args(_args), shifts_allowed_(_shifts_allowed) {
+    AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, arguments::AStarSeedsArgs _args)
+        : G(_G), costs(_costs), args(_args) {
         for (int i=0; i<=args.max_seed_errors; i++)
             H[i].resize(G.nodes());
         reads_ = 0;
@@ -132,7 +131,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     void print_params(std::ostream &out) const {
         out << "     seed length: " << args.seed_len << " bp"                    << std::endl;
         out << " max seed errors: " << args.max_seed_errors                      << std::endl;
-        out << "     shifts allowed: " << shifts_allowed_                           << std::endl;
+        out << "     shifts allowed: " << args.max_indels                        << std::endl;
     }
 
     void print_stats(std::ostream &out) const {
@@ -224,7 +223,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         } else {
             assert(!G.node_in_trie(v));
             //LOG_INFO_IF(dval == +1) << "Updating for seed " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_seed_errors-remaining_errors << " errrors.";
-            bool success = update_path_backwards(p, i, v, dval, shifts_allowed_, args.max_seed_errors-remaining_errors);
+            bool success = update_path_backwards(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
             assert(success);
 
             ++seed_matches;  // debug info
