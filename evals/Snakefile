@@ -30,7 +30,7 @@ PaSGAL_FILES = ["L1.fa", "L2.fastq", "L3.fastq",
 
 # params
 GRAPHS       = [ "ecoli" ] #"chr1" ]# "ecoli" ]
-ALGOS        = [ "pasgal", "astarix", "dijkstra", "graphaligner" ] # ] #, "dijkstra", "graphaligner" ] #"vg" ] $"pasgal"
+ALGOS        = ["astarix"] # [ "pasgal", "astarix", "dijkstra", "graphaligner" ] # ] #, "dijkstra", "graphaligner" ] #"vg" ] $"pasgal"
 GRAPH_HEADS_SMALL  = [10000, 100000, 1000000, 10000000]  # up to current exact state-of-the-art
 GRAPH_HEADS_BIG    = [10000000, 100000000, 100000000]
 GRAPH_HEADS = GRAPH_HEADS_SMALL #+ GRAPH_HEADS_BIG
