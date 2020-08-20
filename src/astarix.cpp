@@ -17,8 +17,8 @@
 // A* heuristics
 #include "dijkstra.h"
 #include "astar-prefix.h"
-#include "astar-landmarks-approx.h"
-#include "astar-landmarks-exact.h"
+#include "astar-seeds-approx.h"
+#include "astar-seeds-exact.h"
 
 using namespace std;
 using namespace astarix;
@@ -41,21 +41,20 @@ AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
     AStarHeuristic* astar;
     string algo = args.algorithm;
 
-    int shifts_allowed = 50;
-
     // TODO: add dijkstra
     if (algo == "astar-prefix") {
         astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
-    } else if (algo == "astar-landmarks-exact") {
+    } else if (algo == "astar-seeds-exact") {
         if (!args.fixed_trie_depth)
-            throw invalid_argument("astar-landmarks-exact algorithm can only be used with fixed_trie_depth flag on.");
-        if (args.astar_max_waymark_errors != 0) 
-            throw invalid_argument("astar-landmarks-exact needs astar_max_waymark_errors flag set to 0.");
-        astar = new AStarLandmarksExact(G, args.costs, args.astar_waymark_len, shifts_allowed);
-    } else if (algo == "astar-landmarks") {
+            throw invalid_argument("astar-seeds-exact algorithm can only be used with fixed_trie_depth flag on.");
+        //if (args.astar_seeds_max_errors != 0) 
+        //    throw invalid_argument("astar-seeds-exact needs astar_seeds_max_errors flag set to 0.");
+        astar = new AStarSeedsExact(G, args.costs, args.astar_seeds.seed_len, args.astar_seeds.max_indels);
+    } else if (algo == "astar-seeds") {
         if (!args.fixed_trie_depth)
-            throw invalid_argument("astar-landmarks algorithm can only be used with fixed_trie_depth flag on.");
-        astar = new AStarWaymarksWithErrors(G, args.costs, args.astar_waymark_len, args.astar_max_waymark_errors, shifts_allowed);
+            throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
+        //astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds_len, args.astar_seeds_max_errors, max_indels);
+        astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds);
     } else if (algo == "dijkstra") { 
         astar = new DijkstraDummy();
     } else {
@@ -525,6 +524,7 @@ int main(int argc, char **argv) {
         out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time  << "%, " << endl;
         out << "            greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time  << "%" << endl;
         out << " DONE" << endl;
+        out << endl;
     }
 
     extract_args_to_dict(args, &stats);
