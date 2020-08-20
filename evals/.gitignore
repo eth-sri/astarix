@@ -1,0 +1,6 @@
+.snakemake/
+graphs/
+prefixes/
+raw/
+reads/
+results/
