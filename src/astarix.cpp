@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <map>
 #include <thread>
+#include <mutex>
 
 #include "align.h"
 #include "argparse.h"
@@ -323,7 +324,7 @@ int main(int argc, char **argv) {
         // Note: the trie is built on top of the **doubled** original graph (incl. reverse).
         out << "         Original reference: " << G.orig_nodes << " nodes, " << G.orig_edges << " edges"<< endl;
         out << "                       Trie: " << G.trie_nodes << " nodes, " << G.trie_edges << " edges, "
-                                                << "depth: " << args.tree_depth                         << endl;
+                                                << "depth " << (args.fixed_trie_depth ? "=" : "<=") << args.tree_depth                         << endl;
         out << "  Reference+ReverseRef+Trie: " << G.nodes() << " nodes, " << G.edges() << " edges, "
                                                 << "density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
         out << "                      Reads: " << R.size() << " x " << R.front().len << "bp, "
@@ -348,7 +349,7 @@ int main(int argc, char **argv) {
     AlignerTimers total_timers;
     int total_cost(0);
     std::mutex timer_m;
-    Counter popped_trie_total, popped_ref_total;
+    atomic_int popped_trie_total(0), popped_ref_total(0);
     Counters all_reads_counters;
     std::atomic<bool> nonunique_best_alignments(0);
 
@@ -405,8 +406,8 @@ int main(int argc, char **argv) {
             
                         timer_m.unlock();
                         if (t == 0) {
-                            popped_trie_total.inc( aligner.read_counters.popped_trie.get() );  
-                            popped_ref_total.inc( aligner.read_counters.popped_ref.get() );
+                            popped_trie_total.fetch_add( aligner.read_counters.popped_trie.get() );  
+                            popped_ref_total.fetch_add( aligner.read_counters.popped_ref.get() );
                         }
                         if (!aligner.unique_best)
                             nonunique_best_alignments = nonunique_best_alignments + 1;
@@ -456,8 +457,8 @@ int main(int argc, char **argv) {
         out << "        Explored rate (avg): " << 1.0*all_reads_counters.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
         out << "     Pushed rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
         out << "     Popped rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
-        out << "             Average popped: " << 1.0 * popped_trie_total.get() / (R.size()/args.threads) << " from trie vs "
-                                            << 1.0 * popped_ref_total.get() / (R.size()/args.threads) << " from ref"
+        out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads) << " from trie vs "
+                                            << 1.0 * popped_ref_total.load() / (R.size()/args.threads) << " from ref"
                                             << " (influenced by greedy match flag)" << endl;
         out << "                 Total cost: " << total_cost << endl;
 #ifndef NDEBUG
@@ -486,12 +487,17 @@ int main(int argc, char **argv) {
                                             << R.size() / total_map_time << " reads/s <=> "
                                             << size_sum(R) / 1024.0 / total_map_time << " Kbp/s"    << endl; 
         out << endl;
-        out << "        A* prepare_reads: " << total_timers.astar_prepare_reads.get_sec() << "s" << endl;
         out << " Total align cpu time:    " << T.align.t.get_sec() << "s (cpu time)"    << endl;
-        out << "                      A*: " << 100.0 * total_timers.astar.get_sec() / total_map_time   << "%, "   << endl;
-        out << "                     que: " << 100.0 * total_timers.queue.get_sec() / total_map_time    << "%, " << endl;
-        out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time  << "%, " << endl;
+        out << " A* per read preparation: " << 100.0 * total_timers.astar_prepare_reads.get_sec() / total_map_time << "%" << endl;
+        out << "                A* query: " << 100.0 * total_timers.astar.get_sec() / total_map_time   << "%"   << endl;
+        out << "                   queue: " << 100.0 * total_timers.queue.get_sec() / total_map_time    << "%" << endl;
+        out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time  << "%" << endl;
         out << "            greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time  << "%" << endl;
+        out << "                   other: " << 100.0 - 100.0 * (total_timers.astar_prepare_reads.get_sec()
+                                                                + total_timers.astar.get_sec()
+                                                                + total_timers.queue.get_sec()
+                                                                + total_timers.dicts.get_sec()
+                                                                + total_timers.ff.get_sec()) / total_map_time  << "%" << endl;
         out << " DONE" << endl;
         out << endl;
     }

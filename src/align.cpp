@@ -32,12 +32,12 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         set_prev_edge(pe, i, v, edge_t());      // for edge_path reconstruction
     }
 
-    cost_t prev_cost = 0.0;
+    //cost_t prev_cost = 0.0;
     int max_i = 0;
     for (int steps=0; !Q.empty(); steps++) {
         LOG_DEBUG << r.comment <<  ": step " << steps << " with best curr sort-cost of " << (double)Q.top().first << ", state=" << Q.top().second;
         
-        prev_cost = Q.top().second.cost;
+        //prev_cost = Q.top().second.cost;
         state_t curr = pop(Q);
         read_counters.explored_states.inc();
 
