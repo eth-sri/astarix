@@ -11,13 +11,15 @@ VG_BIN = config["vg_bin_path"]
 TIMELIMIT       = "(timeout 7200s"
 TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo timeouted)"
 
-ASTARIX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 5 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_PREFIX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 5 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 5 --fixed_trie_depth 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 DIJKSTRA_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 GA_CMD = "{TIMELIMIT} {GA_BIN} -f {input.reads} -g {input.graph} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} {TIMEOUTPRINT} >>{output.file}"
 
 ALIGN_CMD = {
-    'astarix': ASTARIX_CMD,
+    'astarix-prefix': ASTARIX_PREFIX_CMD,
+    'astarix-seeds': ASTARIX_SEEDS_CMD,
     'dijkstra': DIJKSTRA_CMD,
     'graphaligner': GA_CMD,
     'pasgal': PASGAL_CMD,
@@ -30,7 +32,7 @@ PaSGAL_FILES = ["L1.fa", "L2.fastq", "L3.fastq",
 
 # params
 GRAPHS       = [ "ecoli" ] #"chr1" ]# "ecoli" ]
-ALGOS        = ["astarix"] # [ "pasgal", "astarix", "dijkstra", "graphaligner" ] # ] #, "dijkstra", "graphaligner" ] #"vg" ] $"pasgal"
+ALGOS        = ["astarix-prefix", "astarix-seeds"] # [ "pasgal", "astarix", "dijkstra", "graphaligner" ] # ] #, "dijkstra", "graphaligner" ] #"vg" ] $"pasgal"
 GRAPH_HEADS_SMALL  = [10000, 100000, 1000000, 10000000]  # up to current exact state-of-the-art
 GRAPH_HEADS_BIG    = [10000000, 100000000, 100000000]
 GRAPH_HEADS = GRAPH_HEADS_SMALL #+ GRAPH_HEADS_BIG
@@ -45,7 +47,7 @@ graph_params = "{graph}_head{head}"
 read_params = "N{N}_m{m}"
 params = graph_params + "_" + read_params
 
-EXPERIMENT_N = 20000
+EXPERIMENT_N = 100 #20000
 EXPERIMENT_FIRST_ROW       = "algo\tgraph\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
 EXPERIMENT_GRAPHS = ["MHC1", "LRC"]
 EXPERIMENT_READS = { "MHC1": "M1", "LRC": "L1"}
@@ -62,79 +64,93 @@ aligners_inputs = {
 ## Default summary rule to be satisfied.
 rule all:
     input:
-        astar_vs_dijkstra = "results/AVSD_RAN",
-        visualization = "results/VISUALIZATION_RAN",
-        agg1 = "results/aggregated_benchmarks.csv",
-        agg2 = "results/aggregated_experiments.csv",
-        trie = "results/TRIE_DUMMY"
+        astar_prefix_vs_seeds = "results/PREFIX_VS_SEEDS_RAN",
+#        visualization = "results/VISUALIZATION_RAN",
+#        agg1 = "results/aggregated_benchmarks.csv",
+#        agg2 = "results/aggregated_experiments.csv",
+#        trie = "results/TRIE_DUMMY"
 
-rule trie_experiments:
-    input:
-        expand("results/trie_experiment_big/ecoli_head1000000_linear/astar-D{D}_TRIE_DONE", D=range(6, 17))
-    output:
-        "results/TRIE_DUMMY"
-    shell:
-        "jupyter nbconvert --to notebook --inplace --execute trie_experiment.ipynb > {output}"
+#rule trie_experiments:
+#    input:
+#        expand("results/trie_experiment_big/ecoli_head1000000_linear/astar-D{D}_TRIE_DONE", D=range(6, 17))
+#    output:
+#        "results/TRIE_DUMMY"
+#    shell:
+#        "jupyter nbconvert --to notebook --inplace --execute trie_experiment.ipynb > {output}"
+#
+#rule trie_experiment:
+#    input:
+#        "results/aggregated_benchmarks.csv"
+#    output:
+#        dir = directory("results/trie_experiment_big/ecoli_head1000000_linear/astar-D{D}/"),
+#        dummy = "results/trie_experiment_big/ecoli_head1000000_linear/astar-D{D}_TRIE_DONE"
+#    shell:
+#        "{ASTARIX_BIN} align-optimal -D {wildcards.D} -t 1 -g graphs/ecoli_head1000000_linear.gfa -q reads/ecoli_head1000000_N1000_m100/illumina.fq -o {output.dir} && touch {output.dummy}"
 
-rule trie_experiment:
-    input:
-        "results/aggregated_benchmarks.csv"
-    output:
-        dir = directory("results/trie_experiment_big/ecoli_head1000000_linear/astar-D{D}/"),
-        dummy = "results/trie_experiment_big/ecoli_head1000000_linear/astar-D{D}_TRIE_DONE"
-    shell:
-        "{ASTARIX_BIN} align-optimal -D {wildcards.D} -t 1 -g graphs/ecoli_head1000000_linear.gfa -q reads/ecoli_head1000000_N1000_m100/illumina.fq -o {output.dir} && touch {output.dummy}"
+#rule aggregate_benchmarks:
+#    input:
+#        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ALGOS, graph=GRAPHS, head=GRAPH_HEADS, N=Ns, m=ms),
+#    output:
+#        "results/aggregated_benchmarks.csv"
+#    params:
+#        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=ALGOS, graph=GRAPHS, head=GRAPH_HEADS, N=Ns, m=ms)
+#    shell:
+#        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
+#
+#rule aggregate_experiments:
+#    input:
+#        file = expand("results/{algo}/{graph}/benchmark.txt", algo=ALGOS, graph=EXPERIMENT_GRAPHS),
+#    output:
+#        "results/aggregated_experiments.csv"
+#    params:
+#        prefix = expand("{algo}\t{graph}", algo=ALGOS, graph=EXPERIMENT_GRAPHS)
+#    shell:
+#        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{EXPERIMENT_FIRST_ROW}\\n/' > {output}"
 
-rule aggregate_benchmarks:
-    input:
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ALGOS, graph=GRAPHS, head=GRAPH_HEADS, N=Ns, m=ms),
-    output:
-        "results/aggregated_benchmarks.csv"
-    params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=ALGOS, graph=GRAPHS, head=GRAPH_HEADS, N=Ns, m=ms)
-    shell:
-        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
+#rule visualization_notebook:
+#    input:
+#        aggregated_benchmarks = "results/aggregated_benchmarks.csv",
+#    output:
+#        "results/VISUALIZATION_RAN"
+#    shell:
+#        "jupyter nbconvert --to notebook --inplace --execute visualization.ipynb > {output}"
 
-rule aggregate_experiments:
+rule astar_prefix_vs_seeds:
     input:
-        file = expand("results/{algo}/{graph}/benchmark.txt", algo=ALGOS, graph=EXPERIMENT_GRAPHS),
+        astar_prefix_align = "results/astarix-prefix/MHC1/out/alignments.tsv",
+        astar_seeds_align = "results/astarix-seeds/MHC1/out/alignments.tsv"
     output:
-        "results/aggregated_experiments.csv"
-    params:
-        prefix = expand("{algo}\t{graph}", algo=ALGOS, graph=EXPERIMENT_GRAPHS)
-    shell:
-        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{EXPERIMENT_FIRST_ROW}\\n/' > {output}"
-
-rule visualization_notebook:
-    input:
-        aggregated_benchmarks = "results/aggregated_benchmarks.csv",
-    output:
-        "results/VISUALIZATION_RAN"
-    shell:
-        "jupyter nbconvert --to notebook --inplace --execute visualization.ipynb > {output}"
-
-rule astar_vs_dijkstra:
-    input:
-        astar_align = "results/astarix/MHC1/out/alignments.tsv",
-        dijkstra_align = "results/dijkstra/MHC1/out/alignments.tsv"
-    output:
-        "results/AVSD_RAN"
+        "results/PREFIX_VS_SEEDS_RAN"
     shell:
         "jupyter nbconvert --to notebook --inplace --execute astar_vs_dijkstra.ipynb > {output}"
 
-rule benchmark_astarix:
+rule benchmark_astarix_prefix:
     input:
         reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
         graph = "graphs/pasgal-{graph}.gfa",
     output:
-        align = "results/astarix/{graph}/out/alignments.tsv",
-        file = "results/astarix/{graph}/summary.txt"
+        align = "results/astarix-prefix/{graph}/out/alignments.tsv",
+        file = "results/astarix-prefix/{graph}/summary.txt"
     benchmark:
-        "results/astarix/{graph}/benchmark.txt"
+        "results/astarix-prefix/{graph}/benchmark.txt"
     log:
-        "results/astarix/{graph}/log.txt"
+        "results/astarix-prefix/{graph}/log.txt"
     shell:
-        ASTARIX_CMD
+        ASTARIX_PREFIX_CMD
+
+rule benchmark_astarix_seeds:
+    input:
+        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
+        graph = "graphs/pasgal-{graph}.gfa",
+    output:
+        align = "results/astarix-seeds/{graph}/out/alignments.tsv",
+        file = "results/astarix-seeds/{graph}/summary.txt"
+    benchmark:
+        "results/astarix-seeds/{graph}/benchmark.txt"
+    log:
+        "results/astarix-seeds/{graph}/log.txt"
+    shell:
+        ASTARIX_SEEDS_CMD
 
 rule benchmark_dijkstra:
     input:
@@ -266,55 +282,67 @@ rule head_pasgal_reads:
     shell:
         "head -n $(( 2 * {wildcards.reads_num} )) {input} >{output}"
 
-rule run_astarix:
-    input: **aligners_inputs
-    output:
-        file = "results/astarix/"+params+"/summary.txt",
-        align = "results/astarix/"+params+"/out/alignments.tsv"
-    benchmark:
-        "results/astarix/"+params+"/benchmark.txt"
-    log:
-        "results/astarix/"+params+"/log.txt"
-    shell:
-        ASTARIX_CMD
-
-rule run_dijkstra:
-    input: **aligners_inputs
-    output:
-        file = "results/dijkstra/"+params+"/summary.txt",
-        align = "results/dijkstra/"+params+"/out/alignments.tsv"
-    benchmark:
-        "results/dijkstra/"+params+"/benchmark.txt"
-    log:
-        "results/dijkstra/"+params+"/log.txt"
-    shell:
-        DIJKSTRA_CMD
-
-rule run_graphaligner:
-    input: **aligners_inputs
-    output:
-        file = "results/graphaligner/"+params+"/summary.txt"
-    benchmark:
-        "results/graphaligner/"+params+"/benchmark.txt"
-    log:
-        "results/graphaligner/"+params+"/log.txt"
-    shell:
-        GA_CMD
-
-rule run_pasgal:
-    input: **aligners_inputs
-    output:
-        file = "results/pasgal/"+params+"/summary.txt"
-    benchmark:
-        "results/pasgal/"+params+"/benchmark.txt"
-    log:
-        "results/pasgal/"+params+"/log.txt"
-    shell:
-        PASGAL_CMD
-
-rule run_vg:
-    input: **aligners_inputs
-    output:
-        file = "results/vg/"+params+"/summary.txt",
-    shell:
-        "{VG_BIN} -s AAATATATAAAAATATTTAA -g {input.graph} >{output}"
+#rule run_astarix_prefix:
+#    input: **aligners_inputs
+#    output:
+#        file = "results/astarix-prefix/"+params+"/summary.txt",
+#        align = "results/astarix-prefix/"+params+"/out/alignments.tsv"
+#    benchmark:
+#        "results/astarix-prefix/"+params+"/benchmark.txt"
+#    log:
+#        "results/astarix-prefix/"+params+"/log.txt"
+#    shell:
+#        ASTARIX_PREFIX_CMD
+#
+#rule run_astarix_seeds:
+#    input: **aligners_inputs
+#    output:
+#        file = "results/astarix-seeds/"+params+"/summary.txt",
+#        align = "results/astarix-seeds/"+params+"/out/alignments.tsv"
+#    benchmark:
+#        "results/astarix-seeds/"+params+"/benchmark.txt"
+#    log:
+#        "results/astarix-seeds/"+params+"/log.txt"
+#    shell:
+#        ASTARIX_SEEDS_CMD
+#
+#rule run_dijkstra:
+#    input: **aligners_inputs
+#    output:
+#        file = "results/dijkstra/"+params+"/summary.txt",
+#        align = "results/dijkstra/"+params+"/out/alignments.tsv"
+#    benchmark:
+#        "results/dijkstra/"+params+"/benchmark.txt"
+#    log:
+#        "results/dijkstra/"+params+"/log.txt"
+#    shell:
+#        DIJKSTRA_CMD
+#
+#rule run_graphaligner:
+#    input: **aligners_inputs
+#    output:
+#        file = "results/graphaligner/"+params+"/summary.txt"
+#    benchmark:
+#        "results/graphaligner/"+params+"/benchmark.txt"
+#    log:
+#        "results/graphaligner/"+params+"/log.txt"
+#    shell:
+#        GA_CMD
+#
+#rule run_pasgal:
+#    input: **aligners_inputs
+#    output:
+#        file = "results/pasgal/"+params+"/summary.txt"
+#    benchmark:
+#        "results/pasgal/"+params+"/benchmark.txt"
+#    log:
+#        "results/pasgal/"+params+"/log.txt"
+#    shell:
+#        PASGAL_CMD
+#
+#rule run_vg:
+#    input: **aligners_inputs
+#    output:
+#        file = "results/vg/"+params+"/summary.txt",
+#    shell:
+#        "{VG_BIN} -s AAATATATAAAAATATTTAA -g {input.graph} >{output}"

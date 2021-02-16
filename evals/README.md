@@ -11,7 +11,7 @@ This Snakemake will download, run, and plot the results from all experiments in 
 
 ### Execution
 
-Run `snakemake -p` in this directory. When rerunning the set of experiments, please run `snakemake --clean` first (this will not clear the contents of the `raw` folder).
+Run `snakemake -p` in this directory. When rerunning the set of experiments, please run `snakemake clean` first (this will not clear the contents of the `raw` folder).
 
 ### Sample commands
 * A\* `astarix align-optimal -f reads.fq -g graph.gfa -o outdir > output`
