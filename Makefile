@@ -3,7 +3,7 @@ CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -Iext/plog/include/ -Iext/GraphAligner/ -I
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
-    CPPFLAGS += -DDEBUG
+    CPPFLAGS += -DDEBUG -g
 	BINDIR=debug
 	RUNFLAGS += -v 2
 else
@@ -68,8 +68,8 @@ eval100: $(ASTARIXBIN)
                     
 eval150: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina150.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0
 	$(ASTARIXBIN) align-optimal -a astar-prefix -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina150.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1
+	$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina150.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0
 
 eval250: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))

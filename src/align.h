@@ -29,7 +29,7 @@ struct Counters {
     Counter explored_states;
     Counter repeated_visits;
 
-    std::vector<Counter> pushed_hist;  // pushed_hist[i] -- number of pushed states <*,i>
+    //std::vector<Counter> pushed_hist;  // pushed_hist[i] -- number of pushed states <*,i>
 
     void clear() {
         pushed.clear();
@@ -39,7 +39,7 @@ struct Counters {
         popped_ref.clear();
         explored_states.clear();
         repeated_visits.clear();
-        pushed_hist.clear();
+    //    pushed_hist.clear();
     }
 
     Counters& operator+=(const Counters &b) {
@@ -51,11 +51,11 @@ struct Counters {
         explored_states += b.explored_states;
         repeated_visits += b.repeated_visits;
 
-        if (pushed_hist.size() < b.pushed_hist.size())
-            pushed_hist.resize(b.pushed_hist.size());
-        for (int i=0; i<pushed_hist.size(); i++)
-            if (i < b.pushed_hist.size())
-                pushed_hist[i] += b.pushed_hist[i];
+     //   if (pushed_hist.size() < b.pushed_hist.size())
+     //       pushed_hist.resize(b.pushed_hist.size());
+     //   for (int i=0; i<pushed_hist.size(); i++)
+     //       if (i < b.pushed_hist.size())
+     //           pushed_hist[i] += b.pushed_hist[i];
 
         return *this;
     }
@@ -151,7 +151,7 @@ class Aligner {
   private:
     inline void push(queue_t &Q, cost_t sort_cost, const state_t &st) {
         read_counters.pushed.inc();
-        read_counters.pushed_hist[st.i].inc();
+        //read_counters.pushed_hist[st.i].inc();
         read_timers.queue.start();
             Q.push(score_state_t(sort_cost, st));
         read_timers.queue.stop();

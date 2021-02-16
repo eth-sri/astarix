@@ -9,7 +9,7 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
     read_timers.clear();
     read_timers.total.start();
     read_counters.clear();
-    read_counters.pushed_hist.resize(r.len);
+    //read_counters.pushed_hist.resize(r.len);
     best_path->clear();
 
     // Local vars

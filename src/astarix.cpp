@@ -38,26 +38,26 @@ void init_logger(const char *log_fn, int verbose) {
     }
 }
 
-AStarHeuristic* AStarHeuristicFactory(const graph_t &G, const arguments &args) {
-    AStarHeuristic* astar;
+unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const arguments &args) {
+    unique_ptr<AStarHeuristic> astar;
     string algo = args.algorithm;
 
     // TODO: add dijkstra
     if (algo == "astar-prefix") {
-        astar = new AStarPrefix(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
+        astar = make_unique<AStarPrefix>(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
     } else if (algo == "astar-seeds-exact") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-seeds-exact algorithm can only be used with fixed_trie_depth flag on.");
         //if (args.astar_seeds_max_errors != 0) 
         //    throw invalid_argument("astar-seeds-exact needs astar_seeds_max_errors flag set to 0.");
-        astar = new AStarSeedsExact(G, args.costs, args.astar_seeds.seed_len, args.astar_seeds.max_indels);
+        astar = make_unique<AStarSeedsExact>(G, args.costs, args.astar_seeds.seed_len, args.astar_seeds.max_indels);
     } else if (algo == "astar-seeds") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
-        //astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds_len, args.astar_seeds_max_errors, max_indels);
-        astar = new AStarSeedsWithErrors(G, args.costs, args.astar_seeds);
+        //astar = make_unique<AStarSeedsWithErrors>(G, args.costs, args.astar_seeds_len, args.astar_seeds_max_errors, max_indels);
+        astar = make_unique<AStarSeedsWithErrors>(G, args.costs, args.astar_seeds);
     } else if (algo == "dijkstra") { 
-        astar = new DijkstraDummy();
+        astar = make_unique<DijkstraDummy>();
     } else {
         cout << "No algorithm " << args.algorithm << endl;
         throw invalid_argument("Unknown algorithm.");
@@ -159,33 +159,33 @@ void print_tsv(map<string, string> dict, ostream &out) {
     out << endl;
 }
 
-void print_hist(Aligner aligner, string hist_file) {
-    ofstream out(hist_file);
-    auto &all_counters = aligner.all_read_counters_;
-
-    int max_size = 0;
-    for (auto const &counters: all_counters) 
-        max_size = max(max_size, (int)counters.second.pushed_hist.size());
-
-    out << "read";
-    for (int i=0; i<max_size; i++)
-        out << "\t" << i;
-    out << "\n";
-
-    for (auto const &counters: all_counters) {
-        out << counters.first;
-        int i=0;
-        for (auto const &x: counters.second.pushed_hist) {
-            out << "\t" << x.get();
-            ++i;
-        }
-        for (; i<max_size; i++)
-            out << "\t" << 0;
-        out << "\n";
-    }
-    out << endl;
-    out.close();
-}
+//void print_hist(Aligner aligner, string hist_file) {
+//    ofstream out(hist_file);
+//    auto &all_counters = aligner.all_read_counters_;
+//
+//    int max_size = 0;
+//    for (auto const &counters: all_counters) 
+//        max_size = max(max_size, (int)counters.second.pushed_hist.size());
+//
+//    out << "read";
+//    for (int i=0; i<max_size; i++)
+//        out << "\t" << i;
+//    out << "\n";
+//
+//    for (auto const &counters: all_counters) {
+//        out << counters.first;
+//        int i=0;
+//        for (auto const &x: counters.second.pushed_hist) {
+//            out << "\t" << x.get();
+//            ++i;
+//        }
+//        for (; i<max_size; i++)
+//            out << "\t" << 0;
+//        out << "\n";
+//    }
+//    out << endl;
+//    out.close();
+//}
 
 typedef map<string, string> dict_t;
 
@@ -323,7 +323,7 @@ int main(int argc, char **argv) {
 
     cout << "Initializing A* heuristic... " << flush;
     T.precompute.start();
-    AStarHeuristic *astar = AStarHeuristicFactory(G, args);
+    unique_ptr<AStarHeuristic> astar = AStarHeuristicFactory(G, args);
     T.precompute.stop();
     cout << "done in " << T.precompute.t.get_sec() << "s." << endl << flush;
 
@@ -389,7 +389,7 @@ int main(int argc, char **argv) {
     bool calc_mapping_cost = false;
     if (args.threads == 1) {
         FILE *fout = fopen(performance_file.c_str(), "a");
-        Aligner aligner(G, align_params, astar);
+        Aligner aligner(G, align_params, astar.get());
         for (size_t i=0; i<R.size(); i++) {
             char line[10000];
             state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
@@ -410,7 +410,7 @@ int main(int argc, char **argv) {
         }
         fclose(fout);
 
-        print_hist(aligner, hist_file);
+        //print_hist(aligner, hist_file);
     } else {
         moodycamel::ConcurrentQueue<string> profileQueue { 50, args.threads, args.threads };
         std::vector<thread> threads(args.threads);
@@ -421,8 +421,8 @@ int main(int argc, char **argv) {
             threads[t] = thread([&, t]() {
                 int from = t*bucket_sz;
                 int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
-                AStarHeuristic *astar_local = AStarHeuristicFactory(G, args);
-                Aligner aligner(G, align_params, astar_local);
+                unique_ptr<AStarHeuristic> astar_local = AStarHeuristicFactory(G, args);
+                Aligner aligner(G, align_params, astar_local.get());
                 LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
                 for (size_t i=from; i<to; i++) {
                     char line[10000];
