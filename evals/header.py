@@ -14,7 +14,7 @@ pd.set_option('display.width', 1000)
 
 def read_benchmarks_aggregation(benchmarks_file):
     df = pd.read_csv(benchmarks_file, sep='\t')
-    df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astarix", "pasgal"])
+    df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"])
     df['c'] = df['algo'].apply(algo2color)
     #df['marker'] = df['m'].apply(readlen2marker)
     return df
@@ -27,9 +27,9 @@ def read_astarix_performance(tsv_fn):
     df['pushed+popped'] = df['pushed'] + df['popped']
     df['generated_errors'] = df['readname'].apply(lambda rn: int(rn.split()[0]) if rn.split()[0].isdigit() else -1)
     df['explored_states'] = df['pushed'] * df['len']
-    df['algo'] = df['algo'].replace(['astar-prefix'], 'astarix')
-    df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astarix", "pasgal"], ordered=True)
-    df['algo'] = df['algo'].cat.remove_unused_categories()
+    #df['algo'] = df['algo'].replace(['astar-prefix'], 'astarix')
+    #df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-seeds", "astar-prefix", "pasgal"], ordered=True)
+    #df['algo'] = df['algo'].cat.remove_unused_categories()
     #df['performance'] = df['len'] / df['t(map)'] / 1000000  # [MBp/sec]
     if 'spell' in df:
         df['dist'] = num_lower(df['spell'])
@@ -38,7 +38,8 @@ def read_astarix_performance(tsv_fn):
 def algo2color(algo):
     d = {
         'astarix': 'red', #'mediumseagreen', #' forestgreen',
-        'astar': 'red',  #'mediumseagreen',
+        'astar-prefix': 'red',
+        'astar-seeds': 'mediumseagreen',
         'dijkstra': 'darkorange',
         'graphaligner': 'mediumseagreen',
         'pasgal': 'cornflowerblue',
@@ -52,6 +53,8 @@ def algo2beautiful(algo):
     d = {
         'astar': 'A*',
         'astarix': 'AStarix',
+        'astar-seeds': 'Seeds heuristic',
+        'astar-prefix': 'Prefix heuristic',
         'dijkstra': 'Dijkstra',
         'graphaligner': 'GraphAligner',
         'pasgal': 'PaSGAL',
