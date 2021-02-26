@@ -481,8 +481,9 @@ int main(int argc, char **argv) {
     cout << "done in " << T.align.t.get_sec() << "s." << endl << flush;
 
     {
-        double total_map_time = total_timers.total.get_sec();
+        //double total_map_time = total_timers.total.get_sec();
         double total_mem = MemoryMeasurer::get_mem_gb();
+        double align_cpu_time = T.align.t.get_sec();
 
         out << " == Aligning statistics =="                                                     << endl;
         out << "        Explored rate (avg): " << 1.0*all_reads_counters.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
@@ -515,20 +516,20 @@ int main(int argc, char **argv) {
         out << "          construct trie: " << T.construct_trie.t.get_sec() << "s"      << endl;
         out << "              precompute: " << T.precompute.t.get_sec() << "s"          << endl;
         out << "                   align: " << align_wt.count() << "s (wall time) => "
-                                            << R.size() / total_map_time << " reads/s <=> "
-                                            << size_sum(R) / 1024.0 / total_map_time << " Kbp/s"    << endl; 
+                                            << R.size() / align_wt.count() << " reads/s <=> "
+                                            << size_sum(R) / 1024.0 / align_wt.count() << " Kbp/s"    << endl; 
         out << endl;
-        out << " Total align cpu time:    " << T.align.t.get_sec() << "s (cpu time)"    << endl;
-        out << " A* per read preparation: " << 100.0 * total_timers.astar_prepare_reads.get_sec() / total_map_time << "%" << endl;
-        out << "                A* query: " << 100.0 * total_timers.astar.get_sec() / total_map_time   << "%"   << endl;
-        out << "                   queue: " << 100.0 * total_timers.queue.get_sec() / total_map_time    << "%" << endl;
-        out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / total_map_time  << "%" << endl;
-        out << "            greedy_match: " << 100.0 * total_timers.ff.get_sec() / total_map_time  << "%" << endl;
+        out << " Total align cpu time:    " << align_cpu_time << "s (cpu time)"    << endl;
+        out << " A* per read preparation: " << 100.0 * total_timers.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
+        out << "                A* query: " << 100.0 * total_timers.astar.get_sec() / align_cpu_time << "%"   << endl;
+        out << "                   queue: " << 100.0 * total_timers.queue.get_sec() / align_cpu_time << "%" << endl;
+        out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / align_cpu_time << "%" << endl;
+        out << "            greedy_match: " << 100.0 * total_timers.ff.get_sec() / align_cpu_time << "%" << endl;
         out << "                   other: " << 100.0 - 100.0 * (total_timers.astar_prepare_reads.get_sec()
                                                                 + total_timers.astar.get_sec()
                                                                 + total_timers.queue.get_sec()
                                                                 + total_timers.dicts.get_sec()
-                                                                + total_timers.ff.get_sec()) / total_map_time  << "%" << endl;
+                                                                + total_timers.ff.get_sec()) / align_cpu_time << "%" << endl;
         out << " DONE" << endl;
         out << endl;
     }

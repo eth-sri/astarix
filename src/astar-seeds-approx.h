@@ -44,6 +44,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     int marked_states_;     
     cost_t best_heuristic_sum_;
 
+    // debug; TODO: remove
+    int visited_nodes, repeated_nodes_backwards;
+    std::unordered_set<node_t> visited_nodes_backwards;
+
   public:
     AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, arguments::AStarSeedsArgs _args)
         : G(_G), costs(_costs), args(_args) {
@@ -98,6 +102,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         paths_considered = 0;
         marked_states = 0;
         seed_matches = 0;
+        visited_nodes = 0;
+        repeated_nodes_backwards = 0;
 
         r_ = r;
         seeds = gen_seeds_and_update(r, +1);
@@ -142,6 +148,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         out << "                    Paths considered: " << paths_considered_        << std::endl;
         out << "                  Graph nodes marked: " << marked_states_           << std::endl;
         out << "                Best heuristic (avg): " << (double)best_heuristic_sum_/reads_ << std::endl;
+        out << "    (debug) Repeated nodes backwards: " << repeated_nodes_backwards << " = " << 100.0 * repeated_nodes_backwards / visited_nodes << "%" << std::endl;
 //        out << "                 Max heursitic value: " << ?? << std::endl;
     }
 
@@ -174,6 +181,15 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         }
         //LOG_DEBUG_IF(dval == +1) << "H[" << errors << "][" << v << "] = " << H[errors][v];
         //assert(__builtin_popcount(H[errors][v]) <= seeds);
+
+        // DEBUG; TODO:remove
+        visited_nodes++;
+        if (visited_nodes_backwards.find(v) != visited_nodes_backwards.end()) {
+            repeated_nodes_backwards++;
+            return false;
+        } else {
+            visited_nodes_backwards.insert(v);
+        }
 
         if (v == 0) {
 //            assert(i == 0);  // supersource is reached; no need to update H[0]
@@ -223,6 +239,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         } else {
             assert(!G.node_in_trie(v));
             //LOG_INFO_IF(dval == +1) << "Updating for seed " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_seed_errors-remaining_errors << " errrors.";
+            visited_nodes_backwards.clear();
             bool success = update_path_backwards(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
             assert(success);
 
