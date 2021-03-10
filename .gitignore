@@ -2,3 +2,5 @@ debug/
 release/
 tmp/
 out/
+evals/.ipynb_checkpoints/
+evals/__pycache__/

@@ -165,11 +165,44 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
     int diff(int a, int b) { return abs(a-b); }
 
+    bool update_path_backwards_bfs(int p, int start_i, node_t start_v, int dval, int shifts_remaining, int errors) {
+        std::queue< std::pair<node_t, int> > Q;  // (v, i)
+        Q.push( std::make_pair(start_v, start_i) );
+        while(!Q.empty()) {
+            auto [v, i] = Q.front();
+            Q.pop();
+
+            if (dval == +1) {
+                if (!(H[errors][v] & (1<<p))) {
+                    ++marked_states;
+                    H[errors][v] |= 1<<p;   // fire p-th bit
+                }
+            } else {
+                H[errors][v] &= ~(1<<p);  // remove p-th bit
+            }
+
+            if (v == 0) {
+                ++paths_considered;
+                continue;
+            }
+
+            for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
+                //LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
+                if ( (G.node_in_trie(v))  // (1) already in trie
+                || (diff(i-1, G.get_trie_depth()) <= shifts_remaining)  // (2) time to go to trie
+                || (i-1 > G.get_trie_depth() && !G.node_in_trie(it->to))) {  // (3) proceed back
+                    Q.push( std::make_pair(it->to, i) );
+                }
+            }
+        }
+
+        return true;
+    }
+
     // `H[u]+=dval` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
-    // TODO: optimize with string nodes
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
-    bool update_path_backwards(int p, int i, node_t v, int dval, int shifts_remaining, int errors) {
+    bool update_path_backwards_dfs(int p, int i, node_t v, int dval, int shifts_remaining, int errors) {
         LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
         if (dval == +1) {
             if (!(H[errors][v] & (1<<p))) {
@@ -184,6 +217,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
         // DEBUG; TODO:remove
         visited_nodes++;
+
+        // linear DFS instead of exponentially many paths
         if (visited_nodes_backwards.find(v) != visited_nodes_backwards.end()) {
             repeated_nodes_backwards++;
             return false;
@@ -204,7 +239,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             if ( (G.node_in_trie(v))  // (1) already in trie
               || (diff(i-1, G.get_trie_depth()) <= shifts_remaining)  // (2) time to go to trie
               || (i-1 > G.get_trie_depth() && !G.node_in_trie(it->to))) {  // (3) proceed back
-                bool success = update_path_backwards(p, i-1, it->to, dval, shifts_remaining, errors);
+                bool success = update_path_backwards_dfs(p, i-1, it->to, dval, shifts_remaining, errors);
                 if (success) at_least_one_path = true;
             }
         }
@@ -213,8 +248,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     // Assumes that seed_len <= D so there are no duplicating outgoing labels.
-    // In case of success, v is the 
-    // Returns a list of (shift_from_start, v) with matches
     void match_seed_and_update(const read_t *r, int p, int start, int i, node_t v, int dval, int remaining_errors) {
         //LOG_DEBUG_IF(dval == +1) << "Match forward seed " << p << "[" << start << ", " << start+seed_len << ") to state (" << i << ", " << v << ")"
         //                         << " with " << remaining_errors << " remaining errors.";
@@ -240,7 +273,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             assert(!G.node_in_trie(v));
             //LOG_INFO_IF(dval == +1) << "Updating for seed " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_seed_errors-remaining_errors << " errrors.";
             visited_nodes_backwards.clear();
-            bool success = update_path_backwards(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
+            bool success = update_path_backwards_bfs(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
+            //bool success = update_path_backwards_dfs(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
             assert(success);
 
             ++seed_matches;  // debug info
