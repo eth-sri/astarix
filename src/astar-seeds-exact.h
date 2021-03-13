@@ -137,7 +137,7 @@ class AStarSeedsExact: public AStarHeuristic {
     // TODO: optimize with string nodes
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
-    bool update_path_backwards(int p, int i, node_t v, int dval, int shifts_remaining) {
+    bool update_path_backwards(int p, int i, node_t v, int dval, int max_shifts) {
         LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
         if (dval == +1) {
             if (!(H[v] & (1<<p))) {
@@ -162,12 +162,12 @@ class AStarSeedsExact: public AStarHeuristic {
             if (should_proceed_backwards_to(i-1, it->to)) {
                 // Go back freely to accomodate deletions.
                 if (i-1 == G.get_trie_depth() && !G.node_in_trie(it->to)) {
-                    if (shifts_remaining > 0)
-                        update_path_backwards(p, i, it->to, dval, shifts_remaining-1);
+                    if (max_shifts > 0)
+                        update_path_backwards(p, i, it->to, dval, max_shifts-1);
                 }
 
                 LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
-                bool success = update_path_backwards(p, i-1, it->to, dval, shifts_remaining);
+                bool success = update_path_backwards(p, i-1, it->to, dval, max_shifts);
                 assert(success);
                 at_least_one_path = true; // debug
             }

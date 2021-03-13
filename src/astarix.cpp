@@ -34,7 +34,7 @@ void init_logger(const char *log_fn, int verbose) {
         //plog::init<1>(level, &InfoFileAppender);
         //plog::init(level).addAppender(plog::get<1>());
 
-        plog::init(level, log_fn, 1000000);
+        plog::init(level, log_fn); //1000000);
     }
 }
 
