@@ -211,8 +211,17 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         }
     }
 
-    void propage_cycle_backwards() {
+    void propagate_cycle_backwards(std::unordered_map<node_t, int> *min_i, int i, node_t v, int max_shifts) {
+        auto curr_min_i_it = min_i->find(v);
+        if (curr_min_i_it == min_i->end())
+            (*min_i)[v] = CYCLE_VAL;
+        else if (curr_min_i_it->second == CYCLE_VAL)
+            return;
 
+        // TODO: add trie
+        for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
+            if ( !G.node_in_trie(it->to) && G.get_trie_depth()-i-1 < max_shifts) // prev in GRAPH
+                propagate_cycle_backwards(min_i, i-1, it->to, max_shifts);
     }
 
     bool update_path_backwards_bfs(int p, int start_i, node_t start_v, int dval, int max_shifts, int errors) {
@@ -232,7 +241,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 continue;
             }
 
-            int curr_min_i;
+            int curr_min_i=-123123123;
 
             LOG_DEBUG_IF(dval == +1) << "v=" << v << ", i=" << i << ", H[" << errors << "][" << v << "] = " << H[errors][v];
 
@@ -240,18 +249,22 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             if (curr_min_i_it == min_i.end())          curr_min_i = i;   // init with i
             else {
                 // already existing
-                if      (curr_min_i_it->second == CYCLE_VAL)    continue;         // reaching a cycle which has taken care of propagating
-                else if (i < curr_min_i_it->second)             curr_min_i = CYCLE_VAL;  // closing a cycle
-                //else if (i < curr_min_i_it->second)             propagate_cycle_backwards(curr_min_i = CYCLE_VAL;  // closing a cycle
+                if      (curr_min_i_it->second == CYCLE_VAL)    continue;         // reaching a cycle which has taken care of propagating, TODO: continue!!
+                else if (i < curr_min_i_it->second)             {
+                    propagate_cycle_backwards(&min_i, i, v, max_shifts);  // new cycle found -- propage it back
+                    curr_min_i = CYCLE_VAL;
+                }
                 else                                            continue;         // other path to the same node have higher length because of BFS
             }
+
+            assert(curr_min_i != -123123123);
 
             LOG_DEBUG_IF(dval == +1) << "curr_min_i=" << curr_min_i;
             min_i[v] = curr_min_i;
     
-            if ( G.node_in_trie(v) ) {
-                update_crumbs_up_the_trie(p, dval, errors, v);
-            } else {
+            //if ( G.node_in_trie(v) ) {
+            //    update_crumbs_up_the_trie(p, dval, errors, v);
+            //} else {
                 update_crumbs_for_node(p, dval, errors, v);
                 for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
                     //LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
@@ -260,7 +273,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                         Q.push( std::make_pair(it->to, i-1) );
                     }
                 }
-            }
+            //}
         }
 
         return true;
