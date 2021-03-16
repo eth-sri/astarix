@@ -220,7 +220,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
         // TODO: add trie
         for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
-            if ( !G.node_in_trie(it->to) && G.get_trie_depth()-i-1 < max_shifts) // prev in GRAPH
+            if ( !G.node_in_trie(it->to) && G.get_trie_depth() <= i+max_shifts) // prev in GRAPH
                 propagate_cycle_backwards(min_i, i-1, it->to, max_shifts);
     }
 
@@ -269,7 +269,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
                     //LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
                     if ( ( G.node_in_trie(it->to) && time_for_trie(curr_min_i, max_shifts)) // up the TRIE
-                      || (!G.node_in_trie(it->to) && G.get_trie_depth()-i-1 < max_shifts)) { // prev in GRAPH
+                      || (!G.node_in_trie(it->to) && G.get_trie_depth() <= i+max_shifts)) { // prev in GRAPH
                         Q.push( std::make_pair(it->to, i-1) );
                     }
                 }
