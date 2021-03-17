@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
 
     string output_dir = args.output_dir;
     if (!output_dir.empty()) {
-        assure_dir_exists(args.output_dir);
+        assure_dir_exists(output_dir.c_str());
         performance_file = output_dir + "/alignments.tsv";
         info_log_file = output_dir + "/info.log";
         stats_file = output_dir + "/stats.log";

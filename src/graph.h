@@ -78,7 +78,7 @@ struct graph_t {
     bool fixed_trie_depth;
 
     graph_t(bool _with_reverse_edges=0)
-            : trie_nodes(0), trie_depth(0), trie_edges(0), orig_nodes(0), orig_edges(0)
+            : orig_nodes(0), orig_edges(0), trie_depth(0), trie_nodes(0), trie_edges(0)
             //: with_reverse_edges(_with_reverse_edges)
             {
         V.resize(1, -1);  // 0 preserved for a supersource
@@ -279,7 +279,7 @@ struct graph_t {
         }
 
         const reference operator*() const { return g->E[curr_edge_idx]; }
-        const pointer operator->() const { return (const pointer)&(g->E[curr_edge_idx]); }
+        pointer operator->() const { return (pointer)&(g->E[curr_edge_idx]); }
 
         orig_edge_iterator& operator++() {  // preincrement
             curr_edge_idx = g->E[curr_edge_idx].next;
@@ -323,7 +323,7 @@ struct graph_t {
         }
 
         const reference operator*() const { return g->E_rev[curr_edge_idx]; }
-        const pointer operator->() const { return (const pointer)&(g->E_rev[curr_edge_idx]); }
+        pointer operator->() const { return (pointer)&(g->E_rev[curr_edge_idx]); }
 
         orig_rev_edge_iterator& operator++() {  // preincrement
             curr_edge_idx = g->E_rev[curr_edge_idx].next;
@@ -393,7 +393,7 @@ struct graph_t {
         }
 
         const reference operator*() const { return *it; }
-        const pointer operator->() const { return (const pointer)&(*it); }
+        pointer operator->() const { return (pointer)&(*it); }
 
         all_matching_edge_iterator& operator++() {  // preincrement
             ++it;

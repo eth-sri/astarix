@@ -159,7 +159,7 @@ class Counter {
     }
 };
 
-static std::string bool2str(bool x) {
+inline std::string bool2str(bool x) {
     return x ? "true" : "false";
 }
 
