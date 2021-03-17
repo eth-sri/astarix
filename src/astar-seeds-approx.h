@@ -13,11 +13,46 @@ typedef int node_t;
 namespace astarix {
 
 class AStarSeedsWithErrors: public AStarHeuristic {
+    // A*-seeds params
+  public:
+    struct Args {
+        int seed_len;
+        int max_seed_errors;
+        int max_indels;
+        enum backwards_algo_t { DFS_FOR_LINEAR, BFS, COMPLEX } backwards_algo;
+
+        static constexpr std::array< std::pair<backwards_algo_t, const char *>, 3> algo2name = {
+            std::pair( backwards_algo_t::DFS_FOR_LINEAR, "dfs_for_linear" ),
+            std::pair( backwards_algo_t::BFS,            "bfs"  ),
+            std::pair( backwards_algo_t::COMPLEX,        "complex" )
+        };
+
+        static backwards_algo_t name2backwards_algo(std::string q) {
+            for (const auto [algo, name]: algo2name)
+                if (name == q)
+                    return algo;
+
+            throw "No " + q + " backwards algorithm.";
+        }
+
+        static std::string backwards_algo2name(backwards_algo_t a) {
+            for (const auto [algo, name]: algo2name)
+                if (algo == a)
+                    return name;
+
+            throw "No " + std::to_string(a) + " backwards algorithm.";
+        }
+
+        std::string get_backwards_algo_name() const {
+            return backwards_algo2name(backwards_algo);
+        }
+    };
+
   private:
     // Fixed parameters
     const graph_t &G;
     const EditCosts &costs;
-    const arguments::AStarSeedsArgs args;
+    Args args;
 
     // Updated separately for every read
     const read_t *r_;
@@ -65,7 +100,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     std::unordered_set<node_t> visited_nodes_backwards;
 
   public:
-    AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, arguments::AStarSeedsArgs _args)
+    AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, const Args &_args)
         : G(_G), costs(_costs), args(_args) {
         for (int i=0; i<=args.max_seed_errors; i++)
             H[i].resize(G.nodes());
@@ -141,9 +176,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     void print_params(std::ostream &out) const {
-        out << "     seed length: " << args.seed_len << " bp"                    << std::endl;
-        out << " max seed errors: " << args.max_seed_errors                      << std::endl;
-        out << "     shifts allowed: " << args.max_indels                        << std::endl;
+        out << "        seed length: " << args.seed_len << " bp"        << std::endl;
+        out << "    max seed errors: " << args.max_seed_errors          << std::endl;
+        out << "     shifts allowed: " << args.max_indels               << std::endl;
+        out << "     backwards algo: " << args.get_backwards_algo_name()<< std::endl;
     }
 
     void print_stats(std::ostream &out) const {
@@ -151,8 +187,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         out << "                            Seeds: " << global_cnt.seeds                    << std::endl;
         out << "                     Seed matches: " << global_cnt.seed_matches
             << "(" << 1.0*global_cnt.seed_matches.get()/reads_.get() << " per read)"                   << std::endl;
-        out << "                    Paths considered: " << global_cnt.paths_considered      << std::endl;
-        out << "                       States marked: " << global_cnt.marked_states << "(" << global_cnt.repeated_states << " repeated)"  << std::endl;
+        out << "                 Paths considered: " << global_cnt.paths_considered      << std::endl;
+        out << "                    States marked: " << global_cnt.marked_states
+            << " (+" << 100.0*global_cnt.repeated_states.get()/global_cnt.marked_states.get() << "% repeated)"  << std::endl;
         out << "                Best heuristic (avg): " << (double)best_heuristic_sum_/reads_.get() << std::endl;
 //        out << "                 Max heursitic value: " << ?? << std::endl;
     }
@@ -231,6 +268,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     bool update_path_backwards_bfs(int p, int start_i, node_t start_v, int dval, int max_shifts, int errors) {
+        return true;
+    }
+
+    bool update_path_backwards_complex(int p, int start_i, node_t start_v, int dval, int max_shifts, int errors) {
         LOG_DEBUG_IF(dval == +1) << "Backwards BFS: p=" << p << ", start_i=" << start_i << ", start_v=" << start_v << ", dval=" << dval << ", max_shifts=" << max_shifts << ", errors=" << errors;
 
         std::queue< std::pair<node_t, int> > Q;  // (v, i)
@@ -291,7 +332,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // `H[u]+=dval` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
-    bool update_path_backwards_dfs(int p, int i, node_t v, int dval, int max_shifts, int errors) {
+    bool update_path_backwards_dfs_for_linear(int p, int i, node_t v, int dval, int max_shifts, int errors) {
         LOG_DEBUG_IF(dval == +1) << "Backwards trace: (" << i << ", " << v << ")";
         update_crumbs_for_node(p, dval, errors, v);
 
@@ -318,7 +359,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             if ( (G.node_in_trie(v))  // (1) already in trie
               || (diff(i-1, G.get_trie_depth()) <= max_shifts)  // (2) time to go to trie
               || (i-1 > G.get_trie_depth() && !G.node_in_trie(it->to))) {  // (3) proceed back
-                bool success = update_path_backwards_dfs(p, i-1, it->to, dval, max_shifts, errors);
+                bool success = update_path_backwards_dfs_for_linear(p, i-1, it->to, dval, max_shifts, errors);
                 if (success) at_least_one_path = true;
             }
         }
@@ -352,8 +393,21 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             assert(!G.node_in_trie(v));
             //LOG_INFO_IF(dval == +1) << "Updating for seed " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_seed_errors-remaining_errors << " errrors.";
             visited_nodes_backwards.clear();
-            bool success = update_path_backwards_bfs(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
-            //bool success = update_path_backwards_dfs(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
+
+            bool success; 
+            switch (args.backwards_algo) {
+                case args.backwards_algo_t::DFS_FOR_LINEAR:
+                    success = update_path_backwards_dfs_for_linear(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
+                    break;
+                case args.backwards_algo_t::BFS:
+                    success = update_path_backwards_bfs(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
+                    break;
+                case args.backwards_algo_t::COMPLEX:
+                    success = update_path_backwards_complex(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
+                    break;
+                default:
+                    throw "Not existing backwards algo.";
+            }
             assert(success);
             _unused(success);
 

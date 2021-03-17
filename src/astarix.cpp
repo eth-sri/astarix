@@ -385,7 +385,7 @@ int main(int argc, char **argv) {
     assert(G.E.size() == G.E_rev.size());  // TODO: remove
     assert(G.V.size() == G.V_rev.size());  // TODO: remove
 
-    cout << "Aligning..." << flush;
+    //cout << "Aligning..." << flush;
     bool calc_mapping_cost = false;
     if (args.threads == 1) {
         FILE *fout = fopen(performance_file.c_str(), "a");
@@ -478,7 +478,7 @@ int main(int argc, char **argv) {
     auto end_align_wt = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> align_wt = end_align_wt - start_align_wt;
     std::chrono::duration<double> total_wt = end_align_wt - start_wt;
-    cout << "done in " << T.align.t.get_sec() << "s." << endl << flush;
+    //cout << "done in " << T.align.t.get_sec() << "s." << endl << flush;
 
     {
         //double total_map_time = total_timers.total.get_sec();
@@ -515,17 +515,19 @@ int main(int argc, char **argv) {
         out << "         queries loading: " << T.read_queries.t.get_sec() << "s"        << endl;
         out << "          construct trie: " << T.construct_trie.t.get_sec() << "s"      << endl;
         out << "              precompute: " << T.precompute.t.get_sec() << "s"          << endl;
-        out << "                   align: " << align_wt.count() << "s (wall time) => "
-                                            << R.size() / align_wt.count() << " reads/s <=> "
-                                            << size_sum(R) / 1024.0 / align_wt.count() << " Kbp/s"    << endl; 
+        out << "       align (wall time): " << align_wt.count() << "s = "
+                                            << R.size() / align_wt.count() << " reads/s = "
+                                            << size_sum(R) / 1000.0 / align_wt.count() << " Kbp/s"    << endl; 
         out << endl;
-        out << " Total align cpu time:    " << align_cpu_time << "s (cpu time)"    << endl;
-        out << " A* per read preparation: " << 100.0 * total_timers.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
-        out << "                A* query: " << 100.0 * total_timers.astar.get_sec() / align_cpu_time << "%"   << endl;
-        out << "                   queue: " << 100.0 * total_timers.queue.get_sec() / align_cpu_time << "%" << endl;
-        out << "                   dicts: " << 100.0 * total_timers.dicts.get_sec() / align_cpu_time << "%" << endl;
-        out << "            greedy_match: " << 100.0 * total_timers.ff.get_sec() / align_cpu_time << "%" << endl;
-        out << "                   other: " << 100.0 - 100.0 * (total_timers.astar_prepare_reads.get_sec()
+        out << "    Total align cpu time: " << align_cpu_time << "s = "
+                                            << R.size() / align_cpu_time << " reads/s = "
+                                            << size_sum(R) / 1000.0 / align_cpu_time << " Kbp/s"    << endl; 
+        out << "     | Per read preprocessing: " << 100.0 * total_timers.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |               A* query: " << 100.0 * total_timers.astar.get_sec() / align_cpu_time << "%"   << endl;
+        out << "     |                  queue: " << 100.0 * total_timers.queue.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |                  dicts: " << 100.0 * total_timers.dicts.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |           greedy_match: " << 100.0 * total_timers.ff.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |                  other: " << 100.0 - 100.0 * (total_timers.astar_prepare_reads.get_sec()
                                                                 + total_timers.astar.get_sec()
                                                                 + total_timers.queue.get_sec()
                                                                 + total_timers.dicts.get_sec()

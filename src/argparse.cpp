@@ -1,3 +1,6 @@
+#include <string>
+
+#include "astar-seeds-approx.h"
 #include "argparse.h"
 
 struct argp_option options[] = {
@@ -16,6 +19,7 @@ struct argp_option options[] = {
     { "astar_seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
     { "astar_seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have." },
     { "astar_seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned." },
+    { "astar_seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex}", 0,  "Backwards algo for each seed match." },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
@@ -59,7 +63,8 @@ arguments read_args(int argc, char **argv) {
 
     args.astar_seeds.seed_len        = 15;
     args.astar_seeds.max_seed_errors = 0;
-    args.astar_seeds.max_indels  = 10;
+    args.astar_seeds.max_indels      = 10;
+    args.astar_seeds.backwards_algo  = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::BFS;
 
     args.threads               = 1;
     args.verbose               = 0;
@@ -137,6 +142,9 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
         case 2003:
             assert(std::stoi(arg) >= 0);
             arguments->astar_seeds.max_indels = std::stod(arg);
+            break;
+        case 2004:
+            arguments->astar_seeds.backwards_algo = astarix::AStarSeedsWithErrors::Args::name2backwards_algo(arg);
             break;
         case 'o':
             arguments->output_dir = arg;
