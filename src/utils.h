@@ -139,9 +139,23 @@ class Counter {
         return cnt;
     }
 
+    void set(int a) {
+        cnt = a;
+    }
+
+    T operator++() {
+        return ++cnt;
+    }
+
     Counter& operator+=(const Counter &b) {
         cnt += b.cnt;
         return *this;
+    }
+
+//    friend std::ostream& operator<<(std::ostream& os, const Counter& c);
+    friend std::ostream& operator<<(std::ostream& os, const Counter& c) {
+        os << c.cnt;
+        return os;
     }
 };
 
