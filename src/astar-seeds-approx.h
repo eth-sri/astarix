@@ -102,6 +102,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
   public:
     AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, const Args &_args)
         : G(_G), costs(_costs), args(_args) {
+        best_heuristic_sum_ = 0;
         for (int i=0; i<=args.max_seed_errors; i++)
             H[i].resize(G.nodes());
         //LOG_INFO << "A* matching class constructed with:";
@@ -144,9 +145,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // Cut r into chunks of length seed_len, starting from the end.
     void before_every_alignment(const read_t *r) {
         ++reads_;
-
         read_cnt.clear();
-        read_cnt.seeds.set(gen_seeds_and_update(r, +1));
+
+        int seeds = gen_seeds_and_update(r, +1);
+        read_cnt.seeds.set(seeds);
 
         r_ = r;
 
@@ -268,6 +270,31 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     bool update_path_backwards_bfs(int p, int start_i, node_t start_v, int dval, int max_shifts, int errors) {
+        std::queue< std::pair<node_t, int> > Q;  // (v, i)
+        std::unordered_set< node_t > V;
+
+        // init BFS
+        Q.push( std::make_pair(start_v, start_i) );
+
+        while(!Q.empty()) {
+            auto [v, i] = Q.front(); Q.pop();
+
+            if (V.contains(v))
+                continue;
+
+            V.insert(v);
+
+            LOG_DEBUG_IF(dval == +1) << "v=" << v << ", i=" << i << ", H[" << errors << "][" << v << "] = " << H[errors][v];
+
+            update_crumbs_up_the_trie(p, dval, errors, v);
+            for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
+                //LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
+                if (!G.node_in_trie(it->to) && i-1 >= -max_shifts + G.get_trie_depth()) { // prev in GRAPH
+                    Q.push( std::make_pair(it->to, i-1) );
+                }
+            }
+        }
+
         return true;
     }
 

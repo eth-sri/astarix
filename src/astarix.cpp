@@ -248,7 +248,7 @@ void extract_args_to_dict(const arguments &args, dict_t *dict) {
     (*dict)["threads"] = to_string(args.threads);
 }
 
-int main(int argc, char **argv) {
+int exec(int argc, char **argv) {
     cout << "----" << endl;
 #ifdef NDEBUG
     cout << "Assert() checks:       OFF" << endl;
@@ -547,5 +547,13 @@ int main(int argc, char **argv) {
 
 
     return 0;
+}
+
+int main(int argc, char **argv) {
+    try {
+        return exec(argc, argv);
+    } catch (const std::string& ex) {
+        std::cout << ex << std::endl;
+    }
 }
 
