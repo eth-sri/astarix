@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
 
     graph_t G;
     vector<read_t> R;
-    clock_t start;
+    //clock_t start;
 
     cout << "Loading reference graph... " << flush;
     T.read_graph.start();
@@ -412,7 +412,7 @@ int main(int argc, char **argv) {
 
         //print_hist(aligner, hist_file);
     } else {
-        moodycamel::ConcurrentQueue<string> profileQueue { 50, args.threads, args.threads };
+        moodycamel::ConcurrentQueue<string> profileQueue { 50, (size_t)args.threads, (size_t)args.threads };
         std::vector<thread> threads(args.threads);
         std::atomic<bool> allThreadsDone { false };
 
@@ -424,7 +424,7 @@ int main(int argc, char **argv) {
                 unique_ptr<AStarHeuristic> astar_local = AStarHeuristicFactory(G, args);
                 Aligner aligner(G, align_params, astar_local.get());
                 LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
-                for (size_t i=from; i<to; i++) {
+                for (int i=from; i<to; i++) {
                     char line[10000];
                     state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
                             &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &all_reads_counters);

@@ -15,6 +15,8 @@
 
 namespace astarix {
 
+#define _unused(x) ((void)(x))   // to not have warnings
+
 #define eps (1e-6)
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define EQ(a, b) ((a<b) ? (b-a) < eps : (a-b) < eps)

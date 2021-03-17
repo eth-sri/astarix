@@ -11,29 +11,7 @@
 
 // long name, short key, arg name, flags, doc, group (0 is default)
 /* The options we understand. */
-static struct argp_option options[] = {
-    { "graph",          'g', "GRAPH",         0,  "Input graph (.gfa)" },
-    { "query",          'q', "QUERY",         0,  "Input queries/reads (.fq, .fastq)" },
-    { "outdir",         'o', "OUTDIR",        0,  "Output directory" },
-    { "tree_depth",     'D', "TREE_DEPTH",    0,  "Suffix tree depth" },
-    { "fixed_trie_depth",1001, "FIXED_TRIE_DEPTH",    0,  "Some leafs depth can be less than tree_depth (variable=0, fixed=1)" },
-    { "algorithm",      'a', "{dijkstra, astar-prefix}", 0, "Shortest path algorithm" },
-    { "greedy_match",   'f', "GREEDY_MATCH",  0,  "Proceed greedily forward if there is a unique matching outgoing edge" },
-    { "astar_len_cap",  'd', "A*_PREFIX_CAP", 0,  "The upcoming sequence length cap for the A* heuristic" },
-    { "astar_cost_cap", 'c', "A*_COST_CAP",   0,  "The maximum prefix cost for the A* heuristic" },
-    { "astar_equivalence_classes",
-                        'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
-//    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
-    { "astar_seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
-    { "astar_seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have." },
-    { "astar_seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned." },
-    { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
-    { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty" },
-    { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
-    { "threads",        't', "THREADS",      0,  "Number of threads (default=1)" },
-    { "verbose",        'v', "THREADS",      0,  "Verbosity (default=silent=0, info=1, debug=2)" },
-    { 0 }
-};
+extern struct argp_option options[];
 
 /* Used by main to communicate with parse_opt. */
 struct arguments {
@@ -65,92 +43,5 @@ struct arguments {
     int verbose;
 };
 
-/* Parse a single option. */
-static error_t parse_opt (int key, char *arg, struct argp_state *state)
-{
-    /* Get the input argument from argp_parse, which we
-       know is a pointer to our arguments structure. */
-    struct arguments *arguments = (struct arguments *)(state->input);
-  
-    switch (key) {
-        case 'g':
-            arguments->graph_file = arg;
-            break;
-        case 'q':
-            arguments->query_file = arg;
-            break;
-        case 'D':
-            arguments->tree_depth = std::stoi(arg);
-            break;
-        case 1001:
-            arguments->fixed_trie_depth = (bool)std::stod(arg);
-            break;
-        case 'a':
-            //assert(std::strcmp(arg, "dijkstra") == 0 || std::strcmp(arg, "astar-prefix") == 0);
-            arguments->algorithm = arg;
-            break;
-        case 'f':
-            arguments->greedy_match = (bool)std::stod(arg);
-            break;
-        case 'd':
-            assert(std::stoi(arg) >= 0);
-            arguments->AStarLengthCap = std::stoi(arg);
-            break;
-        case 'c':
-            assert(std::stod(arg) >= 0.0);
-            arguments->AStarCostCap = std::stod(arg);
-            break;
-        case 'e':
-            arguments->AStarNodeEqivClasses = (bool)std::stod(arg);
-            break;
-        case 2001:
-            assert(std::stoi(arg) >= 5);
-            arguments->astar_seeds.seed_len = std::stod(arg);
-            break;
-        case 2002:
-            assert(std::stoi(arg) >= 0);
-            arguments->astar_seeds.max_seed_errors = std::stod(arg);
-            break;
-        case 2003:
-            assert(std::stoi(arg) >= 0);
-            arguments->astar_seeds.max_indels = std::stod(arg);
-            break;
-        case 'o':
-            arguments->output_dir = arg;
-            break;
-        case 'M':
-            arguments->costs.match = std::stod(arg);
-            break;
-        case 'S':
-            arguments->costs.subst = std::stod(arg);
-            break;
-        case 'G':
-            arguments->costs.ins = std::stod(arg);
-            arguments->costs.del = std::stod(arg);
-            break;
-        case 't':
-            arguments->threads = std::stod(arg);
-            break;
-        case 'v':
-            arguments->verbose = std::stod(arg);
-            break;
-        case ARGP_KEY_ARG:
-            // Too many arguments.
-            if (state->arg_num >= 3)
-                argp_usage(state);
-            assert(std::strcmp(arg, "align-optimal") == 0);
-            arguments->command = arg;
-            break;
-  
-        case ARGP_KEY_END:
-            if (state->arg_num < 1)
-                argp_usage(state);
-            break;
-  
-        default:
-            return ARGP_ERR_UNKNOWN;
-    }
-    return 0;
-}
-
+error_t parse_opt (int key, char *arg, struct argp_state *state);
 arguments read_args(int argc, char **argv);

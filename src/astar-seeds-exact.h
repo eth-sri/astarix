@@ -105,7 +105,7 @@ class AStarSeedsExact: public AStarHeuristic {
         gen_pivots_and_update(r_, pivot_len, -1);
 
         // TODO: removedebug
-        for(int i=0; i<H.size(); i++)
+        for(size_t i=0; i<H.size(); i++)
             assert(H[i] == 0);
     }
 
@@ -169,6 +169,7 @@ class AStarSeedsExact: public AStarHeuristic {
                 LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
                 bool success = update_path_backwards(p, i-1, it->to, dval, max_shifts);
                 assert(success);
+                _unused(success);
                 at_least_one_path = true; // debug
             }
         }
@@ -196,7 +197,7 @@ class AStarSeedsExact: public AStarHeuristic {
             LOG_DEBUG_IF(dval == +1) << "Updating for pivot " << p << "(" << i << ", " << v << ") with dval=" << dval;
             bool success = update_path_backwards(p, i, v, dval, max_indels_);
             assert(success);
-
+            _unused(success);
             ++seed_matches;
         }
     }

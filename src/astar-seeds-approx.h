@@ -136,7 +136,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
         // TODO: removedebug
         for(int e=0; e<MAX_SEED_ERRORS; e++)
-            for(int i=0; i<H[e].size(); i++)
+            for(size_t i=0; i<H[e].size(); i++)
                 assert(H[e][i] == 0);
     }
 
@@ -355,6 +355,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             bool success = update_path_backwards_bfs(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
             //bool success = update_path_backwards_dfs(p, i, v, dval, args.max_indels, args.max_seed_errors-remaining_errors);
             assert(success);
+            _unused(success);
 
             ++read_cnt.seed_matches;  // debug info
         }

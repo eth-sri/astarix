@@ -34,7 +34,6 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
     }
 
     //cost_t prev_cost = 0.0;
-    int max_i = 0;
     for (int steps=0; !Q.empty(); steps++) {
         LOG_DEBUG << r.comment <<  ": step " << steps << " with best curr sort-cost of " << (double)Q.top().first << ", state=" << Q.top().second;
         

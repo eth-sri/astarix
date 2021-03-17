@@ -11,6 +11,7 @@
 GfaGraph load_gfa(const std::string &gfa_filename) {
     GfaGraph gfa = GfaGraph::LoadFromFile(gfa_filename);
     LOG_INFO << "GFA loaded with " << gfa.nodes.size() << " nodes and " << gfa.edges.size() << " edges";
+#ifndef NDEBUG
     for (const auto edge: gfa.edges) {
         assert(edge.first.end);
         for (const auto n: edge.second) {
@@ -18,6 +19,7 @@ GfaGraph load_gfa(const std::string &gfa_filename) {
         }
     }
     assert(gfa.edgeOverlap <= 0);
+#endif
     return gfa;
 }
 
@@ -33,7 +35,7 @@ void gfa2graph(GfaGraph &gfa, astarix::graph_t *G) {
 
     for (const auto &node: gfa.nodes) {
         int curr = node2idx[node.first];
-        for (int j=0; j<node.second.size()-1; j++) {
+        for (size_t j=0; j<node.second.size()-1; j++) {
             int next = G->add_node();
             G->add_edge(curr, next, node.second[j], astarix::ORIG);
             curr = next;

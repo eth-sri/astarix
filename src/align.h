@@ -115,8 +115,8 @@ class Aligner {
     typedef std::unordered_map<std::pair<int,int>, bool, pairhash> visited_t;       // not needed; for performance analysis only
 
   public:
-    int unique_best;
     AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
+    int unique_best;
 
     // total_counters are aggregating read_counters at the end of every alignment
     mutable std::unordered_map<std::string, Counters> all_read_counters_;

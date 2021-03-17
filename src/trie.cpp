@@ -88,10 +88,10 @@ void add_tree(graph_t *G, int tree_depth, bool fixed_trie_depth) {
 
     try {
         // Construct Trie.
-        for (int i=1; i<G->V.size(); i++)
+        for (size_t i=1; i<G->V.size(); i++)
             dfs_construct_trie(*G, i, tree_depth-1, &tree_root);
         // Extrect edges to be added to the graph.
-        for (int i=1; i<G->V.size(); i++)
+        for (size_t i=1; i<G->V.size(); i++)
             dfs_trie_to_graph(*G, i, tree_depth-1, &tree_root, &new_edges, &curr_node, fixed_trie_depth);
     } catch (std::bad_alloc& ba) {
         std::cerr << "new_edges.size(): " << new_edges.size() << '\n';
@@ -99,12 +99,12 @@ void add_tree(graph_t *G, int tree_depth, bool fixed_trie_depth) {
         throw;
     }
 
-    G->trie_nodes = curr_node - G->V.size();
+    G->trie_nodes = curr_node - (int)G->V.size();
     G->trie_edges = new_edges.size();
 
     try {
         // Add the tree edges to astarix
-        while (G->V.size() < curr_node)
+        while ((int)G->V.size() < curr_node)
             G->add_node();
         for (const auto &e: new_edges) {
             G->add_edge(e.first, e.second.first, e.second.second, JUMP);

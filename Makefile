@@ -1,5 +1,5 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -std=c++14 -O3 -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter -Wno-missing-field-initializers
+CPPFLAGS=-Wall -Wextra -std=c++17 -O3 -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter -Wno-missing-field-initializers
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
@@ -26,7 +26,7 @@ LIBS= #-lm -lz
 _DEPS = $(SRCDIR)/argparse.h $(SRCDIR)/dijkstra.h $(SRCDIR)/astar-prefix.h $(SRCDIR)/astar-seeds-exact.h $(SRCDIR)/astar-seeds-approx.h $(SRCDIR)/gfa2graph.h $(SRCDIR)/graph.h $(SRCDIR)/io.h $(SRCDIR)/align.h $(SRCDIR)/utils.h $(SRCDIR)/trie.h $(EXTDIR)/GraphAligner/GfaGraph.h
 DEPS = $(patsubst %, %, $(_DEPS))
 
-_OBJ = $(SRCDIR)/argparse.o $(SRCDIR)/astar-prefix.o $(SRCDIR)/gfa2graph.o $(SRCDIR)/align.o $(SRCDIR)/utils.o $(SRCDIR)/trie.o $(EXTDIR)/GraphAligner/GfaGraph.o
+_OBJ = $(SRCDIR)/argparse.o $(SRCDIR)/astar-prefix.o $(SRCDIR)/gfa2graph.o $(SRCDIR)/graph.o $(SRCDIR)/io.o $(SRCDIR)/align.o $(SRCDIR)/utils.o $(SRCDIR)/trie.o $(EXTDIR)/GraphAligner/GfaGraph.o
 OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ))
 
 LINKFLAGS = $(CPPFLAGS) -Wl,-Bstatic $(LIBS) -Wl,-Bdynamic -Wl,--as-needed -lpthread -pthread -static-libstdc++
@@ -73,9 +73,9 @@ eval150: $(ASTARIXBIN)
 
 eval250: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
+	$(ASTARIXBIN) align-optimal -a astar-prefix -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-prefix $(RUNFLAGS) --fixed_trie_depth 0
 	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-seeds $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_max_indels 5
 	#$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_max_indels 10
-	$(ASTARIXBIN) align-optimal -a astar-prefix -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-prefix $(RUNFLAGS) --fixed_trie_depth 0
 
 # pbsim --data-type CLR --depth 2 --model_qc ../pbsim_profiles/model_qc_clr ecoli.fasta
 eval_long: $(ASTARIXBIN)
