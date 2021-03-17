@@ -554,6 +554,8 @@ int main(int argc, char **argv) {
         return exec(argc, argv);
     } catch (const std::string& ex) {
         std::cout << ex << std::endl;
+    } catch (const char *ex) {
+        std::cout << ex << std::endl;
     }
 }
 

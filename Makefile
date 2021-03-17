@@ -74,7 +74,9 @@ eval150: $(ASTARIXBIN)
 eval250: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
 	#$(ASTARIXBIN) align-optimal -a astar-prefix -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-prefix $(RUNFLAGS) --fixed_trie_depth 0
-	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-seeds $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_max_indels 5
+	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-seeds $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_max_indels 5 --astar_seeds_backwards_algo dfs_for_linear
+	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-seeds $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_max_indels 5 --astar_seeds_backwards_algo bfs
+
 	#$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_max_indels 10
 
 # pbsim --data-type CLR --depth 2 --model_qc ../pbsim_profiles/model_qc_clr ecoli.fasta
@@ -98,7 +100,7 @@ eval_manual: $(ASTARIXBIN)
 
 run_mhc:
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-dfs -v 0 --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo dfs_for_linear
+#	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-dfs -v 0 --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo dfs_for_linear
 	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-bfs -v 0 --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo bfs
 	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-complex -v 0 --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo complex
 

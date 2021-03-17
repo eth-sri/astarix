@@ -119,12 +119,12 @@ cost_t AStarPrefix::lazy_star_value(unsigned h, int repr, int boundary_node, con
 
 cost_t AStarPrefix::astar_from_pos(int v, const std::string &prefix) const {
     LOG_DEBUG << "v=" << v << ", prefix=" << prefix;
-    assert(v < _vertex2class.size());
+    assert(v < (int)_vertex2class.size());
     int cl = _vertex2class[v];
     auto h = hash(prefix, cl);
-    assert(cl < _class2repr.size());
+    assert(cl < (int)_class2repr.size());
     int repr = _class2repr[cl];
-    assert(cl < _class2boundary.size());
+    assert(cl < (int)_class2boundary.size());
     int boundary_node = _class2boundary[cl];
     return lazy_star_value(h, repr, boundary_node, prefix);
 }
