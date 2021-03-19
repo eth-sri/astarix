@@ -193,7 +193,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             << "(" << 1.0*global_cnt.seed_matches.get()/reads_.get() << " per read)"                   << std::endl;
         out << "                 Paths considered: " << global_cnt.paths_considered      << std::endl;
         out << "                    States marked: " << global_cnt.marked_states
-            << " (+" << 100.0*global_cnt.repeated_states.get()/global_cnt.marked_states.get() << "% repeated)"  << std::endl;
+            << " (+" << 100.0*global_cnt.repeated_states.get()/(global_cnt.marked_states.get()+global_cnt.repeated_states.get()) << "% repeated)"  << std::endl;
         out << "                Best heuristic (avg): " << (double)best_heuristic_sum_/reads_.get() << std::endl;
 //        out << "                 Max heursitic value: " << ?? << std::endl;
     }
@@ -239,43 +239,45 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         assert(G.node_in_trie(trie_v));
 
         ++read_cnt.paths_considered;
-        //if (crumbs_already_set(p, dval, errors, trie_v))
-        //    return;
 
-        do { // while not in root
+        do {
+            if (crumbs_already_set(p, dval, errors, trie_v)) // optimization
+                return;
+
+            update_crumbs_for_node(p, dval, errors, trie_v);
+            if (trie_v == 0)
+                break;
             int cnt = 0;
             for (auto it=G.begin_orig_rev_edges(trie_v); it!=G.end_orig_rev_edges(); ++it) { // TODO: use up_trie iterator
                 trie_v = it->to;
                 assert (G.node_in_trie(trie_v));
 
-                //if (crumbs_already_set(p, dval, errors, trie_v))
-                //    return;
-                update_crumbs_for_node(p, dval, errors, trie_v);
                 ++cnt;
             }
             assert(trie_v == 0 || cnt == 1);
-        } while (trie_v != 0);
+        } while (true);
     }
 
     // BFS
     bool update_path_backwards_bfs(int p, int start_i, node_t start_v, int dval, int max_shifts, int errors) {
         std::queue< std::pair<node_t, int> > Q;  // (v, i)
-        std::unordered_set< node_t > V;
 
         Q.push( std::make_pair(start_v, start_i) );
 
         while(!Q.empty()) {
             auto [v, i] = Q.front(); Q.pop();
-            V.insert(v);
 
-            for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
-                if (!G.node_in_trie(it->to) && i-1 >= -max_shifts + G.get_trie_depth()) { // prev in GRAPH
-                    if (!V.contains(it->to))
+            for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
+                if (!crumbs_already_set(p, dval, errors, it->to)) { // Checking leafs is enough
+                    if (G.node_in_trie(it->to)) { // If goint go try -> skip the queue
+                        //Q.push( std::make_pair(it->to, i-1) );
+                        //update_crumbs_for_node(p, dval, errors, it->to);
+                        update_crumbs_up_the_trie(p, dval, errors, it->to);
+                    } else if (i-1 >= -max_shifts + G.get_trie_depth()) { // prev in GRAPH
                         Q.push( std::make_pair(it->to, i-1) );
-                } else if (G.node_in_trie(it->to)) {
-                    update_crumbs_up_the_trie(p, dval, errors, it->to);
+                        update_crumbs_for_node(p, dval, errors, it->to);
+                    }
                 }
-            }
         }
 
         return true;
