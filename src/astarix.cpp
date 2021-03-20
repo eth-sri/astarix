@@ -353,7 +353,7 @@ int exec(int argc, char **argv) {
         // Note: the trie is built on top of the **doubled** original graph (incl. reverse).
         out << "         Original reference: " << G.orig_nodes << " nodes, " << G.orig_edges << " edges"<< endl;
         out << "                       Trie: " << G.trie_nodes << " nodes, " << G.trie_edges << " edges, "
-                                                << "depth " << (args.fixed_trie_depth ? "=" : "<=") << args.tree_depth                         << endl;
+                                                << "depth" << (args.fixed_trie_depth ? "=" : "<=") << args.tree_depth                         << endl;
         out << "  Reference+ReverseRef+Trie: " << G.nodes() << " nodes, " << G.edges() << " edges, "
                                                 << "density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
         out << "                      Reads: " << R.size() << " x " << R.front().len << "bp, "

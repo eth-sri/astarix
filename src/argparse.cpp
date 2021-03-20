@@ -19,7 +19,7 @@ struct argp_option options[] = {
     { "astar_seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
     { "astar_seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have." },
     { "astar_seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned." },
-    { "astar_seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex}", 0,  "Backwards algo for each seed match." },
+    { "astar_seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match." },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
