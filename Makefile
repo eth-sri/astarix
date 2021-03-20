@@ -102,7 +102,7 @@ run_mhc: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
 #	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-dfs     $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo dfs_for_linear
 #	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-bfs     $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo bfs
-	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-complex $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo complex
+#	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-complex $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo complex
 	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g evals/graphs/pasgal-MHC1.gfa -q evals/reads/M1_reads100.fa -o evals/results/MHC1-astarix-seeds-topsort $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 --astar_seeds_backwards_algo topsort
 
 
