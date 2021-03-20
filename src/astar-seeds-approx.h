@@ -224,6 +224,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
     inline void update_crumbs_for_node(int p, int dval, int errors, node_t v) {
         if (dval == +1) {
+            LOG_DEBUG << "Adding crumbs to node " << v;
             if (!(H[errors][v] & (1<<p))) {
                 ++read_cnt.marked_states;
             } else {
@@ -306,11 +307,11 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     void propagate_cycle_backwards(std::unordered_map<node_t, int> *min_i, int p, int dval, int errors, int i, node_t v, int max_shifts) {
-        assert(min_i->contains(v) && (*min_i)[v] == CYCLE_VAL);
+        assert(min_i->contains(v) && min_i->at(v) == CYCLE_VAL);
 
         for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
             if (G.node_in_trie(it->to)) {
-                //if (time_for_trie((*min_i)[v]-1, max_shifts))  // not needed. min_i[v] == CYCLE_VAL == -INF
+                //if (time_for_trie(min_i->at(v)-1, max_shifts))  // not needed. min_i[v] == CYCLE_VAL == -INF
                     update_crumbs_up_the_trie(p, dval, errors, it->to);
             } else {
                 if (i-1 >= -max_shifts + G.get_trie_depth()) { // prev in GRAPH
@@ -363,7 +364,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
                 //LOG_DEBUG_IF(dval == +1) << "Traverse the reverse edge " << v << "->" << it->to << " with label " << it->label;
                 if (G.node_in_trie(it->to)) {
-                    if (time_for_trie(min_i[v]-1, max_shifts))
+                    if (time_for_trie(min_i.at(v)-1, max_shifts))
                         update_crumbs_up_the_trie(p, dval, errors, it->to);
                 } else {
                     if (i-1 >= -max_shifts + G.get_trie_depth())  // prev in GRAPH
@@ -381,15 +382,16 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         int p, dval, max_shifts, errors;
 
         std::unordered_map<node_t, int> min_i, max_i;  // min_i[u] = min_{(u,v) \in RGE}(min_i[v] - 1) <= i if min_i[u] isn't defined; or CYCLE_VAL otherwise (before a cycle)
-        std::unordered_set<node_t> rec_stack, V;  // recursion stack and visited nodes in `mark_cycle_nodes_dfs`
 
         std::unordered_set<node_t> cycle_start;
         std::unordered_map<node_t, int> out_cnt;  // outgoing edges in the remaining DAG
-        std::vector<node_t> ts;  // in topsort order
+        //std::vector<node_t> ts;  // in topsort order
 
         // DFS
         // post: for each cycle, cycle_start.contains(v) if v is the furthest node on that cycle
         void mark_cycle_nodes(int i, node_t v) {
+            static std::unordered_set<node_t> rec_stack, V;  // recursion stack and visited nodes in `mark_cycle_nodes_dfs`
+
             // TODO: DFS may not be correct; a set constructed by BFS may be needed
             V.insert(v);
             rec_stack.insert(v);
@@ -397,9 +399,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
                 if (!G.node_in_trie(it->to))
                     if (i-1 >= -max_shifts + G.get_trie_depth()) { // prev in GRAPH
-                        if (!V.contains(v))
+                        if (!V.contains(it->to))
                             mark_cycle_nodes(i-1, it->to);
-                        else if (rec_stack.contains(v))
+                        else if (rec_stack.contains(it->to))
                             cycle_start.insert(it->to);
                     }
 
@@ -413,18 +415,23 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             std::queue< std::pair<node_t, int> > Q;  // (v, i)
             Q.push( std::make_pair(seed_v, seed_i) );
 
+            int propagated_cycles = 0;  // DEBUG info
+
             while(!Q.empty()) {
                 auto [v, i] = Q.front(); Q.pop();
 
                 if (cycle_start.contains(v)) { // propagates the cycle with the maximal possible `i`
                     min_i[v] = CYCLE_VAL;
                     outer->propagate_cycle_backwards(&min_i, p, dval, errors, i, v, max_shifts);
+                    ++propagated_cycles;
                 } else
                     for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
                         if (!G.node_in_trie(it->to))
                             if (i-1 >= -max_shifts + G.get_trie_depth())  // prev in GRAPH
                                 Q.push( std::make_pair(it->to, i-1) );
             }
+
+            LOG_DEBUG << "Propagated cycles: " << propagated_cycles;
         }
 
         // BFS: count each edge in the DAG once
@@ -440,52 +447,64 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
                     if (!G.node_in_trie(it->to))
                         if (i-1 >= -max_shifts + G.get_trie_depth())  // prev in GRAPH
-                            if (min_i[it->to] != CYCLE_VAL) {
-                                out_cnt[it->to] = out_cnt.contains(it->to) ? out_cnt[it->to]+1 : 1;
+                            if (!min_i.contains(it->to) || min_i.at(it->to) != CYCLE_VAL) {
+                                LOG_DEBUG << "Add out edge from " << it->to << " to " << v << " with label " << it->label  << " and type " << int(it->type);
+                                out_cnt[it->to] = out_cnt.contains(it->to) ? out_cnt.at(it->to)+1 : 1;
                                 if (!V.contains(it->to))
                                     Q.push( std::make_pair(it->to, i-1) );
                             }
             }
+
+            LOG_DEBUG << "Nodes with outgoing edges: " << out_cnt.size();
         }
 
         // iterates the nodes of the DAG in topsort order, updates `min_i` and puts crumbs
         void topsort(int seed_i, node_t seed_v) {
             std::queue<node_t> Q;  // nodes that are ready to be taken next in the topsort
             Q.push(seed_v);
-            min_i[seed_v] = seed_i;
-            max_i[seed_v] = seed_i;
+            min_i[seed_v] = max_i[seed_v] = seed_i;
             out_cnt[seed_v] = 1;
 
+            int topsorted_nodes = 0;
+
             while(!Q.empty()) {
+                ++topsorted_nodes;
                 node_t v = Q.front(); Q.pop();
 
                 assert(min_i.contains(v) && max_i.contains(v));
-                assert(min_i[v] != CYCLE_VAL);
-                assert(min_i[v] <= max_i[v]);
+                assert(min_i.at(v) != CYCLE_VAL);
+                assert(min_i.at(v) <= max_i.at(v));
 
-                LOG_DEBUG << "topsort: v=" << v << ", i=[" << min_i[v] << ", " << max_i[v] << "]";
+                LOG_DEBUG << "topsort: v=" << v << ", i=[" << min_i.at(v) << ", " << max_i.at(v) << "]";
 
                 outer->update_crumbs_for_node(p, dval, errors, v);
 
                 for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
                     if (G.node_in_trie(it->to)) {
-                        if (outer->time_for_trie(min_i[v]-1, max_shifts))
+                        if (outer->time_for_trie(min_i.at(v)-1, max_shifts))
                             outer->update_crumbs_up_the_trie(p, dval, errors, it->to);
-                    } else {
-                        if (max_i[v]-1 >= -max_shifts + G.get_trie_depth()) {  // prev in GRAPH
-                            if (!min_i.contains(it->to) ||  min_i[it->to] != CYCLE_VAL) {
-                                if (!min_i.contains(it->to) || min_i[v]-1 < min_i[it->to])
-                                    min_i[it->to] = min_i[v]-1;
-                                if (!max_i.contains(it->to) || max_i[v]-1 > max_i[it->to])
-                                    max_i[it->to] = max_i[v]-1;
-                                assert(out_cnt[it->to] > 0);
-                                if (--out_cnt[it->to] == 0)
+                    } else {  // prev in GRAPH
+                        if (max_i.at(v)-1 >= -max_shifts + G.get_trie_depth()) {
+                            if (!min_i.contains(it->to) || min_i.at(it->to) != CYCLE_VAL) {
+                                if (!min_i.contains(it->to) || min_i.at(v)-1 < min_i.at(it->to))
+                                    min_i[it->to] = min_i.at(v)-1;
+                                if (!max_i.contains(it->to) || max_i.at(v)-1 > max_i.at(it->to))
+                                    max_i[it->to] = max_i.at(v)-1;
+                                assert(out_cnt.at(it->to) > 0);
+                                if (--out_cnt.at(it->to) == 0) {
+                                    LOG_DEBUG << "Push v=" << it->to << " with current i=[" << min_i.at(it->to) << ", " << max_i.at(it->to) << "]";
                                     Q.push(it->to);
+                                }
+                                LOG_DEBUG << "Use out edge from " << it->to << " to " << v << " leaving out_cnt=" << out_cnt.at(it->to);
                             }
                         }
                     }
                 }
             }
+
+            for (auto [v, out]: out_cnt)
+                assert(out == 0);
+            LOG_DEBUG << "Topsorted nodes: " << topsorted_nodes;
         }
 
       public:
@@ -493,9 +512,15 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             : outer(_outer), G(_G), p(_p), dval(_dval), max_shifts(_max_shifts), errors(_errors) {}
 
         void run(int seed_i, node_t seed_v) {
+            LOG_DEBUG << "Seed start: v=" << seed_v << ", i=" << seed_i;
             mark_cycle_nodes(seed_i, seed_v);  // TODO: run only if topsort finds a cycle
+            LOG_DEBUG << "Cycle start nodes: " << cycle_start.size();
             propagate_cycles(seed_i, seed_v);  // TODO: run only if topsort finds a cycle
             fill_out_cnt(seed_i, seed_v);      // TODO: run only if there are branches
+
+            for (auto [key, val]: min_i)
+                LOG_DEBUG << "min_i[" << key << "] = " << val;
+
             topsort(seed_i, seed_v);           // TODO: run only if there are branches
         }
     };
