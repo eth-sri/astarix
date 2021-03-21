@@ -82,9 +82,10 @@ eval250: $(ASTARIXBIN)
 # pbsim --data-type CLR --depth 2 --model_qc ../pbsim_profiles/model_qc_clr ecoli.fasta
 eval_long_ccs: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	#$(ASTARIXBIN) align-optimal -a astar-seeds-exact -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/long.fq -o $(TMPDIR)/ecoli_head1000000_linear_long_reads/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 $(RUNFLAGS) 
 	$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/long_300_ccs/ecoli_100.fq -o $(TMPDIR)/ecoli_head1000000_linear_long_300_ccs/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 -G 1 -S 1  --astar_seeds_backwards_algo dfs_for_linear
-	$(ASTARIXBIN) align-optimal -a astar-seeds -t 6 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/long_300_ccs/ecoli_100.fq -o $(TMPDIR)/ecoli_head1000000_linear_long_300_ccs/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 1 -G 1 -S 1  --astar_seeds_backwards_algo dfs_for_linear
+	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/long_300_ccs/ecoli_100.fq -o $(TMPDIR)/ecoli_head1000000_linear_long_300_ccs/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 -G 1 -S 1  --astar_seeds_backwards_algo dfs_for_linear
+
+#	#$(ASTARIXBIN) align-optimal -a astar-seeds-exact -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/long.fq -o $(TMPDIR)/ecoli_head1000000_linear_long_reads/astar-default $(RUNFLAGS) --fixed_trie_depth 1 --astar_seeds_max_errors 0 $(RUNFLAGS) 
 
 eval_long_clr: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))

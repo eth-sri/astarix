@@ -8,8 +8,8 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
     // Clean up
     read_timers.clear();
     read_timers.total.start();
-    read_counters.clear();
-    //read_counters.pushed_hist.resize(r.len);
+    read_stats.clear();
+    //read_stats.pushed_hist.resize(r.len);
     best_path->clear();
 
     // Local vars
@@ -39,26 +39,27 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         
         //prev_cost = Q.top().second.cost;
         auto [curr_score, curr_st] = pop(Q);
-        read_counters.explored_states.inc();
+        read_stats.explored_states.inc();
 
 
         //LOG_INFO << "node in tree: " << G.node_in_trie(curr_st.v);
-        if (G.node_in_trie(curr_st.v)) read_counters.popped_trie.inc();
-        else read_counters.popped_ref.inc();
+        if (G.node_in_trie(curr_st.v)) read_stats.popped_trie.inc();
+        else read_stats.popped_ref.inc();
 
         // state (curr_st.i, curr_st.v) denotes that the first curr_st.i-1 characters of the read were already aligned before coming to curr_st.v. Next to align is curr_st.i
 
 #ifndef NDEBUG
         // this check is not needed as our heuristic is consistent
         if (visited(vis, curr_st.i, curr_st.v)) {  // not correct if a new seed is used
-            read_counters.repeated_visits.inc();
+            read_stats.repeated_visits.inc();
             //continue;
         }
         visited(vis, curr_st.i, curr_st.v) = true;
 #endif
 
         if (curr_score > params.max_align_cost) {  // too high cost
-            read_counters.align_status.ambiguous.inc();
+            read_stats.align_status.ambiguous.inc();
+            read_stats.align_status.cost.set( cost_t(0) );
             break;
         }
 
@@ -66,14 +67,15 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         if (curr_st.i == r.len) {
             final_state = get_const_path(p, curr_st.i, curr_st.v);
             get_best_path_to_state(p, pe, final_state, best_path);
+            read_stats.align_status.cost.set( final_state.cost );
             if (!Q.empty()) {
                 auto [next_score, next_state] = pop(Q);
                 if (next_state.i == r.len && EQ(next_state.cost, curr_st.cost)) {
-                    read_counters.align_status.ambiguous.inc();
+                    read_stats.align_status.ambiguous.inc();
                     break;
                 }
             }
-            read_counters.align_status.unique.inc();
+            read_stats.align_status.unique.inc();
             break;
         }
 
@@ -125,7 +127,7 @@ state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, cons
 
     edge_t e; 
     while (G.numOutOrigEdges(curr.v, &e) == 1 && curr.i < r.len-1 && e.label == r.s[curr.i]) {
-        read_counters.greedy_matched.inc();
+        read_stats.greedy_matched.inc();
         state_t next = state_t(curr.cost + params.costs.edge2score(e), curr.i+1, e.to, curr.i, curr.v); 
         if (get_path(p, next.i, next.v).optimize(next)) {
             set_prev_edge(pe, next.i, next.v, e);
@@ -135,7 +137,7 @@ state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, cons
         }
 
         curr = next;
-        read_counters.explored_states.inc();
+        read_stats.explored_states.inc();
     }
 
     read_timers.ff.stop();

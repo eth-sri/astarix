@@ -69,13 +69,13 @@ arguments args;
 
 state_t wrap_readmap(const read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
         edge_path_t *path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, char *line,
-       Counters *all_reads_counters) {
-    state_t ans;
+       Stats *global_stats) {
+    state_t final_state;
     
     // prepare read
     aligner->astar_before_every_alignment(&r);
 
-    ans = aligner->readmap(r, algo, path);
+    final_state = aligner->readmap(r, algo, path);
 
     // return preparation to previous state
     aligner->astar_after_every_alignment();
@@ -87,9 +87,9 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
         string precomp_str = "align";
         int L = r.len;
         int starts = -1;
-        double pushed_rate = (double)aligner->read_counters.pushed.get() / L;
-        double popped_rate = (double)aligner->read_counters.popped.get() / L;
-        double repeat_rate = (double)aligner->read_counters.repeated_visits.get() / aligner->read_counters.pushed.get();
+        double pushed_rate = (double)aligner->read_stats.pushed.get() / L;
+        double popped_rate = (double)aligner->read_stats.popped.get() / L;
+        double repeat_rate = (double)aligner->read_stats.repeated_visits.get() / aligner->read_stats.pushed.get();
         *pushed_rate_sum += pushed_rate;
         *popped_rate_sum += popped_rate;
         *repeat_rate_sum += repeat_rate;
@@ -97,7 +97,7 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
         *popped_rate_max = max(*popped_rate_max, popped_rate);
         *repeat_rate_max = max(*repeat_rate_max, repeat_rate);
 
-        *all_reads_counters += aligner->read_counters;
+        *global_stats += aligner->read_stats;
 
         line[0] = 0;
         sprintf(line,
@@ -110,12 +110,12 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
                 args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
                 precomp_str.c_str(), r.comment.c_str(), 0.0,
                 L, r.s.c_str(), spell(*path).c_str(),
-                int(ans.cost), starts, pushed_rate,
+                int(aligner->read_stats.align_status.cost.get()), starts, pushed_rate,
                 popped_rate, repeat_rate, timers.total.get_sec(),
-                timers.astar.get_sec(), aligner->read_counters.align_status.unique.get());
+                timers.astar.get_sec(), aligner->read_stats.align_status.unique.get());
     }
 
-    return ans;
+    return final_state;
 }
 
 void read_queries(const char *query_file, vector<read_t> *R) {
@@ -160,7 +160,7 @@ void print_tsv(map<string, string> dict, ostream &out) {
 
 //void print_hist(Aligner aligner, string hist_file) {
 //    ofstream out(hist_file);
-//    auto &all_counters = aligner.all_read_counters_;
+//    auto &all_counters = aligner.all_read_stats_;
 //
 //    int max_size = 0;
 //    for (auto const &counters: all_counters) 
@@ -376,10 +376,10 @@ int exec(int argc, char **argv) {
     auto start_align_wt = std::chrono::high_resolution_clock::now();
 
     AlignerTimers total_timers;
-    int total_cost(0);
+    //int total_cost(0);
     std::mutex timer_m;
     atomic_int popped_trie_total(0), popped_ref_total(0);
-    Counters all_reads_counters;
+    Stats global_stats;  // TODO: take care of races
     //std::atomic<bool> nonunique_best_alignments(0);
 
     assert(G.E.size() == G.E_rev.size());  // TODO: remove
@@ -392,14 +392,12 @@ int exec(int argc, char **argv) {
         Aligner aligner(G, align_params, astar.get());
         for (size_t i=0; i<R.size(); i++) {
             char line[10000];
-            state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-                    &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &all_reads_counters);
+            state_t final_state = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
+                    &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &global_stats);
             fprintf(fout, "%s", line);
             fflush(fout);
             total_timers += aligner.read_timers;
-
-            if (aligner.read_counters.align_status.aligned())
-                total_cost += ans.cost;
+            _unused(final_state);
 
             //if (i % (R.size() / 10) == 0) {
             //  cout << "A*-memoization at " << 100.0 * i / R.size() << "% of the reads aligned"
@@ -426,23 +424,20 @@ int exec(int argc, char **argv) {
                 LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
                 for (int i=from; i<to; i++) {
                     char line[10000];
-                    state_t ans = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-                            &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &all_reads_counters);
+                    state_t final_state = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
+                            &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &global_stats);
+                    _unused(final_state);
                     profileQueue.enqueue(string(line));
                     {
                         // TODO: merge the astar_local to astar stats
                         timer_m.lock();
                         total_timers += aligner.read_timers;
-                        if (aligner.read_counters.align_status.aligned())
-                            total_cost += ans.cost;
             
                         timer_m.unlock();
                         if (t == 0) {
-                            popped_trie_total.fetch_add( aligner.read_counters.popped_trie.get() );  
-                            popped_ref_total.fetch_add( aligner.read_counters.popped_ref.get() );
+                            popped_trie_total.fetch_add( aligner.read_stats.popped_trie.get() );  
+                            popped_ref_total.fetch_add( aligner.read_stats.popped_ref.get() );
                         }
-                        //if (!aligner.unique_best)
-                        //    nonunique_best_alignments = nonunique_best_alignments + 1;
                     }
                 }
             });
@@ -486,20 +481,20 @@ int exec(int argc, char **argv) {
         double total_mem = MemoryMeasurer::get_mem_gb();
         double align_cpu_time = T.align.t.get_sec();
         out << " == Aligning statistics =="                                                     << endl;
-        out << "        Explored rate (avg): " << 1.0*all_reads_counters.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
+        out << "        Explored rate (avg): " << 1.0*global_stats.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
         out << "     Pushed rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
         out << "     Popped rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
         out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads) << " from trie vs "
                                             << 1.0 * popped_ref_total.load() / (R.size()/args.threads) << " from ref"
                                             << " (influenced by greedy match flag)" << endl;
-        out << "                 Total cost: " << total_cost << endl;
+        out << "Total cost of aligned reads: " << global_stats.align_status.cost.get() << " (" << 100.*global_stats.align_status.cost.get()/global_stats.align_status.aligned() << " per read)" << endl;
 #ifndef NDEBUG
-        out << "      Repeated states (avg): " << 1.0*all_reads_counters.repeated_visits.get() / R.size() / R[0].len << " states/read_bp" << endl;
+        out << "      Repeated states (avg): " << 1.0*global_stats.repeated_visits.get() / R.size() / R[0].len << " states/read_bp" << endl;
 #endif
         out << "                 Alignments: " 
-                                                << all_reads_counters.align_status.unique.get()    << " unique ("    << 100.*all_reads_counters.align_status.unique.get()/R.size()    << "%), "
-                                                << all_reads_counters.align_status.ambiguous.get() << " ambiguous (" << 100.*all_reads_counters.align_status.ambiguous.get()/R.size() << "%) and "
-                                                << all_reads_counters.align_status.overcost.get()  << " overcost ("  << 100.*all_reads_counters.align_status.overcost.get()/R.size()  << "%)" << endl;
+                                                << global_stats.align_status.unique.get()    << " unique ("    << 100.*global_stats.align_status.unique.get()/R.size()    << "%), "
+                                                << global_stats.align_status.ambiguous.get() << " ambiguous (" << 100.*global_stats.align_status.ambiguous.get()/R.size() << "%) and "
+                                                << global_stats.align_status.overcost.get()  << " overcost ("  << 100.*global_stats.align_status.overcost.get()/R.size()  << "%)" << endl;
         out << endl;
         out << " == Heuristic stats (" << args.algorithm << ") ==" << std::endl;
         astar->print_stats(out);
@@ -538,7 +533,7 @@ int exec(int argc, char **argv) {
         out << " DONE" << endl;
         out << endl;
 
-        assert( all_reads_counters.align_status.total() == (int)R.size() );
+        assert( global_stats.align_status.total() == (int)R.size() );
     }
 
     extract_args_to_dict(args, &stats);

@@ -23,26 +23,31 @@ struct pairhash {
     }
 };
 
-struct Counters {
-    Counter pushed, popped, greedy_matched;
-    Counter popped_trie, popped_ref;
-    Counter explored_states;
-    Counter repeated_visits;
+struct Stats {
+    Counter<> pushed, popped, greedy_matched;
+    Counter<> popped_trie, popped_ref;
+    Counter<> explored_states;
+    Counter<> repeated_visits;
 
     struct AlignStatus {
-        Counter unique, ambiguous, overcost;
+        Counter<cost_t> cost;
+        Counter<> unique, ambiguous, overcost;
+
         void clear() {
+            cost.clear();
             unique.clear();
             ambiguous.clear();
             overcost.clear();
         }
-        int total() {
+        int total() const {
             return unique.get() + ambiguous.get() + overcost.get();
         }
-        int aligned() {
+        int aligned() const {
             return unique.get() + ambiguous.get();
         }
         AlignStatus& operator+=(const AlignStatus &b) {
+            if (b.aligned())
+                cost += b.cost;
             unique += b.unique;
             ambiguous += b.ambiguous;
             overcost += b.overcost;
@@ -64,7 +69,7 @@ struct Counters {
     //    pushed_hist.clear();
     }
 
-    Counters& operator+=(const Counters &b) {
+    Stats& operator+=(const Stats &b) {
         pushed += b.pushed;
         popped += b.popped;
         greedy_matched += b.greedy_matched;
@@ -144,7 +149,7 @@ class Aligner {
     AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
     mutable AlignerTimers read_timers;
-    mutable Counters read_counters;
+    mutable Stats read_stats;
 
     Aligner(const graph_t &_G, const AlignParams &_params, AStarHeuristic *_astar)
             : G(_G), params(_params), astar(_astar) {
@@ -165,7 +170,7 @@ class Aligner {
     }
 
     inline void astar_after_every_alignment() {
-        assert(read_counters.align_status.total() == 1);
+        assert(read_stats.align_status.total() == 1);
 
         read_timers.astar_prepare_reads.start();
         astar->after_every_alignment();
@@ -174,15 +179,15 @@ class Aligner {
   
   private:
     inline void push(queue_t &Q, cost_t sort_cost, const state_t &st) {
-        read_counters.pushed.inc();
-        //read_counters.pushed_hist[st.i].inc();
+        read_stats.pushed.inc();
+        //read_stats.pushed_hist[st.i].inc();
         read_timers.queue.start();
             Q.push(score_state_t(sort_cost, st));
         read_timers.queue.stop();
     }
 
     inline score_state_t pop(queue_t &Q) {
-        read_counters.popped.inc();
+        read_stats.popped.inc();
         read_timers.queue.start();
         score_state_t el = Q.top();
         Q.pop();

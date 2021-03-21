@@ -67,11 +67,11 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     //std::unordered_map<node_t, cost_t> _star;
 
     struct Counters {
-        Counter seeds;          // number of seeds (depends only on the read)
-        Counter seed_matches;   // places in the graph where seeds match well enough
-        Counter paths_considered;  // number of paths updated for all seeds (supersource --> match)
-        Counter marked_states;     // the number of states marked over all paths for all seeds
-        Counter repeated_states;   // number of times crumbs are put on a states that already has crumbs
+        Counter<> seeds;          // number of seeds (depends only on the read)
+        Counter<> seed_matches;   // places in the graph where seeds match well enough
+        Counter<> paths_considered;  // number of paths updated for all seeds (supersource --> match)
+        Counter<> marked_states;     // the number of states marked over all paths for all seeds
+        Counter<> repeated_states;   // number of times crumbs are put on a states that already has crumbs
 
         void clear() {
             seeds.clear();
@@ -93,7 +93,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
     Counters read_cnt, global_cnt;
 
-    Counter reads_;            // reads processed
+    Counter<> reads_;            // reads processed
 
     cost_t best_heuristic_sum_;
 

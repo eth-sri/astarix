@@ -118,15 +118,15 @@ class MemoryMeasurer {
     }
 };
 
+template<typename T = int>
 class Counter {
-    typedef int T;
     T cnt;
 
   public:
     Counter() : cnt(T(0)) {}
 
     void clear() {
-        cnt = 0;
+        cnt = T(0);
     }
 
     void inc() {
@@ -141,7 +141,7 @@ class Counter {
         return cnt;
     }
 
-    void set(int a) {
+    void set(T a) {
         cnt = a;
     }
 
