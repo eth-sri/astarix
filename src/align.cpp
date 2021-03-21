@@ -38,52 +38,57 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         LOG_DEBUG << r.comment <<  ": step " << steps << " with best curr sort-cost of " << (double)Q.top().first << ", state=" << Q.top().second;
         
         //prev_cost = Q.top().second.cost;
-        state_t curr = pop(Q);
+        auto [curr_score, curr_st] = pop(Q);
         read_counters.explored_states.inc();
 
-        //LOG_INFO << "node in tree: " << G.node_in_trie(curr.v);
-        if (G.node_in_trie(curr.v)) read_counters.popped_trie.inc();
+
+        //LOG_INFO << "node in tree: " << G.node_in_trie(curr_st.v);
+        if (G.node_in_trie(curr_st.v)) read_counters.popped_trie.inc();
         else read_counters.popped_ref.inc();
 
-        // state (curr.i, curr.v) denotes that the first curr.i-1 characters of the read were already aligned before coming to curr.v. Next to align is curr.i
+        // state (curr_st.i, curr_st.v) denotes that the first curr_st.i-1 characters of the read were already aligned before coming to curr_st.v. Next to align is curr_st.i
 
 #ifndef NDEBUG
         // this check is not needed as our heuristic is consistent
-        if (visited(vis, curr.i, curr.v)) {  // not correct if a new seed is used
+        if (visited(vis, curr_st.i, curr_st.v)) {  // not correct if a new seed is used
             read_counters.repeated_visits.inc();
             //continue;
         }
-        visited(vis, curr.i, curr.v) = true;
+        visited(vis, curr_st.i, curr_st.v) = true;
 #endif
 
-        assert(curr.i <= r.len);
-        if (curr.i == r.len) {
-            final_state = get_const_path(p, curr.i, curr.v);
-            read_timers.total.stop();
+        if (curr_score > params.max_align_cost) {  // too high cost
+            read_counters.align_status.ambiguous.inc();
+            break;
+        }
+
+        assert(curr_st.i <= r.len);
+        if (curr_st.i == r.len) {
+            final_state = get_const_path(p, curr_st.i, curr_st.v);
             get_best_path_to_state(p, pe, final_state, best_path);
-            unique_best = 1;
             if (!Q.empty()) {
-                state_t next = pop(Q);
-                if (next.i == r.len && EQ(next.cost, curr.cost))
-                    unique_best = 0;
+                auto [next_score, next_state] = pop(Q);
+                if (next_state.i == r.len && EQ(next_state.cost, curr_st.cost)) {
+                    read_counters.align_status.ambiguous.inc();
+                    break;
+                }
             }
-            assert(all_read_counters_.find(r.comment) == all_read_counters_.end());
-            all_read_counters_[r.comment] = read_counters;
-            return final_state;
+            read_counters.align_status.unique.inc();
+            break;
         }
 
         // lazy DP / Fast-Forward
         if (params.greedy_match)
-            curr = proceed_identity(p, pe, curr, r);
+            curr_st = proceed_identity(p, pe, curr_st, r);
 
-        for (auto it=G.begin_all_matching_edges(curr.v, r.s[curr.i]); it!=G.end_all_matching_edges(); ++it) {
+        for (auto it=G.begin_all_matching_edges(curr_st.v, r.s[curr_st.i]); it!=G.end_all_matching_edges(); ++it) {
             const edge_t e = *it;
-            try_edge(r, curr, p, pe, algo, Q, e);
+            try_edge(r, curr_st, p, pe, algo, Q, e);
         }
     }
 
-    assert(false);                                          // no path
-    return final_state;                                     // compiler happy
+    read_timers.total.stop();
+    return final_state;
 }
 
 void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edge_t &pe, const std::string &algo, queue_t &Q, const edge_t &e) {

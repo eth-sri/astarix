@@ -43,10 +43,8 @@ std::vector<seq_t> read_fasta(const std::string &fn) {
     std::vector<seq_t> res;
     std::string comment;
     std::ifstream in(fn, std::ifstream::in);
-    if(in.fail()) {
-        LOG_FATAL << "Problem opening fasta file " << fn;
-        assert(false);
-    }
+    if(in.fail())
+        throw std::string("Problem opening fasta file ") + fn;
 
     getline(in, comment);
     while(true) {
@@ -97,8 +95,7 @@ void read_graph(graph_t *G, std::string graph_file, std::string output_dir) {
         gfa2graph(gfa, G);
         G->add_reverse_complement();
     } else {
-        LOG_INFO << "[unknown format]";
-        assert(false);
+        throw "[unknown format]";
     }
 
     assert(!G->has_supersource());
@@ -111,10 +108,12 @@ bool read_query(std::ifstream &in, const std::string fn, read_t *r) {
             return false;
         getline(in, s);
         std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-        std::for_each(s.begin(), s.end(), [](char c) { assert(is_nucl(c)); });
+        std::for_each(s.begin(), s.end(), [](char c) {
+            if(!is_nucl(c))
+                throw std::string("") + c + "is not a nucleotide.";
+        });
     } else {
-        LOG_ERROR << "Cannot read query file " << fn;
-        assert(false);
+        throw std::string("Cannot read query file.") + fn;
     }
 
     std::string phreds;

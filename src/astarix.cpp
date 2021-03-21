@@ -54,7 +54,6 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
     } else if (algo == "astar-seeds") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
-        //astar = make_unique<AStarSeedsWithErrors>(G, args.costs, args.astar_seeds_len, args.astar_seeds_max_errors, max_indels);
         astar = make_unique<AStarSeedsWithErrors>(G, args.costs, args.astar_seeds);
     } else if (algo == "dijkstra") { 
         astar = make_unique<DijkstraDummy>();
@@ -113,7 +112,7 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
                 L, r.s.c_str(), spell(*path).c_str(),
                 int(ans.cost), starts, pushed_rate,
                 popped_rate, repeat_rate, timers.total.get_sec(),
-                timers.astar.get_sec(), aligner->unique_best);
+                timers.astar.get_sec(), aligner->read_counters.align_status.unique.get());
     }
 
     return ans;
@@ -327,7 +326,8 @@ int exec(int argc, char **argv) {
     T.precompute.stop();
     cout << "done in " << T.precompute.t.get_sec() << "s." << endl << flush;
 
-    AlignParams align_params(args.costs, args.greedy_match);
+    cost_t max_align_cost = args.astar_seeds.max_indels * std::min(args.costs.ins, args.costs.del);  // TODO: set with argument
+    AlignParams align_params(args.costs, args.greedy_match, max_align_cost);
     string algo = string(args.algorithm);
 
     assert(G.has_supersource());
@@ -380,7 +380,7 @@ int exec(int argc, char **argv) {
     std::mutex timer_m;
     atomic_int popped_trie_total(0), popped_ref_total(0);
     Counters all_reads_counters;
-    std::atomic<bool> nonunique_best_alignments(0);
+    //std::atomic<bool> nonunique_best_alignments(0);
 
     assert(G.E.size() == G.E_rev.size());  // TODO: remove
     assert(G.V.size() == G.V_rev.size());  // TODO: remove
@@ -397,9 +397,9 @@ int exec(int argc, char **argv) {
             fprintf(fout, "%s", line);
             fflush(fout);
             total_timers += aligner.read_timers;
-            total_cost += ans.cost;
-            if (!aligner.unique_best)
-                nonunique_best_alignments = nonunique_best_alignments+1;
+
+            if (aligner.read_counters.align_status.aligned())
+                total_cost += ans.cost;
 
             //if (i % (R.size() / 10) == 0) {
             //  cout << "A*-memoization at " << 100.0 * i / R.size() << "% of the reads aligned"
@@ -432,16 +432,17 @@ int exec(int argc, char **argv) {
                     {
                         // TODO: merge the astar_local to astar stats
                         timer_m.lock();
-                        total_cost += ans.cost;
                         total_timers += aligner.read_timers;
+                        if (aligner.read_counters.align_status.aligned())
+                            total_cost += ans.cost;
             
                         timer_m.unlock();
                         if (t == 0) {
                             popped_trie_total.fetch_add( aligner.read_counters.popped_trie.get() );  
                             popped_ref_total.fetch_add( aligner.read_counters.popped_ref.get() );
                         }
-                        if (!aligner.unique_best)
-                            nonunique_best_alignments = nonunique_best_alignments + 1;
+                        //if (!aligner.unique_best)
+                        //    nonunique_best_alignments = nonunique_best_alignments + 1;
                     }
                 }
             });
@@ -484,7 +485,6 @@ int exec(int argc, char **argv) {
         //double total_map_time = total_timers.total.get_sec();
         double total_mem = MemoryMeasurer::get_mem_gb();
         double align_cpu_time = T.align.t.get_sec();
-
         out << " == Aligning statistics =="                                                     << endl;
         out << "        Explored rate (avg): " << 1.0*all_reads_counters.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
         out << "     Pushed rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
@@ -496,7 +496,10 @@ int exec(int argc, char **argv) {
 #ifndef NDEBUG
         out << "      Repeated states (avg): " << 1.0*all_reads_counters.repeated_visits.get() / R.size() / R[0].len << " states/read_bp" << endl;
 #endif
-        out << " Non-unique best alignments: " << nonunique_best_alignments << " out of " << R.size()   << endl;
+        out << "                 Alignments: " 
+                                                << all_reads_counters.align_status.unique.get()    << " unique ("    << 100.*all_reads_counters.align_status.unique.get()/R.size()    << "%), "
+                                                << all_reads_counters.align_status.ambiguous.get() << " ambiguous (" << 100.*all_reads_counters.align_status.ambiguous.get()/R.size() << "%) and "
+                                                << all_reads_counters.align_status.overcost.get()  << " overcost ("  << 100.*all_reads_counters.align_status.overcost.get()/R.size()  << "%)" << endl;
         out << endl;
         out << " == Heuristic stats (" << args.algorithm << ") ==" << std::endl;
         astar->print_stats(out);
@@ -534,6 +537,8 @@ int exec(int argc, char **argv) {
                                                                 + total_timers.ff.get_sec()) / align_cpu_time << "%" << endl;
         out << " DONE" << endl;
         out << endl;
+
+        assert( all_reads_counters.align_status.total() == (int)R.size() );
     }
 
     extract_args_to_dict(args, &stats);
@@ -553,9 +558,13 @@ int main(int argc, char **argv) {
     try {
         return exec(argc, argv);
     } catch (const std::string& ex) {
+        std::cout << std::endl;
         std::cout << ex << std::endl;
+        LOG_FATAL << ex;
     } catch (const char *ex) {
+        std::cout << std::endl;
         std::cout << ex << std::endl;
+        LOG_FATAL << ex;
     }
 }
 

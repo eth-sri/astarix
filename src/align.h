@@ -29,6 +29,27 @@ struct Counters {
     Counter explored_states;
     Counter repeated_visits;
 
+    struct AlignStatus {
+        Counter unique, ambiguous, overcost;
+        void clear() {
+            unique.clear();
+            ambiguous.clear();
+            overcost.clear();
+        }
+        int total() {
+            return unique.get() + ambiguous.get() + overcost.get();
+        }
+        int aligned() {
+            return unique.get() + ambiguous.get();
+        }
+        AlignStatus& operator+=(const AlignStatus &b) {
+            unique += b.unique;
+            ambiguous += b.ambiguous;
+            overcost += b.overcost;
+            return *this;
+        }
+    } align_status;
+
     //std::vector<Counter> pushed_hist;  // pushed_hist[i] -- number of pushed states <*,i>
 
     void clear() {
@@ -39,6 +60,7 @@ struct Counters {
         popped_ref.clear();
         explored_states.clear();
         repeated_visits.clear();
+        align_status.clear();
     //    pushed_hist.clear();
     }
 
@@ -50,6 +72,7 @@ struct Counters {
         popped_ref += b.popped_ref;
         explored_states += b.explored_states;
         repeated_visits += b.repeated_visits;
+        align_status += b.align_status;
 
      //   if (pushed_hist.size() < b.pushed_hist.size())
      //       pushed_hist.resize(b.pushed_hist.size());
@@ -88,10 +111,12 @@ struct AlignerTimers {
 struct AlignParams {
     const EditCosts &costs;
     const bool greedy_match;
+    const cost_t max_align_cost;
 
-    AlignParams(const EditCosts &_costs, bool _fast_forward)
+    AlignParams(const EditCosts &_costs, const bool _fast_forward, const cost_t _max_align_cost)
       : costs(_costs),
-        greedy_match(_fast_forward) {
+        greedy_match(_fast_forward),
+        max_align_cost(_max_align_cost) {
     }
 
     void print() const {
@@ -103,6 +128,7 @@ struct AlignParams {
         LOG_INFO << "  mismatch_cost = " << (int)costs.subst;
         LOG_INFO << "  ins_cost      = " << (int)costs.ins;
         LOG_INFO << "  del_cost      = " << (int)costs.del;
+        LOG_INFO << "Max align cost  = " << (int)max_align_cost;
     }
 };
 
@@ -116,16 +142,12 @@ class Aligner {
 
   public:
     AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
-    int unique_best;
 
-    // total_counters are aggregating read_counters at the end of every alignment
-    mutable std::unordered_map<std::string, Counters> all_read_counters_;
     mutable AlignerTimers read_timers;
-
     mutable Counters read_counters;
 
     Aligner(const graph_t &_G, const AlignParams &_params, AStarHeuristic *_astar)
-            : G(_G), params(_params), astar(_astar), unique_best(-1) {
+            : G(_G), params(_params), astar(_astar) {
     }
 
     inline const graph_t& graph() const {
@@ -143,6 +165,8 @@ class Aligner {
     }
 
     inline void astar_after_every_alignment() {
+        assert(read_counters.align_status.total() == 1);
+
         read_timers.astar_prepare_reads.start();
         astar->after_every_alignment();
         read_timers.astar_prepare_reads.stop();
@@ -157,13 +181,13 @@ class Aligner {
         read_timers.queue.stop();
     }
 
-    inline state_t pop(queue_t &Q) {
+    inline score_state_t pop(queue_t &Q) {
         read_counters.popped.inc();
         read_timers.queue.start();
         score_state_t el = Q.top();
         Q.pop();
         read_timers.queue.stop();
-        return el.second;
+        return el;
     }
 
     inline const state_t& get_const_path(const path_t &p, int i, int v) const {
