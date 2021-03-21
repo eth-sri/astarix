@@ -502,8 +502,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 }
             }
 
+#ifndef NDEBUG
             for (auto [v, out]: out_cnt)
                 assert(out == 0);
+#endif
             LOG_DEBUG << "Topsorted nodes: " << topsorted_nodes;
         }
 
