@@ -42,7 +42,6 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
     unique_ptr<AStarHeuristic> astar;
     string algo = args.algorithm;
 
-    // TODO: add dijkstra
     if (algo == "astar-prefix") {
         astar = make_unique<AStarPrefix>(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
     } else if (algo == "astar-seeds-exact") {
@@ -72,24 +71,17 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
        Stats *global_stats) {
     state_t final_state;
     
-    // prepare read
-    aligner->astar_before_every_alignment(&r);
-
-    final_state = aligner->readmap(r, algo, path);
-
-    // return preparation to previous state
-    aligner->astar_after_every_alignment();
+    aligner->astar_before_every_alignment(&r);      // prepare read
+    final_state = aligner->readmap(r, algo, path);  // align
+    aligner->astar_after_every_alignment();         // return preparation to previous state
 
     if (!performance_file.empty()) {
-        //const auto &astar = aligner->get_astar();
-        const auto &timers = aligner->read_timers;
-
         string precomp_str = "align";
         int L = r.len;
         int starts = -1;
-        double pushed_rate = (double)aligner->read_stats.pushed.get() / L;
-        double popped_rate = (double)aligner->read_stats.popped.get() / L;
-        double repeat_rate = (double)aligner->read_stats.repeated_visits.get() / aligner->read_stats.pushed.get();
+        double pushed_rate = (double)aligner->stats.pushed.get() / L;
+        double popped_rate = (double)aligner->stats.popped.get() / L;
+        double repeat_rate = (double)aligner->stats.repeated_visits.get() / aligner->stats.pushed.get();
         *pushed_rate_sum += pushed_rate;
         *popped_rate_sum += popped_rate;
         *repeat_rate_sum += repeat_rate;
@@ -97,7 +89,7 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
         *popped_rate_max = max(*popped_rate_max, popped_rate);
         *repeat_rate_max = max(*repeat_rate_max, repeat_rate);
 
-        *global_stats += aligner->read_stats;
+        *global_stats += aligner->stats;
 
         line[0] = 0;
         sprintf(line,
@@ -110,9 +102,9 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
                 args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
                 precomp_str.c_str(), r.comment.c_str(), 0.0,
                 L, r.s.c_str(), spell(*path).c_str(),
-                int(aligner->read_stats.align_status.cost.get()), starts, pushed_rate,
-                popped_rate, repeat_rate, timers.total.get_sec(),
-                timers.astar.get_sec(), aligner->read_stats.align_status.unique.get());
+                int(aligner->stats.align_status.cost.get()), starts, pushed_rate,
+                popped_rate, repeat_rate, aligner->stats.t.total.get_sec(),
+                aligner->stats.t.astar.get_sec(), aligner->stats.align_status.unique.get());
     }
 
     return final_state;
@@ -144,7 +136,8 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
     if (args->tree_depth == -1) {
         args->tree_depth = floor(log(G.nodes()) / log(4.0));
     }
-    assert(args->tree_depth > 0);
+    if (args->tree_depth <= 0)
+        throw "Trie depth should be >0.";
 }
 
 void print_tsv(map<string, string> dict, ostream &out) {
@@ -160,7 +153,7 @@ void print_tsv(map<string, string> dict, ostream &out) {
 
 //void print_hist(Aligner aligner, string hist_file) {
 //    ofstream out(hist_file);
-//    auto &all_counters = aligner.all_read_stats_;
+//    auto &all_counters = aligner.all_stats_;
 //
 //    int max_size = 0;
 //    for (auto const &counters: all_counters) 
@@ -322,7 +315,7 @@ int exec(int argc, char **argv) {
 
     cout << "Initializing A* heuristic... " << flush;
     T.precompute.start();
-    unique_ptr<AStarHeuristic> astar = AStarHeuristicFactory(G, args);
+    unique_ptr<AStarHeuristic> astar = AStarHeuristicFactory(G, args);  // TODO: resolve races
     T.precompute.stop();
     cout << "done in " << T.precompute.t.get_sec() << "s." << endl << flush;
 
@@ -375,12 +368,9 @@ int exec(int argc, char **argv) {
     T.align.start();
     auto start_align_wt = std::chrono::high_resolution_clock::now();
 
-    AlignerTimers total_timers;
-    //int total_cost(0);
     std::mutex timer_m;
     atomic_int popped_trie_total(0), popped_ref_total(0);
     Stats global_stats;  // TODO: take care of races
-    //std::atomic<bool> nonunique_best_alignments(0);
 
     assert(G.E.size() == G.E_rev.size());  // TODO: remove
     assert(G.V.size() == G.V_rev.size());  // TODO: remove
@@ -396,7 +386,7 @@ int exec(int argc, char **argv) {
                     &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &global_stats);
             fprintf(fout, "%s", line);
             fflush(fout);
-            total_timers += aligner.read_timers;
+            //global_stats.t += aligner.read_timers;
             _unused(final_state);
 
             //if (i % (R.size() / 10) == 0) {
@@ -410,6 +400,8 @@ int exec(int argc, char **argv) {
 
         //print_hist(aligner, hist_file);
     } else {
+        throw "Only 1 thread is currently supported.";  // TODO
+
         moodycamel::ConcurrentQueue<string> profileQueue { 50, (size_t)args.threads, (size_t)args.threads };
         std::vector<thread> threads(args.threads);
         std::atomic<bool> allThreadsDone { false };
@@ -431,12 +423,11 @@ int exec(int argc, char **argv) {
                     {
                         // TODO: merge the astar_local to astar stats
                         timer_m.lock();
-                        total_timers += aligner.read_timers;
             
                         timer_m.unlock();
                         if (t == 0) {
-                            popped_trie_total.fetch_add( aligner.read_stats.popped_trie.get() );  
-                            popped_ref_total.fetch_add( aligner.read_stats.popped_ref.get() );
+                            popped_trie_total.fetch_add( aligner.stats.popped_trie.get() );  
+                            popped_ref_total.fetch_add( aligner.stats.popped_ref.get() );
                         }
                     }
                 }
@@ -477,7 +468,6 @@ int exec(int argc, char **argv) {
     //cout << "done in " << T.align.t.get_sec() << "s." << endl << flush;
 
     {
-        //double total_map_time = total_timers.total.get_sec();
         double total_mem = MemoryMeasurer::get_mem_gb();
         double align_cpu_time = T.align.t.get_sec();
         out << " == Aligning statistics =="                                                     << endl;
@@ -487,7 +477,7 @@ int exec(int argc, char **argv) {
         out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads) << " from trie vs "
                                             << 1.0 * popped_ref_total.load() / (R.size()/args.threads) << " from ref"
                                             << " (influenced by greedy match flag)" << endl;
-        out << "Total cost of aligned reads: " << global_stats.align_status.cost.get() << " (" << 100.*global_stats.align_status.cost.get()/global_stats.align_status.aligned() << " per read)" << endl;
+        out << "Total cost of aligned reads: " << global_stats.align_status.cost.get() << " (" << 1.*global_stats.align_status.cost.get()/global_stats.align_status.aligned() << " per read)" << endl;
 #ifndef NDEBUG
         out << "      Repeated states (avg): " << 1.0*global_stats.repeated_visits.get() / R.size() / R[0].len << " states/read_bp" << endl;
 #endif
@@ -520,16 +510,16 @@ int exec(int argc, char **argv) {
         out << "    Total align cpu time: " << align_cpu_time << "s = "
                                             << R.size() / align_cpu_time << " reads/s = "
                                             << size_sum(R) / 1000.0 / align_cpu_time << " Kbp/s"    << endl; 
-        out << "     | Per read preprocessing: " << 100.0 * total_timers.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
-        out << "     |               A* query: " << 100.0 * total_timers.astar.get_sec() / align_cpu_time << "%"   << endl;
-        out << "     |                  queue: " << 100.0 * total_timers.queue.get_sec() / align_cpu_time << "%" << endl;
-        out << "     |                  dicts: " << 100.0 * total_timers.dicts.get_sec() / align_cpu_time << "%" << endl;
-        out << "     |           greedy_match: " << 100.0 * total_timers.ff.get_sec() / align_cpu_time << "%" << endl;
-        out << "     |                  other: " << 100.0 - 100.0 * (total_timers.astar_prepare_reads.get_sec()
-                                                                + total_timers.astar.get_sec()
-                                                                + total_timers.queue.get_sec()
-                                                                + total_timers.dicts.get_sec()
-                                                                + total_timers.ff.get_sec()) / align_cpu_time << "%" << endl;
+        out << "     | Per read preprocessing: " << 100.0 * global_stats.t.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |               A* query: " << 100.0 * global_stats.t.astar.get_sec() / align_cpu_time << "%"   << endl;
+        out << "     |                  queue: " << 100.0 * global_stats.t.queue.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |                  dicts: " << 100.0 * global_stats.t.dicts.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |           greedy_match: " << 100.0 * global_stats.t.ff.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |                  other: " << 100.0 - 100.0 * (global_stats.t.astar_prepare_reads.get_sec()
+                                                                + global_stats.t.astar.get_sec()
+                                                                + global_stats.t.queue.get_sec()
+                                                                + global_stats.t.dicts.get_sec()
+                                                                + global_stats.t.ff.get_sec()) / align_cpu_time << "%" << endl;
         out << " DONE" << endl;
         out << endl;
 

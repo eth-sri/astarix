@@ -23,11 +23,36 @@ struct pairhash {
     }
 };
 
+struct AlignerTimers {
+    Timer queue, ff, dicts, astar, total;
+    Timer astar_prepare_reads;
+
+    void clear() {
+        queue.clear();
+        ff.clear();
+        dicts.clear();
+        astar.clear();
+        astar_prepare_reads.clear();
+        total.clear();
+    }
+
+    AlignerTimers& operator+=(const AlignerTimers &b) {
+        queue += b.queue;
+        ff += b.ff;
+        dicts += b.dicts;
+        astar += b.astar;
+        astar_prepare_reads += b.astar_prepare_reads;
+        total += b.total;
+        return *this;
+    }
+};
+
 struct Stats {
     Counter<> pushed, popped, greedy_matched;
     Counter<> popped_trie, popped_ref;
     Counter<> explored_states;
     Counter<> repeated_visits;
+    AlignerTimers t;
 
     struct AlignStatus {
         Counter<cost_t> cost;
@@ -66,6 +91,8 @@ struct Stats {
         explored_states.clear();
         repeated_visits.clear();
         align_status.clear();
+        t.clear();
+
     //    pushed_hist.clear();
     }
 
@@ -78,6 +105,7 @@ struct Stats {
         explored_states += b.explored_states;
         repeated_visits += b.repeated_visits;
         align_status += b.align_status;
+        t += b.t;
 
      //   if (pushed_hist.size() < b.pushed_hist.size())
      //       pushed_hist.resize(b.pushed_hist.size());
@@ -85,30 +113,6 @@ struct Stats {
      //       if (i < b.pushed_hist.size())
      //           pushed_hist[i] += b.pushed_hist[i];
 
-        return *this;
-    }
-};
-
-struct AlignerTimers {
-    Timer queue, ff, dicts, astar, total;
-    Timer astar_prepare_reads;
-
-    void clear() {
-        queue.clear();
-        ff.clear();
-        dicts.clear();
-        astar.clear();
-        astar_prepare_reads.clear();
-        total.clear();
-    }
-
-    AlignerTimers& operator+=(const AlignerTimers &b) {
-        queue += b.queue;
-        ff += b.ff;
-        dicts += b.dicts;
-        astar += b.astar;
-        astar_prepare_reads += b.astar_prepare_reads;
-        total += b.total;
         return *this;
     }
 };
@@ -127,7 +131,6 @@ struct AlignParams {
     void print() const {
         LOG_INFO << "Params: ";
         LOG_INFO << "  greedy_match  = " << greedy_match;
-        //LOG_INFO << "  tree depth    = " << _tree_depth;
         LOG_INFO << "Edit costs: ";
         LOG_INFO << "  match_cost    = " << (int)costs.match;
         LOG_INFO << "  mismatch_cost = " << (int)costs.subst;
@@ -148,8 +151,7 @@ class Aligner {
   public:
     AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
-    mutable AlignerTimers read_timers;
-    mutable Stats read_stats;
+    mutable Stats stats;
 
     Aligner(const graph_t &_G, const AlignParams &_params, AStarHeuristic *_astar)
             : G(_G), params(_params), astar(_astar) {
@@ -164,70 +166,70 @@ class Aligner {
     }
 
     inline void astar_before_every_alignment(const read_t *r) {
-        read_timers.astar_prepare_reads.start();
+        stats.t.astar_prepare_reads.start();
         astar->before_every_alignment(r);
-        read_timers.astar_prepare_reads.stop();
+        stats.t.astar_prepare_reads.stop();
     }
 
     inline void astar_after_every_alignment() {
-        assert(read_stats.align_status.total() == 1);
+        assert(stats.align_status.total() == 1);
 
-        read_timers.astar_prepare_reads.start();
+        stats.t.astar_prepare_reads.start();
         astar->after_every_alignment();
-        read_timers.astar_prepare_reads.stop();
+        stats.t.astar_prepare_reads.stop();
     }
   
   private:
     inline void push(queue_t &Q, cost_t sort_cost, const state_t &st) {
-        read_stats.pushed.inc();
-        //read_stats.pushed_hist[st.i].inc();
-        read_timers.queue.start();
+        stats.pushed.inc();
+        //stats.pushed_hist[st.i].inc();
+        stats.t.queue.start();
             Q.push(score_state_t(sort_cost, st));
-        read_timers.queue.stop();
+        stats.t.queue.stop();
     }
 
     inline score_state_t pop(queue_t &Q) {
-        read_stats.popped.inc();
-        read_timers.queue.start();
+        stats.popped.inc();
+        stats.t.queue.start();
         score_state_t el = Q.top();
-        Q.pop();
-        read_timers.queue.stop();
+            Q.pop();
+        stats.t.queue.stop();
         return el;
     }
 
     inline const state_t& get_const_path(const path_t &p, int i, int v) const {
-        read_timers.dicts.start();
+        stats.t.dicts.start();
         auto it = p.find(std::make_pair(i, v));
-        read_timers.dicts.stop();
+        stats.t.dicts.stop();
         assert(it != p.end());
         return it->second;
     }
 
     inline state_t& get_path(path_t &p, int i, int v) {
-        read_timers.dicts.start();
+        stats.t.dicts.start();
         auto &ret = p[std::make_pair(i, v)];
-        read_timers.dicts.stop();
+        stats.t.dicts.stop();
         return ret;
     }
 
     inline const edge_t& get_prev_edge(const prev_edge_t &pe, int i, int v) const {
-        read_timers.dicts.start();
+        stats.t.dicts.start();
         auto it = pe.find(std::make_pair(i, v));
-        read_timers.dicts.stop();
+        stats.t.dicts.stop();
         assert(it != pe.end());
         return it->second;
     }
 
     inline void set_prev_edge(prev_edge_t &pe, int i, int v, const edge_t &e) {
-        read_timers.dicts.start();
+        stats.t.dicts.start();
         pe[std::make_pair(i, v)] = e;
-        read_timers.dicts.stop();
+        stats.t.dicts.stop();
     }
 
     inline bool& visited(visited_t &vis, int i, int v) {
-        read_timers.dicts.start();
+        stats.t.dicts.start();
         auto &ret = vis[std::make_pair(i, v)];
-        read_timers.dicts.stop();
+        stats.t.dicts.stop();
         return ret;
     }
 

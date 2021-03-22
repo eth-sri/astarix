@@ -50,6 +50,35 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     };
 
   private:
+    struct Stats {
+        Counter<> seeds;                    // number of seeds (depends only on the read)
+        Counter<> seed_matches;             // places in the graph where seeds match well enough
+        Counter<> paths_considered;         // number of paths updated for all seeds (supersource --> match)
+        Counter<> marked_states;            // the number of states marked over all paths for all seeds
+        Counter<> repeated_states;          // number of times crumbs are put on a states that already has crumbs
+        Counter<cost_t> root_heuristic;     // the sum of heuristics from the trie roots
+        Counter<> reads;                    // reads processed
+
+        void clear() {
+            seeds.clear();
+            seed_matches.clear();
+            paths_considered.clear();
+            marked_states.clear();
+            repeated_states.clear();
+            root_heuristic.clear();
+        }
+
+        Stats& operator+=(const Stats &b) {
+            seeds += b.seeds;
+            seed_matches += b.seed_matches;
+            paths_considered += b.paths_considered;
+            marked_states += b.marked_states;
+            repeated_states += b.repeated_states;
+            root_heuristic += b.root_heuristic;
+            return *this;
+        }
+    };
+
     // Fixed parameters
     const graph_t &G;
     const EditCosts &costs;
@@ -66,44 +95,17 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 //    std::vector<int> visited;  // == +1 if a node has already been added to H; -1 if a node has already been subtracted from H
     //std::unordered_map<node_t, cost_t> _star;
 
-    struct Counters {
-        Counter<> seeds;          // number of seeds (depends only on the read)
-        Counter<> seed_matches;   // places in the graph where seeds match well enough
-        Counter<> paths_considered;  // number of paths updated for all seeds (supersource --> match)
-        Counter<> marked_states;     // the number of states marked over all paths for all seeds
-        Counter<> repeated_states;   // number of times crumbs are put on a states that already has crumbs
-
-        void clear() {
-            seeds.clear();
-            seed_matches.clear();
-            paths_considered.clear();
-            marked_states.clear();
-            repeated_states.clear();
-        }
-
-        Counters& operator+=(const Counters &b) {
-            seeds += b.seeds;
-            seed_matches += b.seed_matches;
-            paths_considered += b.paths_considered;
-            marked_states += b.marked_states;
-            repeated_states += b.repeated_states;
-            return *this;
-        }
-    };
-
-    Counters read_cnt, global_cnt;
-
-    Counter<> reads_;            // reads processed
-
-    cost_t best_heuristic_sum_;
+    Stats read_cnt, global_cnt;
 
     // debug; TODO: remove
-    std::unordered_set<node_t> visited_nodes_backwards;
+    //std::unordered_set<node_t> visited_nodes_backwards;
 
   public:
     AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, const Args &_args)
         : G(_G), costs(_costs), args(_args) {
-        best_heuristic_sum_ = 0;
+        if (args.max_seed_errors > MAX_SEED_ERRORS)
+            throw "Too many seed errors.";
+
         for (int i=0; i<=args.max_seed_errors; i++)
             H[i].resize(G.nodes());
         //LOG_INFO << "A* matching class constructed with:";
@@ -143,30 +145,28 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         return res;
     }
 
-    // Cut r into chunks of length seed_len, starting from the end.
-    void before_every_alignment(const read_t *r) {
-        ++reads_;
-        read_cnt.clear();
-
-        int seeds = gen_seeds_and_update(r, +1);
-        assert(seeds <= int(8*sizeof(H[0][0])));
-        read_cnt.seeds.set(seeds);
-
-        r_ = r;
-
-        global_cnt += read_cnt;
-
-        best_heuristic_sum_ += h(state_t(0.0, 0, 0, -1, -1));
-
-        LOG_INFO << r->comment << " A* seeds stats: "
-            << read_cnt.seeds << " seeds " 
+    void log_read_stats() {
+        LOG_INFO << r_->comment << " A* seeds stats: "
+            << read_cnt.seeds.get() << " seeds " 
             << "matching at " << read_cnt.seed_matches << " graph positions "
             << "and generating " << read_cnt.paths_considered << " paths "
             << "over " << read_cnt.marked_states << " states"
             << "(" << read_cnt.repeated_states << " repeated)"
-            << "with best heuristic " << h(state_t(0.0, 0, 0, -1, -1)) << " "
+            << "with best heuristic " << read_cnt.root_heuristic.get() << " "
             << "out of possible " << (args.max_seed_errors+1)*read_cnt.seeds.get();
-//             << "which compensates for <= " << (args.max_seed_errors+1)*read_cnt.seeds - h(state_t(0.0, 0, 0, -1, -1)) << " errors";
+        // << "which compensates for <= " << (args.max_seed_errors+1)*read_cnt.seeds - h(state_t(0.0, 0, 0, -1, -1)) << " errors";
+    }
+
+    // Cut r into chunks of length seed_len, starting from the end.
+    void before_every_alignment(const read_t *r) {
+        r_ = r;  // potentially useful for after_every_alignment()
+        read_cnt.clear();
+        read_cnt.reads.set(1);
+        assert(read_cnt.seeds.get() <= int(8*sizeof(H[0][0])));
+        read_cnt.seeds.set( gen_seeds_and_update(r, +1) );
+        read_cnt.root_heuristic.set( h(state_t(0.0, 0, 0, -1, -1)) );
+        log_read_stats();
+        global_cnt += read_cnt;
     }
 
     void after_every_alignment() {
@@ -192,11 +192,11 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         out << "        For all reads:"                                                     << std::endl;
         out << "                            Seeds: " << global_cnt.seeds                    << std::endl;
         out << "                     Seed matches: " << global_cnt.seed_matches
-            << " (" << 1.0*global_cnt.seed_matches.get()/reads_.get() << " per read)"                   << std::endl;
+            << " (" << 1.0*global_cnt.seed_matches.get()/global_cnt.reads.get() << " per read)"                   << std::endl;
         out << "                 Paths considered: " << global_cnt.paths_considered      << std::endl;
         out << "                    States marked: " << global_cnt.marked_states
             << " (+" << 100.0*global_cnt.repeated_states.get()/(global_cnt.marked_states.get()+global_cnt.repeated_states.get()) << "% repeated)"  << std::endl;
-        out << "                Best heuristic (avg): " << (double)best_heuristic_sum_/reads_.get() << std::endl;
+        out << "                Best heuristic (avg): " << (double)global_cnt.root_heuristic.get()/global_cnt.reads.get() << std::endl;
 //        out << "                 Max heursitic value: " << ?? << std::endl;
     }
 
@@ -553,7 +553,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         } else {
             assert(!G.node_in_trie(v));
             //LOG_INFO_IF(dval == +1) << "Updating for seed " << p << "(" << i << ", " << v << ") with dval=" << dval << " with " << max_seed_errors-remaining_errors << " errrors.";
-            visited_nodes_backwards.clear();
+            //visited_nodes_backwards.clear();
 
             bool success; 
             switch (args.backwards_algo) {

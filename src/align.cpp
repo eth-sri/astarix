@@ -6,10 +6,9 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
     LOG_DEBUG << "Aligning read " << r.comment << ": " << r.s << " of length " << r.len << " using " << algo;
 
     // Clean up
-    read_timers.clear();
-    read_timers.total.start();
-    read_stats.clear();
-    //read_stats.pushed_hist.resize(r.len);
+    stats.clear();
+    stats.t.total.start();
+    //stats.pushed_hist.resize(r.len);
     best_path->clear();
 
     // Local vars
@@ -39,27 +38,27 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         
         //prev_cost = Q.top().second.cost;
         auto [curr_score, curr_st] = pop(Q);
-        read_stats.explored_states.inc();
+        stats.explored_states.inc();
 
 
         //LOG_INFO << "node in tree: " << G.node_in_trie(curr_st.v);
-        if (G.node_in_trie(curr_st.v)) read_stats.popped_trie.inc();
-        else read_stats.popped_ref.inc();
+        if (G.node_in_trie(curr_st.v)) stats.popped_trie.inc();
+        else stats.popped_ref.inc();
 
         // state (curr_st.i, curr_st.v) denotes that the first curr_st.i-1 characters of the read were already aligned before coming to curr_st.v. Next to align is curr_st.i
 
 #ifndef NDEBUG
         // this check is not needed as our heuristic is consistent
         if (visited(vis, curr_st.i, curr_st.v)) {  // not correct if a new seed is used
-            read_stats.repeated_visits.inc();
+            stats.repeated_visits.inc();
             //continue;
         }
         visited(vis, curr_st.i, curr_st.v) = true;
 #endif
 
         if (curr_score > params.max_align_cost) {  // too high cost
-            read_stats.align_status.ambiguous.inc();
-            read_stats.align_status.cost.set( cost_t(0) );
+            stats.align_status.ambiguous.inc();
+            stats.align_status.cost.set( cost_t(0) );
             break;
         }
 
@@ -67,15 +66,15 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         if (curr_st.i == r.len) {
             final_state = get_const_path(p, curr_st.i, curr_st.v);
             get_best_path_to_state(p, pe, final_state, best_path);
-            read_stats.align_status.cost.set( final_state.cost );
+            stats.align_status.cost.set( final_state.cost );
             if (!Q.empty()) {
                 auto [next_score, next_state] = pop(Q);
                 if (next_state.i == r.len && EQ(next_state.cost, curr_st.cost)) {
-                    read_stats.align_status.ambiguous.inc();
+                    stats.align_status.ambiguous.inc();
                     break;
                 }
             }
-            read_stats.align_status.unique.inc();
+            stats.align_status.unique.inc();
             break;
         }
 
@@ -89,7 +88,7 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         }
     }
 
-    read_timers.total.stop();
+    stats.t.total.stop();
     return final_state;
 }
 
@@ -110,10 +109,10 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
     if (get_path(p, i_next, e.to).optimize(next)) {
         set_prev_edge(pe, i_next, e.to, e);
 
-        read_timers.astar.start();
+        stats.t.astar.start();
         cost_t h = astar->h(next);
         cost_t f = g + h;
-        read_timers.astar.stop();
+        stats.t.astar.stop();
 
         LOG_DEBUG << "From (" << curr.i << ", " << curr.v << ") "
             << "through edge (" << e.label << ", " << edgeType2str(e.type) << ") "
@@ -123,24 +122,24 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
 }
 
 state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, const read_t &r) {
-    read_timers.ff.start();
+    stats.t.ff.start();
 
     edge_t e; 
     while (G.numOutOrigEdges(curr.v, &e) == 1 && curr.i < r.len-1 && e.label == r.s[curr.i]) {
-        read_stats.greedy_matched.inc();
+        stats.greedy_matched.inc();
         state_t next = state_t(curr.cost + params.costs.edge2score(e), curr.i+1, e.to, curr.i, curr.v); 
         if (get_path(p, next.i, next.v).optimize(next)) {
             set_prev_edge(pe, next.i, next.v, e);
         } else {
-            read_timers.ff.stop();
+            stats.t.ff.stop();
             return curr;
         }
 
         curr = next;
-        read_stats.explored_states.inc();
+        stats.explored_states.inc();
     }
 
-    read_timers.ff.stop();
+    stats.t.ff.stop();
     return curr;
 }
 
