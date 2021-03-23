@@ -39,6 +39,10 @@ double b2gb(size_t bytes) {
     return bytes / 1024.0 / 1024.0 / 1024.0;
 }
 
+double log(double base, double x) {
+    return std::log(x) / std::log(base);
+}
+
 const char* edgeType2str(EdgeType type) {
     switch(type) {
         case ORIG:  return "ORIG";

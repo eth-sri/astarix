@@ -53,7 +53,14 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
     } else if (algo == "astar-seeds") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
-        astar = make_unique<AStarSeedsWithErrors>(G, args.costs, args.astar_seeds);
+
+        AStarSeedsWithErrors::Args astar_seeds = args.astar_seeds;
+        //astar_seeds.seed_len        = std::max( (int)(std::ceil( log(4, G.edges()) )+1e-8), args.tree_depth);
+        //astar_seeds.max_seed_errors = 1;
+        //astar_seeds.max_indels      = 15;
+        //astar_seeds.backwards_algo  = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::BFS;
+
+        astar = make_unique<AStarSeedsWithErrors>(G, args.costs, astar_seeds);
     } else if (algo == "dijkstra") { 
         astar = make_unique<DijkstraDummy>();
     } else {

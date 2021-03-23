@@ -56,11 +56,11 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         visited(vis, curr_st.i, curr_st.v) = true;
 #endif
 
-        if (curr_score > params.max_align_cost) {  // too high cost
-            stats.align_status.ambiguous.inc();
-            stats.align_status.cost.set( cost_t(0) );
-            break;
-        }
+//        if (curr_score > params.max_align_cost) {  // too high cost
+//            stats.align_status.ambiguous.inc();
+//            stats.align_status.cost.set( cost_t(0) );
+//            break;
+//        }
 
         assert(curr_st.i <= r.len);
         if (curr_st.i == r.len) {

@@ -44,6 +44,8 @@ const char EPS   = 'e';
 void process_mem_usage(double& vm_usage, double& resident_set);
 double b2gb(size_t bytes);  // bytes to gb
 
+double log(double base, double x);
+
 class Timer {
     clock_t start_time;
     clock_t accum_time;
