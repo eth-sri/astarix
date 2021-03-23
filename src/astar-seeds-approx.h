@@ -90,8 +90,14 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // H[u] := number of exactly aligned seeds after node `u`
     // It is safe to increase more to H than needed.
     // TODO: make H dependent on the distance to the seed
+
     static const int MAX_SEED_ERRORS = 3;
     std::vector<int> H[MAX_SEED_ERRORS+1];
+
+    // TODO: static array
+    std::unordered_map< node_t, std::unordered_map<int, cost_t> > C;   // node -> (seed->cost)
+
+
 //    std::vector<int> visited;  // == +1 if a node has already been added to H; -1 if a node has already been subtracted from H
     //std::unordered_map<node_t, cost_t> _star;
 
@@ -126,9 +132,25 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // O(1)
     cost_t h(const state_t &st) const {
         int all_seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
+        int total_errors = (args.max_seed_errors+1)*all_seeds_to_end;  // the maximum number of errors
+        
+        const auto crumbs_it = C.find(st.v);
+        if (crumbs_it != C.end())
+            for (const auto &[seed, cost]: crumbs_it->second)
+                if (seed < all_seeds_to_end)
+                    total_errors -= cost;
+
+        cost_t res = total_errors * costs.get_min_mismatch_cost();
+        LOG_DEBUG << "h<" << st.v << ", " << st.i << ">: old=" << old_h(st) << ", new=" << res;
+        assert(res == old_h(st));
+        return res;
+    }
+
+    cost_t old_h(const state_t &st) const {
+        int all_seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
 
         int total_errors = (args.max_seed_errors+1)*all_seeds_to_end;  // the maximum number of errors
-        int not_used_mask = ((1<<all_seeds_to_end)-1);   // at first no seed is used: 111...11111 (in binary)
+        int not_used_mask = ((1<<all_seeds_to_end)-1);   // at first no seed is used: 0000111...11111 (in binary)
         for (int errors=0; errors<=args.max_seed_errors; errors++) {
             int h_remaining = H[errors][st.v] & not_used_mask;
             int matching_seeds = __builtin_popcount(h_remaining);
@@ -142,6 +164,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         //LOG_DEBUG << "h(" << st.i << ", " << st.v << ") = "
         //          << total_errors << " * " << costs.get_min_mismatch_cost()
         //          << " = " << res;
+
         return res;
     }
 
@@ -172,6 +195,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     void after_every_alignment() {
         // Revert the updates by adding -1 instead of +1.
         gen_seeds_and_update(r_, -1);
+        C.clear();
 
 #ifndef NDEBUG
         // TODO: removedebug
@@ -219,19 +243,51 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         return min_i == CYCLE_VAL || min_i <= max_indels + G.get_trie_depth();
     }
 
-    inline bool crumbs_already_set(int p, int dval, int errors, node_t v) {
+    inline bool crumbs_already_set(int p, int dval, int errors, node_t v) const {
+        bool exists = false;
+        auto crumbs_it = C.find(v); 
+        if (crumbs_it != C.end())
+            if (crumbs_it->second.contains(p))
+                exists = true;
+        return (dval == -1) ^ exists;
+    }
+
+    inline bool old_crumbs_already_set(int p, int dval, int errors, node_t v) const {
         return (dval == -1) ^ bool(H[errors][v] & (1<<p));
     }
 
     inline void update_crumbs_for_node(int p, int dval, int errors, node_t v) {
+        cost_t cost = args.max_seed_errors + 1 - errors;
         if (dval == +1) {
-            LOG_DEBUG << "Adding crumbs to node " << v;
+            auto crumbs_it = C.find(v);
+            if (crumbs_it == C.end()) {
+                std::unordered_map<int, cost_t> tmp;
+                tmp[p] = cost;
+                C[v] = tmp;
+            }
+            else {
+                auto &seeds = crumbs_it->second;
+                assert(!seeds.contains(p));
+                seeds[p] = cost;
+            }
+            assert(C.contains(v) && C[v].contains(p));
+            //LOG_DEBUG << "update_crumbs: add C[" << v << "][" << p << "] = " << C[v][p];
+
+            assert(old_crumbs_already_set(p, dval, errors, v) == C[v][p]);
+        } else {
+            ;  // nothing for -1
+        }
+    }
+
+    inline void old_update_crumbs_for_node(int p, int dval, int errors, node_t v) {
+        if (dval == +1) {
             if (!(H[errors][v] & (1<<p))) {
                 ++read_cnt.marked_states;
             } else {
                 ++read_cnt.repeated_states;    
             }
             H[errors][v] |= 1<<p;   // fire p-th bit
+            LOG_DEBUG << "old_update_crumbs: add H[" << errors << "][" << v << "] = 1<<" << p;
         } else {
             H[errors][v] &= ~(1<<p);  // remove p-th bit
         }
