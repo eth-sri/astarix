@@ -94,8 +94,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // It is safe to increase more to H than needed.
     // TODO: make H dependent on the distance to the seed
 
+    typedef long long bitmask_t;
     static const int MAX_SEED_ERRORS = 3;
-    std::vector<int> H[MAX_SEED_ERRORS+1];
+    std::vector<bitmask_t> H[MAX_SEED_ERRORS+1];
 
     // TODO: static array
     std::unordered_map< node_t, std::unordered_map<int, cost_t> > C;                        // node -> (seed->cost)
@@ -152,7 +153,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 cost_t curr_cost = 0;
 
                 for (const auto &[seed, seg]: node_crumbs)
-                    if (seg.first <= piv && piv <= seg.second)   // TODO: uncomment to turn on the interval
+                //    if (seg.first <= piv && piv <= seg.second)   // TODO: uncomment to turn on the interval
                     {
         //                LOG_DEBUG << "<" << st.v << ", " << st.i << ">: [" << seg.first << ", " << seg.second << "]";
                         if (seed < all_seeds_to_end)
@@ -214,9 +215,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         int all_seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
 
         int total_errors = (args.max_seed_errors+1)*all_seeds_to_end;  // the maximum number of errors
-        int not_used_mask = ((1<<all_seeds_to_end)-1);   // at first no seed is used: 0000111...11111 (in binary)
+        bitmask_t not_used_mask = ((1<<all_seeds_to_end)-1);   // at first no seed is used: 0000111...11111 (in binary)
         for (int errors=0; errors<=args.max_seed_errors; errors++) {
-            int h_remaining = H[errors][st.v] & not_used_mask;
+            bitmask_t h_remaining = H[errors][st.v] & not_used_mask;
             int matching_seeds = __builtin_popcount(h_remaining);
             assert(matching_seeds <= all_seeds_to_end);
             not_used_mask &= ~h_remaining;  // remove the bits for used seeds
