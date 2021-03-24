@@ -14,9 +14,9 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
     // Local vars
     path_t p;
     prev_edge_t pe;
-#ifndef NDEBUG
+//#ifndef NDEBUG
     visited_t vis;
-#endif
+//#endif
     state_t final_state;    // the best final state; computed in map()
     queue_t Q;              // edge_t(i, u) in Q <=> read[1..i] has been matched with a path ending at u; the prev_state is not used
 
@@ -47,14 +47,14 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
 
         // state (curr_st.i, curr_st.v) denotes that the first curr_st.i-1 characters of the read were already aligned before coming to curr_st.v. Next to align is curr_st.i
 
-#ifndef NDEBUG
-        // this check is not needed as our heuristic is consistent
+//#ifndef NDEBUG
+        // this check is not needed if the heuristic is consistent
         if (visited(vis, curr_st.i, curr_st.v)) {  // not correct if a new seed is used
             stats.repeated_visits.inc();
             //continue;
         }
-        visited(vis, curr_st.i, curr_st.v) = true;
-#endif
+        //visited(vis, curr_st.i, curr_st.v) = true;
+//#endif
 
 //        if (curr_score > params.max_align_cost) {  // too high cost
 //            stats.align_status.ambiguous.inc();
@@ -71,6 +71,7 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
                 auto [next_score, next_state] = pop(Q);
                 if (next_state.i == r.len && EQ(next_state.cost, curr_st.cost)) {
                     stats.align_status.ambiguous.inc();
+                    LOG_DEBUG << "Ambiguous best alignment of " << r.comment;
                     break;
                 }
             }

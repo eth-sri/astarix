@@ -139,6 +139,17 @@ int size_sum(const vector<read_t> &R) {
     return sum;
 }
 
+//int avg_phred(const vector<read_t> &R) {
+//    int sum = 0;
+//    for (const auto &r: R) {
+//        for (int i=1; i<r.phreds.size(); i++) {
+//            int q = int(r[i])-33;
+//        }
+//        sum += r.size();
+//    }
+//    return sum;
+//}
+
 void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
     if (args->tree_depth == -1) {
         args->tree_depth = floor(log(G.nodes()) / log(4.0));
@@ -356,8 +367,8 @@ int exec(int argc, char **argv) {
                                                 << "depth" << (args.fixed_trie_depth ? "=" : "<=") << args.tree_depth                         << endl;
         out << "  Reference+ReverseRef+Trie: " << G.nodes() << " nodes, " << G.edges() << " edges, "
                                                 << "density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
-        out << "                      Reads: " << R.size() << " x " << R.front().len << "bp, "
-                "coverage: " << 1.0 * R.size() * (R.front().s.size()-1) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
+        out << "                      Reads: " << R.size() << " x " << size_sum(R)/R.size() << "bp, "
+                "coverage: " << 1.0 * size_sum(R) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
         out << endl;
 
         stats["orig_graph_nodes"] = to_string(G.orig_nodes);
@@ -395,6 +406,9 @@ int exec(int argc, char **argv) {
             fflush(fout);
             //global_stats.t += aligner.read_timers;
             _unused(final_state);
+
+            popped_trie_total.fetch_add( aligner.stats.popped_trie.get() );  
+            popped_ref_total.fetch_add( aligner.stats.popped_ref.get() );
 
             //if (i % (R.size() / 10) == 0) {
             //  cout << "A*-memoization at " << 100.0 * i / R.size() << "% of the reads aligned"
@@ -481,9 +495,9 @@ int exec(int argc, char **argv) {
         out << "        Explored rate (avg): " << 1.0*global_stats.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
         out << "     Pushed rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
         out << "     Popped rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
-        out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads) << " from trie vs "
-                                            << 1.0 * popped_ref_total.load() / (R.size()/args.threads) << " from ref"
-                                            << " (influenced by greedy match flag)" << endl;
+        out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads)
+                                            << " from trie (" << 100.0*popped_trie_total.load()/(popped_trie_total.load() + popped_ref_total.load()) << "%) vs "
+                                            << 1.0 * popped_ref_total.load() / (R.size()/args.threads) << " from ref"  << " (per read)" << endl;
         out << "Total cost of aligned reads: " << global_stats.align_status.cost.get() << " (" << 1.*global_stats.align_status.cost.get()/global_stats.align_status.aligned() << " per read)" << endl;
 #ifndef NDEBUG
         out << "      Repeated states (avg): " << 1.0*global_stats.repeated_visits.get() / R.size() / R[0].len << " states/read_bp" << endl;
