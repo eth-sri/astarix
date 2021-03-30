@@ -8,6 +8,12 @@
 #include <thread>
 #include <mutex>
 
+// For handing interruptions with CTRL+C
+#include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+
 #include "align.h"
 #include "argparse.h"
 #include "concurrentqueue.h"
@@ -23,6 +29,9 @@
 
 using namespace std;
 using namespace astarix;
+
+bool started_aligning;
+bool interrupted;
 
 // plog
 void init_logger(const char *log_fn, int verbose) {
@@ -372,7 +381,7 @@ int exec(int argc, char **argv) {
                                                 << "density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
         out << "                      Reads: " << R.size() << " x " << size_sum(R)/R.size() << "bp, "
                 "coverage: " << 1.0 * size_sum(R) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
-        out << "  Avg error rate (by phred): " << avg_error_rate(R) << endl;
+        out << "            Avg phred value: " << 100.0*avg_error_rate(R) << "%" << endl;
         out << endl;
 
         stats["orig_graph_nodes"] = to_string(G.orig_nodes);
@@ -397,12 +406,17 @@ int exec(int argc, char **argv) {
     assert(G.E.size() == G.E_rev.size());  // TODO: remove
     assert(G.V.size() == G.V_rev.size());  // TODO: remove
 
+    started_aligning = true;  // used for interruptions
+
     //cout << "Aligning..." << flush;
     bool calc_mapping_cost = false;
     if (args.threads == 1) {
         FILE *fout = fopen(performance_file.c_str(), "a");
         Aligner aligner(G, align_params, astar.get());
         for (size_t i=0; i<R.size(); i++) {
+            if (interrupted)
+                break;
+
             char line[10000];
             state_t final_state = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
                     &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &global_stats);
@@ -425,6 +439,7 @@ int exec(int argc, char **argv) {
 
         //print_hist(aligner, hist_file);
     } else {
+        // TODO: handle interruptions using `interrupted` variable
         throw "Only 1 thread is currently supported.";  // TODO
 
         moodycamel::ConcurrentQueue<string> profileQueue { 50, (size_t)args.threads, (size_t)args.threads };
@@ -565,7 +580,28 @@ int exec(int argc, char **argv) {
     return 0;
 }
 
+void my_handler(int s) {
+    printf("Caught signal %d\n", s);
+    interrupted = true;
+
+    if (!started_aligning)
+        exit(1); 
+}
+
 int main(int argc, char **argv) {
+    {
+        // Catching CTRL+C
+        started_aligning = false;
+        interrupted = false;
+        struct sigaction sigIntHandler;
+
+        sigIntHandler.sa_handler = my_handler;
+        sigemptyset(&sigIntHandler.sa_mask);
+        sigIntHandler.sa_flags = 0;
+
+        sigaction(SIGINT, &sigIntHandler, NULL);
+    }
+
     try {
         return exec(argc, argv);
     } catch (const std::string& ex) {
