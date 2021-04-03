@@ -517,8 +517,8 @@ int exec(int argc, char **argv) {
         out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads)
                                             << " from trie (" << 100.0*popped_trie_total.load()/(popped_trie_total.load() + popped_ref_total.load()) << "%) vs "
                                             << 1.0 * popped_ref_total.load() / (R.size()/args.threads) << " from ref"  << " (per read)" << endl;
-        out << "Total cost of aligned reads: " << global_stats.align_status.cost.get() << " (" << 1.*global_stats.align_status.cost.get()/global_stats.align_status.aligned() << " per read)" << endl;
-        out << "Error rate [by align cost!]: " << 1.0*global_stats.align_status.cost.get()/size_sum(R) << " per letter" << endl;
+        out << "Total cost of aligned reads: " << global_stats.align_status.cost.get() << ", " << 1.*global_stats.align_status.cost.get()/global_stats.align_status.aligned() << " per read, " 
+            << 100.0*global_stats.align_status.cost.get()/size_sum(R) << "% per letter" << endl;
 #ifndef NDEBUG
         out << "      Repeated states (avg): " << 1.0*global_stats.repeated_visits.get() / R.size() / R[0].len << " states/read_bp" << endl;
 #endif
@@ -606,12 +606,14 @@ int main(int argc, char **argv) {
         return exec(argc, argv);
     } catch (const std::string& ex) {
         std::cout << std::endl;
-        std::cout << ex << std::endl;
+        std::cout << "Caught exception: " << ex << std::endl;
         LOG_FATAL << ex;
+		return 1;
     } catch (const char *ex) {
         std::cout << std::endl;
-        std::cout << ex << std::endl;
+        std::cout << "Caught exception: " << ex << std::endl;
         LOG_FATAL << ex;
+		return 1;
     }
 }
 
