@@ -23,7 +23,7 @@ def num_lower(serie):
     return serie.apply(lambda s: sum(1 for c in s if c.islower()))
 
 def read_astarix_performance(tsv_fn):
-    df = pd.read_csv(tsv_fn, sep='\t')
+    df = pd.read_csv(tsv_fn, delim_whitespace=True)
     df['pushed+popped'] = df['pushed'] + df['popped']
     #df['generated_errors'] = df['readname'].apply(lambda rn: int(rn.split()[0]) if rn.split()[0].isdigit() else -1)  # TODO: uncomment
     df['explored_states'] = df['pushed'] * df['len']
@@ -43,6 +43,7 @@ def algo2color(algo):
         'dijkstra': 'darkorange',
         'graphaligner': 'mediumseagreen',
         'pasgal': 'cornflowerblue',
+        'astar-seeds-intervals': 'red',
         }
     if algo in d:
         return d[algo]
@@ -54,6 +55,7 @@ def algo2beautiful(algo):
         'astar': 'A*',
         'astarix': 'AStarix',
         'astar-seeds': 'Seeds heuristic',
+        'astar-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astar-prefix': 'Prefix heuristic',
         'dijkstra': 'Dijkstra',
         'graphaligner': 'GraphAligner',
