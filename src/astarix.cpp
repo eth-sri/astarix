@@ -94,7 +94,25 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
     if (!performance_file.empty()) {
         string precomp_str = "align";
         int L = r.len;
-        int starts = -1;
+		char strand = '?';
+        
+		int start = path->back().to;   // meaningful only for fasta where the nodeid is equal to the fasta position
+		assert(start > 0);
+		assert(start <= 2*((int)aligner->graph().nodes()+5));
+
+		assert (!aligner->graph().node_in_trie(start));
+		if (aligner->graph().node_in_reverse(start)) {
+			start = aligner->graph().reverse2streight(start);
+			start -= L;
+			strand = '-';
+		} else {
+			start -= L;
+			strand = '+';
+		}
+
+//		if (start > (int)aligner->graph().orig_nodes)
+//			start = -10000;
+
         double pushed_rate = (double)aligner->stats.pushed.get() / L;
         double popped_rate = (double)aligner->stats.popped.get() / L;
         double repeat_rate = (double)aligner->stats.repeated_visits.get() / aligner->stats.pushed.get();
@@ -112,13 +130,13 @@ state_t wrap_readmap(const read_t& r, string algo, string performance_file, Alig
                 "%8s\t%3d\t%8s\t"
                 "%8s\t%15s\t%8lf\t"
                 "%3d\t%10s\t%10s\t"
-                "%d\t%6d\t%6lf\t"
+                "%d\t%6d\t%c\t%6lf\t"
                 "%6lf\t%4lf\t%8lf\t"
                 "%8lf\t%d\n",
                 args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
                 precomp_str.c_str(), r.comment.c_str(), 0.0,
                 L, r.s.c_str(), spell(*path).c_str(),
-                int(aligner->stats.align_status.cost.get()), starts, pushed_rate,
+                int(aligner->stats.align_status.cost.get()), start, strand, pushed_rate,
                 popped_rate, repeat_rate, aligner->stats.t.total.get_sec(),
                 aligner->stats.t.astar.get_sec(), aligner->stats.align_status.unique.get());
     }
@@ -313,7 +331,7 @@ int exec(int argc, char **argv) {
         fprintf(fout, "ref\trefsize\talgo\t"
                 "operation\treadname\tmemory\t"
                 "len\tread\tspell\t"
-                "cost\tstarts\tpushed\t"
+                "cost\tstart\tstrand\tpushed\t"
                 "popped\trepeat_rate\tt(map)\t"
                 "t(astar)\tunique_best\n");
         fclose(fout);

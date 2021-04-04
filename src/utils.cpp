@@ -56,13 +56,12 @@ const char* edgeType2str(EdgeType type) {
 }
 
 char compl_nucl(char c) {
-    if (c == 'A') return 'T';
-    if (c == 'C') return 'G';
-    if (c == 'G') return 'C';
-    if (c == 'T') return 'A';
-    std::cerr << "Bad nucleotide '" << c << "'" << std::endl;
-    assert(false);
-    return '!';
+    	 if (c == 'A') return 'T';
+    else if (c == 'C') return 'G';
+    else if (c == 'G') return 'C';
+    else if (c == 'T') return 'A';
+	else 
+		throw std::string("Bad nucleotide '") + c + "'";
 }
 
 int nucl2num(char c) {

@@ -249,7 +249,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         read_cnt.heuristic_potential.set( (args.max_seed_errors+1)*read_cnt.seeds.get() );
         log_read_stats();
 
-        assert(read_cnt.seeds.get() <= int(8*sizeof(H[0][0])));
+        //assert(read_cnt.seeds.get() <= int(8*sizeof(H[0][0])));
 
         global_cnt += read_cnt;
     }

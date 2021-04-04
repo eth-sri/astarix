@@ -81,13 +81,16 @@ void read_graph(graph_t *G, std::string graph_file, std::string output_dir) {
     LOG_INFO << "Reading graph " << graph_file << "...";
 
     if (hasEnding(to_lower(graph_file), ".fa") || hasEnding(to_lower(graph_file), ".fasta")) {
-        G->add_node();  // for supersource
+        G->add_node();  // 0 reseved for supersource
 
         std::vector<astarix::seq_t> fastas = astarix::read_fasta(graph_file);
+		G->orig_nodes = G->orig_edges = 0;
         for (const auto &fasta: fastas) {
             int source=G->add_node();
             int sink=G->add_node();
             G->add_seq(source, fasta.s, sink);
+			G->orig_nodes += fasta.s.size();
+			G->orig_edges += fasta.s.size()-1;
         }
     } else if (hasEnding(to_lower(graph_file), ".gfa")) {
         LOG_INFO << "[GFA format]";

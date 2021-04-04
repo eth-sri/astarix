@@ -71,11 +71,12 @@ struct graph_t {
     int orig_nodes, orig_edges;
 
     const char *EdgeTypeStr[5];
+	int reverse_first_node;
     int trie_first_node, trie_depth, trie_nodes, trie_edges;
     bool fixed_trie_depth;
 
     graph_t(bool _with_reverse_edges=0)
-            : orig_nodes(0), orig_edges(0), trie_depth(0), trie_nodes(0), trie_edges(0)
+            : orig_nodes(0), orig_edges(0), reverse_first_node(-1), trie_first_node(-1), trie_depth(0), trie_nodes(0), trie_edges(0)
             //: with_reverse_edges(_with_reverse_edges)
             {
         V.resize(1, -1);  // 0 preserved for a supersource
@@ -93,6 +94,15 @@ struct graph_t {
     bool node_in_trie(int v) const {
         return v >= trie_first_node || v == 0;
     }
+
+    bool node_in_reverse(int v) const {
+        return v >= reverse_first_node && v < trie_first_node;
+    }
+
+	int reverse2streight(int v) const {
+		assert(node_in_reverse(v));
+		return v - reverse_first_node;
+	}
 
     int get_trie_depth() const {
         return trie_depth;
@@ -175,7 +185,7 @@ struct graph_t {
         prev = curr;
 
         for (std::string::size_type i=1; i<seq.size(); i++) {
-            int curr = add_node();
+            int curr = i<seq.size()-1 ? add_node() : to;
             if (is_nucl(seq[i])) {
                 add_edge(prev, curr, seq[i], ORIG);
             } else {
@@ -187,7 +197,6 @@ struct graph_t {
             }
             prev = curr;
         }
-        add_edge(prev, to, EPS, ORIG);
     }
 
     void add_reverse_complement() {
@@ -207,9 +216,10 @@ struct graph_t {
             }
         }
 
+		reverse_first_node = add_node();  // including the supersource which will stay unused
         // add the new nodes and edges
-        for (int i=0; i<half_nodes; i++)
-            add_node();  // including the supersource which will stay unused
+        for (int i=1; i<half_nodes; i++)
+            add_node();
         for (const auto &e: new_edges)
             add_edge(e.first.first, e.first.second, e.second, astarix::ORIG);
 
