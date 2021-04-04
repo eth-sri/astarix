@@ -93,9 +93,8 @@ void read_graph(graph_t *G, std::string graph_file, std::string output_dir) {
         LOG_INFO << "[GFA format]";
         GfaGraph gfa = load_gfa(graph_file);
         gfa2graph(gfa, G);
-        G->add_reverse_complement();
     } else {
-        throw "[unknown format]";
+        throw std::string("[unknown format] of file ") + graph_file;
     }
 
     assert(!G->has_supersource());

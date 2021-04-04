@@ -326,6 +326,8 @@ int exec(int argc, char **argv) {
     cout << "Loading reference graph... " << flush;
     T.read_graph.start();
     read_graph(&G, args.graph_file, output_dir);
+	G.add_reverse_complement();
+    cout << "Added reverse complement... " << flush;
     T.read_graph.stop();
     cout << "done in " << T.read_graph.t.get_sec() << "s."  << endl << flush;
 
