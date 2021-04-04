@@ -16,10 +16,13 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // A*-seeds params
   public:
     struct Args {
+        enum backwards_algo_t { DFS_FOR_LINEAR, BFS, COMPLEX, TOPSORT };
+
         int seed_len;
         int max_seed_errors;
         int max_indels;
-        enum backwards_algo_t { DFS_FOR_LINEAR, BFS, COMPLEX, TOPSORT } backwards_algo;
+        backwards_algo_t backwards_algo;
+		bool interval_intersection;  // only counting crumbs with intersecting intervals
 
         static constexpr std::array< std::pair<backwards_algo_t, const char *>, 4> algo2name = {
             std::pair( backwards_algo_t::DFS_FOR_LINEAR, "dfs_for_linear" ),
@@ -153,12 +156,13 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 cost_t curr_cost = 0;
 
                 for (const auto &[seed, seg]: node_crumbs)
-                //    if (seg.first <= piv && piv <= seg.second)   // TODO: uncomment to turn on the interval
-                    {
-        //                LOG_DEBUG << "<" << st.v << ", " << st.i << ">: [" << seg.first << ", " << seg.second << "]";
-                        if (seed < all_seeds_to_end)
-                            curr_cost += C.find(st.v)->second.find(seed)->second;  // <=> const C[st.v][seed]
-                    }
+					if (seed < all_seeds_to_end) {
+						if (!args.interval_intersection || (seg.first <= piv && piv <= seg.second))   // TODO: uncomment to turn on the interval
+						{
+			//                LOG_DEBUG << "<" << st.v << ", " << st.i << ">: [" << seg.first << ", " << seg.second << "]";
+								curr_cost += C.find(st.v)->second.find(seed)->second;  // <=> const C[st.v][seed]
+						}
+					}
 
                 if (curr_cost > max_cost) {
                     max_cost = curr_cost;
@@ -264,10 +268,11 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     void print_params(std::ostream &out) const {
-        out << "        seed length: " << args.seed_len << " bp"        << std::endl;
-        out << "    max seed errors: " << args.max_seed_errors          << std::endl;
-        out << "     shifts allowed: " << args.max_indels               << std::endl;
-        out << "     backwards algo: " << args.get_backwards_algo_name()<< std::endl;
+        out << "          seed length: " << args.seed_len << " bp"         << std::endl;
+        out << "      max seed errors: " << args.max_seed_errors           << std::endl;
+        out << "       shifts allowed: " << args.max_indels                << std::endl;
+        out << "       backwards algo: " << args.get_backwards_algo_name() << std::endl;
+        out << "interval intersection: " << args.interval_intersection     << std::endl;
     }
 
     void log_read_stats() {
