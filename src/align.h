@@ -146,9 +146,16 @@ class Aligner {
 
     typedef std::unordered_map<std::pair<int,int>, state_t, pairhash> path_t;
     typedef std::unordered_map<std::pair<int,int>, edge_t, pairhash> prev_edge_t;
-    typedef std::unordered_map<std::pair<int,int>, bool, pairhash> visited_t;       // not needed; for performance analysis only
+    typedef std::unordered_map<std::pair<int,int>, bool, pairhash> visited_t;
 
   public:
+    // Local vars
+    path_t p;
+    prev_edge_t pe;
+//#ifndef NDEBUG
+    visited_t vis; 				// not needed; for performance analysis only
+//#endif
+
     AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
     mutable Stats stats;
@@ -233,7 +240,8 @@ class Aligner {
         return ret;
     }
 
-    void get_best_path_to_state(const path_t &p, const prev_edge_t &pe, state_t final_state, edge_path_t *best_path) const {
+  public:
+    void get_best_path_to_state(state_t final_state, edge_path_t *best_path) const {
         assert(best_path->empty());
 
         for (state_t curr=final_state; curr.prev_i != -1 && curr.prev_v != -1; curr = get_const_path(p, curr.prev_i, curr.prev_v)) {
@@ -243,7 +251,6 @@ class Aligner {
         reverse(best_path->begin(), best_path->end());
     }
 
-  public:
     state_t proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, const read_t &r);
 
     void try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edge_t &pe, const std::string &algo, queue_t &Q, const edge_t &e);
@@ -256,7 +263,7 @@ class Aligner {
     
         r is a 1-based query
     */
-    state_t readmap(const read_t &r, std::string algo, edge_path_t *best_path);
+    std::vector<state_t> readmap(const read_t &r, std::string algo, int max_best_alignments);
 };
 
 }

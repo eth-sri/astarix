@@ -82,66 +82,76 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
 
 arguments args;
 
-state_t wrap_readmap(const read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
-        edge_path_t *path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, char *line,
+void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner *aligner, bool calc_mapping_cost,
+        edge_path_t *best_path, double *pushed_rate_sum, double *popped_rate_sum, double *repeat_rate_sum, double *pushed_rate_max, double *popped_rate_max, double *repeat_rate_max, FILE *fout,
        Stats *global_stats) {
-    state_t final_state;
+    std::vector<state_t> final_states;
     
     aligner->astar_before_every_alignment(&r);      // prepare read
-    final_state = aligner->readmap(r, algo, path);  // align
-    aligner->astar_after_every_alignment();         // return preparation to previous state
+    final_states = aligner->readmap(r, algo, args.k_best_alignments);  // align
 
-    if (!performance_file.empty()) {
-        string precomp_str = "align";
-        int L = r.len;
-		char strand = '?';
-        
-		int start = path->back().to;   // meaningful only for fasta where the nodeid is equal to the fasta position
-		assert(start > 0);
-		assert(start <= 2*((int)aligner->graph().nodes()+5));
+	if ((int)final_states.size() >= args.k_best_alignments) {
+		LOG_DEBUG << r.s << " aligned >= " << args.k_best_alignments << " times.";
+	}
 
-		assert (!aligner->graph().node_in_trie(start));
-		if (aligner->graph().node_in_reverse(start)) {
-			start = aligner->graph().reverse2streight(start);
-			start -= L;
-			strand = '-';
-		} else {
-			start -= L;
-			strand = '+';
+	for (auto &final_state: final_states) {
+		best_path->clear();
+		aligner->get_best_path_to_state(final_state, best_path);
+		aligner->astar_after_every_alignment();         // return preparation to previous state
+
+		if (!performance_file.empty()) {
+			string precomp_str = "align";
+			int L = r.len;
+			char strand = '?';
+			
+			int start = best_path->back().to;   // meaningful only for fasta where the nodeid is equal to the fasta position
+			assert(start > 0);
+			assert(start <= 2*((int)aligner->graph().nodes()+5));
+
+			assert (!aligner->graph().node_in_trie(start));
+			if (aligner->graph().node_in_reverse(start)) {
+				start = aligner->graph().reverse2streight(start);
+				//start -= L;
+				strand = '-';
+			} else {
+				start -= L;
+				strand = '+';
+			}
+
+	//		if (start > (int)aligner->graph().orig_nodes)
+	//			start = -10000;
+
+			double pushed_rate = (double)aligner->stats.pushed.get() / L;
+			double popped_rate = (double)aligner->stats.popped.get() / L;
+			double repeat_rate = (double)aligner->stats.repeated_visits.get() / aligner->stats.pushed.get();
+			*pushed_rate_sum += pushed_rate;
+			*popped_rate_sum += popped_rate;
+			*repeat_rate_sum += repeat_rate;
+			*pushed_rate_max = max(*pushed_rate_max, pushed_rate);
+			*popped_rate_max = max(*popped_rate_max, popped_rate);
+			*repeat_rate_max = max(*repeat_rate_max, repeat_rate);
+
+			*global_stats += aligner->stats;
+
+			char line[10000];
+			line[0] = 0;
+			sprintf(line,
+					"%8s\t%3d\t%8s\t"
+					"%8s\t%15s\t%8lf\t"
+					"%3d\t%10s\t%10s\t"
+					"%d\t%6d\t%c\t%6lf\t"
+					"%6lf\t%4lf\t%8lf\t"
+					"%8lf\t%d\n",
+					args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
+					precomp_str.c_str(), r.comment.c_str(), 0.0,
+					L, r.s.c_str(), spell(*best_path).c_str(),
+					int(aligner->stats.align_status.cost.get()), start, strand, pushed_rate,
+					popped_rate, repeat_rate, aligner->stats.t.total.get_sec(),
+					aligner->stats.t.astar.get_sec(), aligner->stats.align_status.unique.get());
+            fprintf(fout, "%s", line);
+            fflush(fout);
 		}
-
-//		if (start > (int)aligner->graph().orig_nodes)
-//			start = -10000;
-
-        double pushed_rate = (double)aligner->stats.pushed.get() / L;
-        double popped_rate = (double)aligner->stats.popped.get() / L;
-        double repeat_rate = (double)aligner->stats.repeated_visits.get() / aligner->stats.pushed.get();
-        *pushed_rate_sum += pushed_rate;
-        *popped_rate_sum += popped_rate;
-        *repeat_rate_sum += repeat_rate;
-        *pushed_rate_max = max(*pushed_rate_max, pushed_rate);
-        *popped_rate_max = max(*popped_rate_max, popped_rate);
-        *repeat_rate_max = max(*repeat_rate_max, repeat_rate);
-
-        *global_stats += aligner->stats;
-
-        line[0] = 0;
-        sprintf(line,
-                "%8s\t%3d\t%8s\t"
-                "%8s\t%15s\t%8lf\t"
-                "%3d\t%10s\t%10s\t"
-                "%d\t%6d\t%c\t%6lf\t"
-                "%6lf\t%4lf\t%8lf\t"
-                "%8lf\t%d\n",
-                args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
-                precomp_str.c_str(), r.comment.c_str(), 0.0,
-                L, r.s.c_str(), spell(*path).c_str(),
-                int(aligner->stats.align_status.cost.get()), start, strand, pushed_rate,
-                popped_rate, repeat_rate, aligner->stats.t.total.get_sec(),
-                aligner->stats.t.astar.get_sec(), aligner->stats.align_status.unique.get());
-    }
-
-    return final_state;
+	}
 }
 
 void read_queries(const char *query_file, vector<read_t> *R) {
@@ -437,13 +447,9 @@ int exec(int argc, char **argv) {
             if (interrupted)
                 break;
 
-            char line[10000];
-            state_t final_state = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-                    &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &global_stats);
-            fprintf(fout, "%s", line);
-            fflush(fout);
+            wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
+                    &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, fout, &global_stats);
             //global_stats.t += aligner.read_timers;
-            _unused(final_state);
 
             popped_trie_total.fetch_add( aligner.stats.popped_trie.get() );  
             popped_ref_total.fetch_add( aligner.stats.popped_ref.get() );
@@ -475,21 +481,19 @@ int exec(int argc, char **argv) {
                 Aligner aligner(G, align_params, astar_local.get());
                 LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
                 for (int i=from; i<to; i++) {
-                    char line[10000];
-                    state_t final_state = wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-                            &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, line, &global_stats);
-                    _unused(final_state);
-                    profileQueue.enqueue(string(line));
-                    {
-                        // TODO: merge the astar_local to astar stats
-                        timer_m.lock();
+                    wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
+                            &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, NULL, &global_stats);
+                    //profileQueue.enqueue(string(line));
+                    //{
+                    //    // TODO: merge the astar_local to astar stats
+                    //    timer_m.lock();
             
-                        timer_m.unlock();
-                        if (t == 0) {
-                            popped_trie_total.fetch_add( aligner.stats.popped_trie.get() );  
-                            popped_ref_total.fetch_add( aligner.stats.popped_ref.get() );
-                        }
-                    }
+                    //    timer_m.unlock();
+                    //    if (t == 0) {
+                    //        popped_trie_total.fetch_add( aligner.stats.popped_trie.get() );  
+                    //        popped_ref_total.fetch_add( aligner.stats.popped_ref.get() );
+                    //    }
+                    //}
                 }
             });
         }
@@ -584,7 +588,7 @@ int exec(int argc, char **argv) {
         out << " DONE" << endl;
         out << endl;
 
-        assert( global_stats.align_status.total() == (int)R.size() );
+        assert( global_stats.align_status.total() >= (int)R.size() );
     }
 
     extract_args_to_dict(args, &stats);

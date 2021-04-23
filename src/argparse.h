@@ -22,7 +22,10 @@ struct arguments {
     char *graph_file;
     char *query_file;
     char *output_dir;
+
+	// Alignment parameters
     astarix::EditCosts costs;
+	int k_best_alignments;
 
     // Performance params
     char *algorithm;

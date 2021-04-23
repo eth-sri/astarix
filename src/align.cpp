@@ -2,22 +2,21 @@
 
 namespace astarix {
 
-state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_path) {
+std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max_best_alignments) {
     LOG_DEBUG << "Aligning read " << r.comment << ": " << r.s << " of length " << r.len << " using " << algo;
 
+	assert(max_best_alignments >= 1);
+
     // Clean up
+	p.clear();
+	pe.clear();
+	vis.clear();
+
     stats.clear();
     stats.t.total.start();
     //stats.pushed_hist.resize(r.len);
-    best_path->clear();
 
-    // Local vars
-    path_t p;
-    prev_edge_t pe;
-//#ifndef NDEBUG
-    visited_t vis;
-//#endif
-    state_t final_state;    // the best final state; computed in map()
+    std::vector<state_t> final_states;    // the best final state; computed in map()
     queue_t Q;              // edge_t(i, u) in Q <=> read[1..i] has been matched with a path ending at u; the prev_state is not used
 
     assert(G.has_supersource());
@@ -51,7 +50,7 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         // this check is not needed if the heuristic is consistent
         if (visited(vis, curr_st.i, curr_st.v)) {  // not correct if a new seed is used
             stats.repeated_visits.inc();
-            //continue;
+            continue;
         }
         //visited(vis, curr_st.i, curr_st.v) = true;
 //#endif
@@ -63,20 +62,16 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
 //        }
 
         assert(curr_st.i <= r.len);
-        if (curr_st.i == r.len) {
-            final_state = get_const_path(p, curr_st.i, curr_st.v);
-            get_best_path_to_state(p, pe, final_state, best_path);
-            stats.align_status.cost.set( final_state.cost );
-            if (!Q.empty()) {
-                auto [next_score, next_state] = pop(Q);
-                if (next_state.i == r.len && EQ(next_state.cost, curr_st.cost)) {
-                    stats.align_status.ambiguous.inc();
-                    LOG_DEBUG << "Ambiguous best alignment of " << r.comment;
-                    break;
-                }
-            }
-            stats.align_status.unique.inc();
+        if (!final_states.empty() && !EQ(final_states.front().cost, curr_st.cost))
             break;
+        if (curr_st.i == r.len) {
+            state_t final_state = get_const_path(p, curr_st.i, curr_st.v);
+            LOG_DEBUG << "Target reached at state <" << curr_st.v << ", " << curr_st.i << "> with cost " << final_state.cost;
+            //assert(EQ(final_state.cost, curr_st.cost));
+            final_states.push_back(final_state);
+            stats.align_status.cost.set( final_state.cost );
+            if ((int)final_states.size() >= max_best_alignments)
+                break;
         }
 
         // lazy DP / Fast-Forward
@@ -89,8 +84,18 @@ state_t Aligner::readmap(const read_t &r, std::string algo, edge_path_t *best_pa
         }
     }
 
+    if (final_states.empty())
+        throw "No alignment.";
+
+    assert(final_states.size() >= 1 && (int)final_states.size() <= max_best_alignments);
+    LOG_DEBUG << final_states.size() << " best alignments of " << r.comment;
+    if (final_states.size() > 1)
+        stats.align_status.ambiguous.inc();
+    else 
+        stats.align_status.unique.inc();
+
     stats.t.total.stop();
-    return final_state;
+    return final_states;
 }
 
 void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edge_t &pe, const std::string &algo, queue_t &Q, const edge_t &e) {

@@ -216,7 +216,10 @@ struct graph_t {
             }
         }
 
-		reverse_first_node = add_node();  // including the supersource which will stay unused
+		reverse_first_node = half_nodes;
+
+		add_node();  // supersource mirrored
+
         // add the new nodes and edges
         for (int i=1; i<half_nodes; i++)
             add_node();

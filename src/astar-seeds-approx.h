@@ -380,7 +380,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             ;  // nothing for -1
         }
 
-        LOG_DEBUG << "update interval[" << v << "][" << p << "] to pair(" << interval[v][p].first << ", " << interval[v][p].second << ")";
+		LOG_DEBUG_IF(dval != -1) << "update interval[" << v << "][" << p << "] to pair(" << interval[v][p].first << ", " << interval[v][p].second << ")";
     }
 
     inline void old_update_crumbs_for_node(int p, int dval, int errors, node_t v) {

@@ -17,15 +17,16 @@ struct argp_option options[] = {
                         'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
 //    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
     { "astar_seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
-    { "astar_seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have." },
-    { "astar_seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned." },
-    { "astar_seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match." },
-    { "astar_seeds_interval_intersection",  2005, "{0,1}", 0,  "Counting only crumbs with intersecting intervals." },
-    { "match",          'M', "MATCH_COST",   0,  "Match penalty" },
-    { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty" },
-    { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty" },
-    { "threads",        't', "THREADS",      0,  "Number of threads (default=1)" },
-    { "verbose",        'v', "THREADS",      0,  "Verbosity (default=silent=0, info=1, debug=2)" },
+    { "astar_seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have" },
+    { "astar_seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned" },
+    { "astar_seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match" },
+    { "astar_seeds_interval_intersection",  2005, "{0,1}", 0,  "Counting only crumbs with intersecting intervals" },
+    { "match",          'M', "MATCH_COST",   0,  "Match penalty [0]" },
+    { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty [1]" },
+    { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty [5]" },
+    { "k_best_alignments", 'k', "TOP_K",     0,  "Output at most k optimal alignments per read [5]" },
+    { "threads",        't', "THREADS",      0,  "Number of threads [1]" },
+    { "verbose",        'v', "THREADS",      0,  "Verbosity (silent=0, info=1, debug=2), [0]" },
     { 0 }
 };
 
@@ -47,16 +48,17 @@ arguments read_args(int argc, char **argv) {
     args.query_file            = NULL;
     args.output_dir            = NULL;
 
-    // Problem statement.
-    args.command               = (char *)"align-optimal";
+    // Alignment parameters.
     args.costs                 = astarix::EditCosts(0, 1, 5, 5);
+	args.k_best_alignments     = 5;               // top 5 optimal alignments
 
-    // Optimization parameters.
+    // Performance parameters.
     args.algorithm             = (char *)"astar-prefix";
     args.tree_depth            = -1;              // auto mode
     args.fixed_trie_depth      = false;           // leafs can be shallower if `true`
     args.AStarLengthCap        = 5;
     args.AStarCostCap          = 5;
+    args.threads               = 1;
 
     // Sound optimizations turned ON by default.
     args.greedy_match          = true;
@@ -68,8 +70,8 @@ arguments read_args(int argc, char **argv) {
     args.astar_seeds.backwards_algo        = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::BFS;
 	args.astar_seeds.interval_intersection = true;
 
-    args.threads               = 1;
     args.verbose               = 0;
+    args.command               = (char *)"align-optimal";
     
     // Unsound optimizations turned OFF by default.
     // None.
@@ -90,6 +92,7 @@ arguments read_args(int argc, char **argv) {
     assert(args.costs.match <= args.costs.subst && "Match should be cheaper than other operations.");
     assert(args.costs.match <= args.costs.ins   && "Match should be cheaper than other operations.");
     assert(args.costs.match <= args.costs.del   && "Match should be cheaper than other operations.");
+    assert(args.k_best_alignments >= 1 && "k_best_alignments should be at least 1.");
 
     assert(args.threads >= 1   && "There should be a positive number of threads.");
     assert(args.verbose >= 0   && "Verbosity should be non-negative.");
@@ -164,6 +167,9 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
         case 'G':
             arguments->costs.ins = std::stod(arg);
             arguments->costs.del = std::stod(arg);
+            break;
+        case 'k':
+            arguments->k_best_alignments = std::stod(arg);
             break;
         case 't':
             arguments->threads = std::stod(arg);
