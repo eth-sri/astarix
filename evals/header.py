@@ -33,7 +33,8 @@ def read_astarix_performance(tsv_fn):
     #df['performance'] = df['len'] / df['t(map)'] / 1000000  # [MBp/sec]
     #if 'spell' in df:  # TODO: uncomment
     #    df['dist'] = num_lower(df['spell'])
-    return df.set_index('readname', verify_integrity=True)
+    #return df.set_index('readname', verify_integrity=True)
+    return df.set_index('readname', verify_integrity=False)
 
 def algo2color(algo):
     d = {
@@ -78,7 +79,7 @@ def col2name(col):
         'explored_states':  'Explored states',
         't(map)':  'Alignment time per read',  #  [sec/read]
         'align_sec':  'Alignment time',
-        'cost':    'Best alignment cost',
+        'cost':    'Alignment cost',
         #'performance': 'MBp/sec'
         }
     if col in d:

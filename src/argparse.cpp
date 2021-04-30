@@ -81,21 +81,21 @@ arguments read_args(int argc, char **argv) {
 
     argp_parse(&argp, argc, argv, 0, 0, &args);
 
-    assert(args.graph_file && "Graph file not specified (-g).");
-    assert(args.query_file && "Query file not specified (-q).");
+    if (!args.graph_file) throw "Graph file not specified (-g).";
+    if (!args.query_file) throw "Query file not specified (-q).";
 
-    assert(args.costs.match   >= 0.0 && "EditCosts should be non-negative.");
-    assert(args.costs.subst   >= 0.0 && "EditCosts should be non-negative.");
-    assert(args.costs.ins     >= 0.0 && "EditCosts should be non-negative.");
-    assert(args.costs.del     >= 0.0 && "EditCosts should be non-negative.");
-    assert(args.costs.del     >= 0.0 && "EditCosts should be non-negative.");
-    assert(args.costs.match <= args.costs.subst && "Match should be cheaper than other operations.");
-    assert(args.costs.match <= args.costs.ins   && "Match should be cheaper than other operations.");
-    assert(args.costs.match <= args.costs.del   && "Match should be cheaper than other operations.");
-    assert(args.k_best_alignments >= 1 && "k_best_alignments should be at least 1.");
+    if (!(args.costs.match   >= 0.0)) throw "EditCosts should be non-negative.";
+    if (!(args.costs.subst   >= 0.0)) throw "EditCosts should be non-negative.";
+    if (!(args.costs.ins     >= 0.0)) throw "EditCosts should be non-negative.";
+    if (!(args.costs.del     >= 0.0)) throw "EditCosts should be non-negative.";
+    if (!(args.costs.del     >= 0.0)) throw "EditCosts should be non-negative.";
+    if (!(args.costs.match <= args.costs.subst)) throw "MatchCost should be not higher than SubstCost";
+    if (!(args.costs.match <= args.costs.ins))   throw "MatchCost should be not higher than InsCost";
+    if (!(args.costs.match <= args.costs.del))   throw "MatchCost should be not higher than DelCost";
+    if (!(args.k_best_alignments >= 1)) throw "k_best_alignments should be at least 1.";
 
-    assert(args.threads >= 1   && "There should be a positive number of threads.");
-    assert(args.verbose >= 0   && "Verbosity should be non-negative.");
+    if (!(args.threads >= 1)) throw "There should be a positive number of threads.";
+    if (!(args.verbose >= 0)) throw "Verbosity should be non-negative.";
 
     return args;
 }
@@ -126,33 +126,33 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
             arguments->greedy_match = (bool)std::stod(arg);
             break;
         case 'd':
-            assert(std::stoi(arg) >= 0);
+            if (!(std::stoi(arg) >= 0)) throw "AStarLengthCap should be non-negative.";
             arguments->AStarLengthCap = std::stoi(arg);
             break;
         case 'c':
-            assert(std::stod(arg) >= 0.0);
+            if (!(std::stod(arg) >= 0.0)) throw "AStarCostCap should be non-negative.";
             arguments->AStarCostCap = std::stod(arg);
             break;
         case 'e':
             arguments->AStarNodeEqivClasses = (bool)std::stod(arg);
             break;
         case 2001:
-            assert(std::stoi(arg) >= 5);
+            if (!(std::stoi(arg) >= 5)) throw "AStarSeedLen should be at least 5.";
             arguments->astar_seeds.seed_len = std::stod(arg);
             break;
         case 2002:
-            assert(std::stoi(arg) >= 0);
+            if (!(std::stoi(arg) >= 0)) throw "MaxSeedErrors should be non-negative.";
             arguments->astar_seeds.max_seed_errors = std::stod(arg);
             break;
         case 2003:
-            assert(std::stoi(arg) >= 0);
+            if (!(std::stoi(arg) >= 0)) throw "MaxIndels should be non-negative.";
             arguments->astar_seeds.max_indels = std::stod(arg);
             break;
         case 2004:
             arguments->astar_seeds.backwards_algo = astarix::AStarSeedsWithErrors::Args::name2backwards_algo(arg);
             break;
         case 2005:
-            assert(std::stoi(arg) >= 0 && std::stoi(arg) <= 1);
+            if (!(std::stoi(arg) >= 0 && std::stoi(arg) <= 1)) throw "IntervalIntersection should be 0 or 1.";
             arguments->astar_seeds.interval_intersection = std::stod(arg);
             break;
         case 'o':
@@ -181,7 +181,7 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
             // Too many arguments.
             if (state->arg_num >= 3)
                 argp_usage(state);
-            assert(std::strcmp(arg, "align-optimal") == 0);
+            if (std::strcmp(arg, "align-optimal") != 0) throw "align-optimal is a necessary command.";
             arguments->command = arg;
             break;
   

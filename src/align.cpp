@@ -72,6 +72,8 @@ std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max
             stats.align_status.cost.set( final_state.cost );
             if ((int)final_states.size() >= max_best_alignments)
                 break;
+            else
+                continue;
         }
 
         // lazy DP / Fast-Forward
