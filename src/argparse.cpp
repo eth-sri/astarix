@@ -9,18 +9,18 @@ struct argp_option options[] = {
     { "outdir",         'o', "OUTDIR",        0,  "Output directory" },
     { "tree_depth",     'D', "TREE_DEPTH",    0,  "Suffix tree depth" },
     { "fixed_trie_depth",1001, "FIXED_TRIE_DEPTH",    0,  "Some leafs depth can be less than tree_depth (variable=0, fixed=1)" },
-    { "algorithm",      'a', "{dijkstra, astar-prefix}", 0, "Shortest path algorithm" },
+    { "algorithm",      'a', "{dijkstra, astar-prefix, astar-seeds}", 0, "Shortest path algorithm" },
     { "greedy_match",   'f', "GREEDY_MATCH",  0,  "Proceed greedily forward if there is a unique matching outgoing edge" },
-    { "astar_len_cap",  'd', "A*_PREFIX_CAP", 0,  "The upcoming sequence length cap for the A* heuristic" },
-    { "astar_cost_cap", 'c', "A*_COST_CAP",   0,  "The maximum prefix cost for the A* heuristic" },
-    { "astar_equivalence_classes",
+    { "prefix_len_cap",  'd', "A*_PREFIX_CAP", 0,  "The upcoming sequence length cap for the A* heuristic" },
+    { "prefix_cost_cap", 'c', "A*_COST_CAP",   0,  "The maximum prefix cost for the A* heuristic" },
+    { "prefix_equivalence_classes",
                         'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
 //    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
-    { "astar_seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
-    { "astar_seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have" },
-    { "astar_seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned" },
-    { "astar_seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match" },
-    { "astar_seeds_interval_intersection",  2005, "{0,1}", 0,  "Counting only crumbs with intersecting intervals" },
+    { "seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
+    { "seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have" },
+    { "seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned" },
+    { "seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match" },
+    { "seeds_interval_intersection",  2005, "{0,1}", 0,  "Counting only crumbs with intersecting intervals" },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty [0]" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty [1]" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty [5]" },
@@ -67,7 +67,7 @@ arguments read_args(int argc, char **argv) {
     args.astar_seeds.seed_len              = 15;
     args.astar_seeds.max_seed_errors       = 0;
     args.astar_seeds.max_indels            = 10;
-    args.astar_seeds.backwards_algo        = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::BFS;
+    args.astar_seeds.backwards_algo        = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::DFS_FOR_LINEAR;
 	args.astar_seeds.interval_intersection = true;
 
     args.verbose               = 0;
@@ -126,32 +126,40 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
             arguments->greedy_match = (bool)std::stod(arg);
             break;
         case 'd':
+            if (std::strcmp(arguments->algorithm, "astar-prefix") != 0) throw "LengthCap only for astar-prefix.";
             if (!(std::stoi(arg) >= 0)) throw "AStarLengthCap should be non-negative.";
             arguments->AStarLengthCap = std::stoi(arg);
             break;
         case 'c':
+            if (std::strcmp(arguments->algorithm, "astar-prefix") != 0) throw "CostCap only for astar-prefix.";
             if (!(std::stod(arg) >= 0.0)) throw "AStarCostCap should be non-negative.";
             arguments->AStarCostCap = std::stod(arg);
             break;
         case 'e':
+            if (std::strcmp(arguments->algorithm, "astar-prefix") != 0) throw "NodeEquivClasses only for astar-prefix.";
             arguments->AStarNodeEqivClasses = (bool)std::stod(arg);
             break;
         case 2001:
+            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "SeedLen only for astar-seeds.";
             if (!(std::stoi(arg) >= 5)) throw "AStarSeedLen should be at least 5.";
             arguments->astar_seeds.seed_len = std::stod(arg);
             break;
         case 2002:
+            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "MaxSeedErrors only for astar-seeds.";
             if (!(std::stoi(arg) >= 0)) throw "MaxSeedErrors should be non-negative.";
             arguments->astar_seeds.max_seed_errors = std::stod(arg);
             break;
         case 2003:
+            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "MaxIndels only for astar-seeds.";
             if (!(std::stoi(arg) >= 0)) throw "MaxIndels should be non-negative.";
             arguments->astar_seeds.max_indels = std::stod(arg);
             break;
         case 2004:
+            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "SeedsWithErrors only for astar-seeds.";
             arguments->astar_seeds.backwards_algo = astarix::AStarSeedsWithErrors::Args::name2backwards_algo(arg);
             break;
         case 2005:
+            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "IntervalIntersection only for astar-seeds.";
             if (!(std::stoi(arg) >= 0 && std::stoi(arg) <= 1)) throw "IntervalIntersection should be 0 or 1.";
             arguments->astar_seeds.interval_intersection = std::stod(arg);
             break;
