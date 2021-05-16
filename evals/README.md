@@ -11,10 +11,11 @@ This Snakemake will download, run, and plot the results from all experiments in 
 
 ### Execution
 
-Run `snakemake -p` in this directory. When rerunning the set of experiments, please run `snakemake clean` first (this will not clear the contents of the `raw` folder).
+Run `snakemake -p --cores all` in this directory. When rerunning the set of experiments, please run `snakemake clean` first (this will not clear the contents of the `raw` folder).
 
 ### Sample commands
-* A\* `astarix align-optimal -f reads.fq -g graph.gfa -o outdir > output`
-* Dijkstra `astarix align-optimal -f reads.fq -g graph.gfa -a dijkstra -o outdir > output`
-* GraphAligner `Aligner -f reads.fq -g graph.gfa > output`
+* A\* seeds heuristic `astarix align-optimal -a seeds -f reads.fq -g graph.gfa -o outdir >output`
+* A\* prefix heuristic `astarix align-optimal -a prefix -f reads.fq -g graph.gfa -o outdir >output`
+* Dijkstra `astarix align-optimal -f reads.fq -g graph.gfa -a dijkstra -o outdir >output`
+* GraphAligner `Aligner -f reads.fq -g graph.gfa >output`
 * PaSGAL `PaSGAL -q reads.fq -r graph.vg -m vg -o output -t 1`

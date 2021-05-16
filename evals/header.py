@@ -13,10 +13,11 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
 def read_benchmarks_aggregation(benchmarks_file):
-    df = pd.read_csv(benchmarks_file, sep='\t')
-    df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"])
-    df['c'] = df['algo'].apply(algo2color)
+    df = pd.read_csv(benchmarks_file, sep='\t', index_col=False)
+    #df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"])
+    #df['c'] = df['algo'].apply(algo2color)
     #df['marker'] = df['m'].apply(readlen2marker)
+    df['head_Mbp'] = df['head'] / 10**6
     return df
 
 def num_lower(serie):
@@ -39,8 +40,8 @@ def read_astarix_performance(tsv_fn):
 def algo2color(algo):
     d = {
         'astarix': 'red', #'mediumseagreen', #' forestgreen',
-        'astar-prefix': 'red',
-        'astar-seeds': 'mediumseagreen',
+        'astarix-prefix': 'red',
+        'astarix-seeds': 'mediumseagreen',
         'dijkstra': 'darkorange',
         'graphaligner': 'mediumseagreen',
         'pasgal': 'cornflowerblue',
@@ -55,9 +56,9 @@ def algo2beautiful(algo):
     d = {
         'astar': 'A*',
         'astarix': 'AStarix',
-        'astar-seeds': 'Seeds heuristic',
-        'astar-seeds-intervals': 'Seeds heuristic (+intervals)',
-        'astar-prefix': 'Prefix heuristic',
+        'astarix-seeds': 'Seeds heuristic',
+        'astarix-seeds-intervals': 'Seeds heuristic (+intervals)',
+        'astarix-prefix': 'Prefix heuristic',
         'dijkstra': 'Dijkstra',
         'graphaligner': 'GraphAligner',
         'pasgal': 'PaSGAL',

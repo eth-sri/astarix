@@ -12,7 +12,7 @@ TIMELIMIT       = "(timeout 7200s"
 TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo timeouted)"
 
 ASTARIX_PREFIX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 5 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 5 --fixed_trie_depth 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 5 --fixed_trie_depth 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 DIJKSTRA_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 GA_CMD = "{TIMELIMIT} {GA_BIN} -f {input.reads} -g {input.graph} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} {TIMEOUTPRINT} >>{output.file}"
@@ -31,13 +31,26 @@ PaSGAL_FILES = ["L1.fa", "L2.fastq", "L3.fastq",
                 "LRC.vg", "MHC1.vg", "MHC2.txt"]
 
 # params
+
+REF_SIZE_ALGOS          = ["astarix-seeds", "astarix-prefix"] #, "graphaligner"]
+REF_SIZE_SCALING_GRAPHS = ["ecoli"]
+REF_SIZE_GRAPH_HEADS    = [10000, 100000, 1000000, 10000000]
+REF_SIZE_Ns             = [10000]
+REF_SIZE_ms             = [100]
+
+NUMREADS_ALGOS          = ["astarix-seeds", "astarix-prefix"] #, "graphaligner"]
+NUMREADS_SCALING_GRAPHS = ["ecoli"]
+NUMREADS_GRAPH_HEADS    = [1000000000]
+NUMREADS_Ns             = [1000, 10000, 100000, 1000000]
+NUMREADS_ms             = [100]
+
 GRAPHS       = [ "ecoli" ] #"chr1" ]# "ecoli" ]
-ALGOS        = ["astarix-prefix", "astarix-seeds"] # [ "pasgal", "astarix", "dijkstra", "graphaligner" ] # ] #, "dijkstra", "graphaligner" ] #"vg" ] $"pasgal"
+ALGOS        = ["astarix-seeds", "astarix-prefix" ] # [ "pasgal", "astarix", "dijkstra", "graphaligner" ] # ] #, "dijkstra", "graphaligner" ] #"vg" ] $"pasgal"
 GRAPH_HEADS_SMALL  = [10000, 100000, 1000000, 10000000]  # up to current exact state-of-the-art
 GRAPH_HEADS_BIG    = [10000000, 100000000, 100000000]
 GRAPH_HEADS = GRAPH_HEADS_SMALL #+ GRAPH_HEADS_BIG
 Ns           = [10000] #, 1000, 10000]       # number of reads
-ms           = [100] #75] #, 100, 150]          # read len
+ms           = [100] #75] #, 100, 150, 250]          # read len
 
 FIRST_ROW       = "algo\tgraph\thead\tN\tm\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
 AGGREGATED_BENCHMARKS = "results/aggregated_benchmarks.csv"
@@ -47,10 +60,10 @@ graph_params = "{graph}_head{head}"
 read_params = "N{N}_m{m}"
 params = graph_params + "_" + read_params
 
-EXPERIMENT_N = 100 #20000
+EXPERIMENT_N = 1000 #20000
 EXPERIMENT_FIRST_ROW       = "algo\tgraph\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
 EXPERIMENT_GRAPHS = ["MHC1", "LRC"]
-EXPERIMENT_READS = { "MHC1": "M1", "LRC": "L1"}
+EXPERIMENT_READS = { "MHC1": "M1", "LRC": "L1", "ecoli": "ecoli"}
 experiment_graph = "graphs/pasgal-{graph}.gfa"
 experiment_graph_vg = "raw/PaSGAL/{graph}.vg"
 experiment_input_reads = "raw/PaSGAL/{reads}.fa"
@@ -64,11 +77,39 @@ aligners_inputs = {
 ## Default summary rule to be satisfied.
 rule all:
     input:
-        astar_prefix_vs_seeds = "results/PREFIX_VS_SEEDS_RAN",
+#        agg1 = "results/aggregated_benchmarks.csv"
+        ref_size = "results/REF_SIZE_SCALING_DONE",
+        numreads = "results/NUMREADS_SCALING_DONE"
+#        astar_prefix_vs_seeds = "results/PREFIX_VS_SEEDS_RAN",
 #        visualization = "results/VISUALIZATION_RAN",
-#        agg1 = "results/aggregated_benchmarks.csv",
 #        agg2 = "results/aggregated_experiments.csv",
 #        trie = "results/TRIE_DUMMY"
+
+rule run_ref_size_scaling_experiment:
+    input:
+        refs = expand("prefixes/"+graph_params+".fa", graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS),
+        reads = expand("reads/"+params+"/illumina.fq", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms),
+    output:
+        "results/REF_SIZE_SCALING_DONE"
+    params:
+        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms)
+    shell:
+        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
+#        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
+
+rule run_numreads_scaling_experiment:
+    input:
+        refs = expand("prefixes/"+graph_params+".fa", graph=NUMREADS_SCALING_GRAPHS, head=NUMREADS_GRAPH_HEADS),
+        reads = expand("reads/"+params+"/illumina.fq", algo=NUMREADS_ALGOS, graph=NUMREADS_SCALING_GRAPHS, head=NUMREADS_GRAPH_HEADS, N=NUMREADS_Ns, m=NUMREADS_ms),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=NUMREADS_ALGOS, graph=NUMREADS_SCALING_GRAPHS, head=NUMREADS_GRAPH_HEADS, N=NUMREADS_Ns, m=NUMREADS_ms),
+    output:
+        "results/NUMREADS_SCALING_DONE"
+    params:
+        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=NUMREADS_ALGOS, graph=NUMREADS_SCALING_GRAPHS, head=NUMREADS_GRAPH_HEADS, N=NUMREADS_Ns, m=NUMREADS_ms)
+    shell:
+        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
+#        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
 
 #rule trie_experiments:
 #    input:
@@ -87,16 +128,16 @@ rule all:
 #    shell:
 #        "{ASTARIX_BIN} align-optimal -D {wildcards.D} -t 1 -g graphs/ecoli_head1000000_linear.gfa -q reads/ecoli_head1000000_N1000_m100/illumina.fq -o {output.dir} && touch {output.dummy}"
 
-#rule aggregate_benchmarks:
-#    input:
-#        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ALGOS, graph=GRAPHS, head=GRAPH_HEADS, N=Ns, m=ms),
-#    output:
-#        "results/aggregated_benchmarks.csv"
-#    params:
-#        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=ALGOS, graph=GRAPHS, head=GRAPH_HEADS, N=Ns, m=ms)
-#    shell:
-#        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
-#
+rule aggregate_benchmarks:
+    input:
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ALGOS, graph=GRAPHS, head=GRAPH_HEADS, N=Ns, m=ms),
+    output:
+        "results/aggregated_benchmarks.csv"
+    params:
+        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=ALGOS, graph=GRAPHS, head=GRAPH_HEADS, N=Ns, m=ms)
+    shell:
+        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
+
 #rule aggregate_experiments:
 #    input:
 #        file = expand("results/{algo}/{graph}/benchmark.txt", algo=ALGOS, graph=EXPERIMENT_GRAPHS),
@@ -126,29 +167,35 @@ rule astar_prefix_vs_seeds:
 
 rule benchmark_astarix_prefix:
     input:
-        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
-        graph = "graphs/pasgal-{graph}.gfa",
+        reads = "reads/"+params+"/illumina.fq",
+        graph = "prefixes/"+graph_params+".fa"
+        #graph = "graphs/{graph}.fasta",
+        #reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fq",
+        #graph = "graphs/pasgal-{graph}.gfa",
     output:
-        align = "results/astarix-prefix/{graph}/out/alignments.tsv",
-        file = "results/astarix-prefix/{graph}/summary.txt"
+        align = "results/astarix-prefix/"+params+"/out/alignments.tsv",
+        file = "results/astarix-prefix/"+params+"/summary.txt"
     benchmark:
-        "results/astarix-prefix/{graph}/benchmark.txt"
+        "results/astarix-prefix/"+params+"/benchmark.txt"
     log:
-        "results/astarix-prefix/{graph}/log.txt"
+        "results/astarix-prefix/"+params+"/log.txt"
     shell:
         ASTARIX_PREFIX_CMD
 
 rule benchmark_astarix_seeds:
     input:
-        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
-        graph = "graphs/pasgal-{graph}.gfa",
+        reads = "reads/"+params+"/illumina.fq",
+        graph = "prefixes/"+graph_params+".fa"
+#        graph = "graphs/{graph}.fasta",
+#        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
+#        graph = "graphs/pasgal-{graph}.gfa",
     output:
-        align = "results/astarix-seeds/{graph}/out/alignments.tsv",
-        file = "results/astarix-seeds/{graph}/summary.txt"
+        align = "results/astarix-seeds/"+params+"/out/alignments.tsv",
+        file = "results/astarix-seeds/"+params+"/summary.txt"
     benchmark:
-        "results/astarix-seeds/{graph}/benchmark.txt"
+        "results/astarix-seeds/"+params+"/benchmark.txt"
     log:
-        "results/astarix-seeds/{graph}/log.txt"
+        "results/astarix-seeds/"+params+"/log.txt"
     shell:
         ASTARIX_SEEDS_CMD
 
@@ -168,14 +215,16 @@ rule benchmark_dijkstra:
 
 rule benchmark_graphaligner:
     input:
-        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
-        graph = "graphs/pasgal-{graph}.gfa",
+        reads = "reads/"+params+"/illumina.fq",
+        graph = "prefixes/"+graph_params+".fa"
+        #reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
+        #graph = "graphs/pasgal-{graph}.gfa",
     output:
-        file = "results/graphaligner/{graph}/summary.txt"
+        file = "results/graphaligner/"+params+"/summary.txt"
     benchmark:
-        "results/graphaligner/{graph}/benchmark.txt"
+        "results/graphaligner/"+params+"/benchmark.txt"
     log:
-        "results/graphaligner/{graph}/log.txt"
+        "results/graphaligner/"+params+"/log.txt"
     shell:
         GA_CMD
 
@@ -205,7 +254,7 @@ rule vg2gfa:
 
 rule clean:
     shell:
-        "rm -rf reads graphs results prefixes"
+        "rm -rf reads graphs prefixes"
 
 rule download_ecoli:
     output:
@@ -266,6 +315,8 @@ rule generate_illumina_reads:
     shell:
         "{ART} -ss HS25 -sam -i {input} -c {wildcards.N} -l {wildcards.m} -o {params.prefix} --rndSeed 42"
 
+#ruleorder: head_ecoli_reads > head_reads
+
 rule head_reads:
     input:
         "raw/{reads_file}.fa"
@@ -273,6 +324,14 @@ rule head_reads:
         "reads/{reads_file}_reads{reads_num}.fa"
     shell:
         "head -n $(( 2 * {wildcards.reads_num} )) {input} >{output}"
+
+#rule head_ecoli_reads:
+#    input:
+#        "raw/ecoli.fasta"
+#    output:
+#        "reads/ecoli_reads{reads_num}.fq"
+#    shell:
+#        "{ART} -ss HS25 -sam -i {input} -c {wildcards.N} -l {wildcards.m} -o {params.prefix} --rndSeed 42"
 
 rule head_pasgal_reads:
     input:

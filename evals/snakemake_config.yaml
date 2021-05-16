@@ -7,7 +7,7 @@ bcalm_convert_path: convertToGFA.py
 art_bin_path: art_illumina
 
 # aligners
-astarix_bin_path:      astarix
+astarix_bin_path:      /home/pesho/astarix/release/astarix
 graphaligner_bin_path: Aligner
 vg_bin_path:           vg
 pasgal_bin_path:       PaSGAL

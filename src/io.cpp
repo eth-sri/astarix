@@ -50,9 +50,11 @@ std::vector<seq_t> read_fasta(const std::string &fn) {
     while(true) {
         assert(comment != "");
         std::string line, s;
-        while(getline(in, line), line.size() && line[0]!='>') {
-            assert(line != "");
+        while(getline(in, line)) {
+            if (line.size() == 0 || line[0]=='>')
+                break;
             s += line;
+            //LOG_DEBUG << "ref line: " << line;
         }
 
         if (s.empty())
