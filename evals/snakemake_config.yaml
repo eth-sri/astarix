@@ -5,6 +5,7 @@ bcalm_convert_path: convertToGFA.py
 #pbsim_bin_path: pbsim
 #pbsim_config_path: /home/pesho/libs/PBSIM-PacBio-Simulator/data/model_qc_clr
 art_bin_path: art_illumina
+vargas_bin_path: /home/pesho/libs/vargas/bin/vargas
 
 # aligners
 astarix_bin_path:      /home/pesho/astarix/release/astarix

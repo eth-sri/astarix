@@ -7,6 +7,7 @@ ASTARIX_BIN = config["astarix_bin_path"]
 GA_BIN = config["graphaligner_bin_path"]
 PASGAL_BIN = config["pasgal_bin_path"]
 VG_BIN = config["vg_bin_path"]
+VARGAS_BIN = config["vargas_bin_path"]
 
 TIMELIMIT       = "(timeout 7200s"
 TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo timeouted)"
@@ -16,6 +17,7 @@ ASTARIX_SEEDS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {
 DIJKSTRA_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 GA_CMD = "{TIMELIMIT} {GA_BIN} -f {input.reads} -g {input.graph} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} {TIMEOUTPRINT} >>{output.file}"
+VARGAS_CMD = "{TIMELIMIT} {VARGAS_BIN} align -g {input.graph_gdef} -U {input.reads} --ete >{output.align} 2>{output.file} {TIMEOUTPRINT}"
 
 ALIGN_CMD = {
     'astarix-prefix': ASTARIX_PREFIX_CMD,
@@ -32,13 +34,13 @@ PaSGAL_FILES = ["L1.fa", "L2.fastq", "L3.fastq",
 
 # params
 
-REF_SIZE_ALGOS          = ["astarix-seeds", "astarix-prefix"] #, "graphaligner"]
+REF_SIZE_ALGOS          = ["astarix-seeds", "astarix-prefix", "vargas"] #, "graphaligner"]
 REF_SIZE_SCALING_GRAPHS = ["ecoli"]
 REF_SIZE_GRAPH_HEADS    = [10000, 100000, 1000000, 10000000]
 REF_SIZE_Ns             = [10000]
 REF_SIZE_ms             = [100]
 
-NUMREADS_ALGOS          = ["astarix-seeds", "astarix-prefix"] #, "graphaligner"]
+NUMREADS_ALGOS          = ["astarix-seeds", "astarix-prefix", "vargas"] #, "graphaligner"]
 NUMREADS_SCALING_GRAPHS = ["ecoli"]
 NUMREADS_GRAPH_HEADS    = [1000000000]
 NUMREADS_Ns             = [1000, 10000, 100000, 1000000]
@@ -79,7 +81,7 @@ rule all:
     input:
 #        agg1 = "results/aggregated_benchmarks.csv"
         ref_size = "results/REF_SIZE_SCALING_DONE",
-        numreads = "results/NUMREADS_SCALING_DONE"
+#        numreads = "results/NUMREADS_SCALING_DONE"
 #        astar_prefix_vs_seeds = "results/PREFIX_VS_SEEDS_RAN",
 #        visualization = "results/VISUALIZATION_RAN",
 #        agg2 = "results/aggregated_experiments.csv",
@@ -89,7 +91,7 @@ rule run_ref_size_scaling_experiment:
     input:
         refs = expand("prefixes/"+graph_params+".fa", graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS),
         reads = expand("reads/"+params+"/illumina.fq", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms),
     output:
         "results/REF_SIZE_SCALING_DONE"
     params:
@@ -212,6 +214,28 @@ rule benchmark_dijkstra:
         "results/dijkstra/{graph}/log.txt"
     shell:
         DIJKSTRA_CMD
+
+rule benchmark_vargas:
+    input:
+        reads = "reads/"+params+"/illumina.fq",
+        graph_gdef = "prefixes/"+graph_params+".gdef"
+    output:
+        align = "results/vargas/"+params+"/out/alignments.tsv",
+        file = "results/vargas/"+params+"/summary.txt"
+    benchmark:
+        "results/vargas/"+params+"/benchmark.txt"
+    log:
+        "results/vargas/"+params+"/log.txt"
+    shell:
+        VARGAS_CMD
+
+rule prepare_vargas_graph:
+    input:
+        "prefixes/"+graph_params+".fa"
+    output:
+        "prefixes/"+graph_params+".gdef"
+    shell:
+        "{VARGAS_BIN} define -f {input} -t {output}"
 
 rule benchmark_graphaligner:
     input:

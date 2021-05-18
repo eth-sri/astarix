@@ -46,6 +46,7 @@ def algo2color(algo):
         'graphaligner': 'mediumseagreen',
         'pasgal': 'cornflowerblue',
         'astar-seeds-intervals': 'red',
+        'vargas': 'blue',
         }
     if algo in d:
         return d[algo]
@@ -62,6 +63,7 @@ def algo2beautiful(algo):
         'dijkstra': 'Dijkstra',
         'graphaligner': 'GraphAligner',
         'pasgal': 'PaSGAL',
+        'vargas': 'Vargas',
         }
     if algo in d:
         return d[algo]
