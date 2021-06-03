@@ -68,7 +68,7 @@ arguments read_args(int argc, char **argv) {
     args.astar_seeds.max_seed_errors       = 0;
     args.astar_seeds.max_indels            = 10;
     args.astar_seeds.backwards_algo        = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::DFS_FOR_LINEAR;
-	args.astar_seeds.interval_intersection = true;
+	args.astar_seeds.interval_intersection = false; //true;
 
     args.verbose               = 0;
     args.command               = (char *)"align-optimal";

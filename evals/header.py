@@ -27,7 +27,7 @@ def read_astarix_performance(tsv_fn):
     df = pd.read_csv(tsv_fn, delim_whitespace=True)
     df['pushed+popped'] = df['pushed'] + df['popped']
     #df['generated_errors'] = df['readname'].apply(lambda rn: int(rn.split()[0]) if rn.split()[0].isdigit() else -1)  # TODO: uncomment
-    df['explored_states'] = df['pushed'] * df['len']
+    #df['explored_states'] = df['pushed'] * df['len']
     #df['algo'] = df['algo'].replace(['astar-prefix'], 'astarix')
     #df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-seeds", "astar-prefix", "pasgal"], ordered=True)
     #df['algo'] = df['algo'].cat.remove_unused_categories()
@@ -41,11 +41,14 @@ def algo2color(algo):
     d = {
         'astarix': 'red', #'mediumseagreen', #' forestgreen',
         'astarix-prefix': 'red',
+        'astar-prefix': 'red',
         'astarix-seeds': 'mediumseagreen',
+        'astar-seeds': 'mediumseagreen',
         'dijkstra': 'darkorange',
         'graphaligner': 'mediumseagreen',
         'pasgal': 'cornflowerblue',
         'astar-seeds-intervals': 'red',
+        'astarix-seeds-intervals': 'red',
         'vargas': 'blue',
         }
     if algo in d:
@@ -58,8 +61,11 @@ def algo2beautiful(algo):
         'astar': 'A*',
         'astarix': 'AStarix',
         'astarix-seeds': 'Seeds heuristic',
+        'astar-seeds': 'Seeds heuristic',
         'astarix-seeds-intervals': 'Seeds heuristic (+intervals)',
+        'astar-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astarix-prefix': 'Prefix heuristic',
+        'astar-prefix': 'Prefix heuristic',
         'dijkstra': 'Dijkstra',
         'graphaligner': 'GraphAligner',
         'pasgal': 'PaSGAL',
