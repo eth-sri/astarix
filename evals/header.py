@@ -26,6 +26,8 @@ def num_lower(serie):
 def read_astarix_performance(tsv_fn):
     df = pd.read_csv(tsv_fn, delim_whitespace=True)
     df['pushed+popped'] = df['pushed'] + df['popped']
+    df['explored_per_bp'] = df['explored_states'] / df['len']
+    df['error_rate'] = df['cost'] / df['len']
     #df['generated_errors'] = df['readname'].apply(lambda rn: int(rn.split()[0]) if rn.split()[0].isdigit() else -1)  # TODO: uncomment
     #df['explored_states'] = df['pushed'] * df['len']
     #df['algo'] = df['algo'].replace(['astar-prefix'], 'astarix')
@@ -89,6 +91,8 @@ def col2name(col):
         't(map)':  'Alignment time per read',  #  [sec/read]
         'align_sec':  'Alignment time',
         'cost':    'Alignment cost',
+        'explored_per_bp': 'Explored states per bp',
+        'error_rate': 'Error rate',
         #'performance': 'MBp/sec'
         }
     if col in d:
