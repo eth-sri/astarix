@@ -252,6 +252,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         //assert(read_cnt.seeds.get() <= int(8*sizeof(H[0][0])));
 
         global_cnt += read_cnt;
+        states_with_crumbs = read_cnt.states_with_crumbs;  // TODO: refactor
     }
 
     void after_every_alignment() {

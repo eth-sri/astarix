@@ -132,6 +132,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 			*repeat_rate_max = max(*repeat_rate_max, repeat_rate);
 
 			*global_stats += aligner->stats;
+            int crumbs = aligner->astar->states_with_crumbs.get();
 
 			char line[10000];
 			line[0] = 0;
@@ -141,13 +142,15 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 					"%3d\t%10s\t%10s\t"
 					"%d\t%6d\t%c\t%6lf\t"
 					"%6lf\t%4lf\t%8lf\t"
-					"%8lf\t%d\t%d\n",
+					"%8lf\t%d\t%d\t"
+                    "%d\n",
 					args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
 					precomp_str.c_str(), r.comment.c_str(), 0.0,
 					L, r.s.c_str(), spell(*best_path).c_str(),
 					int(aligner->stats.align_status.cost.get()), start, strand, pushed_rate,
 					popped_rate, repeat_rate, aligner->stats.t.total.get_sec(),
-					aligner->stats.t.astar.get_sec(), aligner->stats.align_status.unique.get(), aligner->stats.explored_states.get());
+					aligner->stats.t.astar.get_sec(), aligner->stats.align_status.unique.get(), aligner->stats.explored_states.get(),
+                    crumbs);
             fprintf(fout, "%s", line);
             fflush(fout);
 		}
@@ -343,7 +346,8 @@ int exec(int argc, char **argv) {
                 "len\tread\tspell\t"
                 "cost\tstart\tstrand\tpushed\t"
                 "popped\trepeat_rate\tt(map)\t"
-                "t(astar)\tunique_best\texplored_states\n");
+                "t(astar)\tunique_best\texplored_states\t"
+                "crumbs\n");
         fclose(fout);
     }
 

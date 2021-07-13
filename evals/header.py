@@ -27,11 +27,13 @@ def read_astarix_performance(tsv_fn):
     df = pd.read_csv(tsv_fn, delim_whitespace=True)
     df['pushed+popped'] = df['pushed'] + df['popped']
     df['explored_per_bp'] = df['explored_states'] / df['len']
+    if 'crumbs' in df:
+        df['crumbs_per_bp'] = df['crumbs'] / df['len']
     df['error_rate'] = df['cost'] / df['len']
     #df['generated_errors'] = df['readname'].apply(lambda rn: int(rn.split()[0]) if rn.split()[0].isdigit() else -1)  # TODO: uncomment
     #df['explored_states'] = df['pushed'] * df['len']
     #df['algo'] = df['algo'].replace(['astar-prefix'], 'astarix')
-    #df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-seeds", "astar-prefix", "pasgal"], ordered=True)
+    df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"], ordered=True)
     #df['algo'] = df['algo'].cat.remove_unused_categories()
     #df['performance'] = df['len'] / df['t(map)'] / 1000000  # [MBp/sec]
     #if 'spell' in df:  # TODO: uncomment
