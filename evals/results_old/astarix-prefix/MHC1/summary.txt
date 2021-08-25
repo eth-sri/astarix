@@ -1,0 +1,66 @@
+----
+Assert() checks:       OFF
+        verbose:        0
+----
+Loading reference graph... done in 1.58593s.
+Loading queries... done in 0.000127s.
+Contructing trie... done in 9.56442s.
+Initializing A* heuristic... done in 0.35603s.
+
+ == General parameters and optimizations == 
+             Alignment algo: astar-prefix
+                 Edit costs: 0, 1, 5, 5 (match, subst, ins, del)
+              Greedy match?: true
+                    Threads: 1
+
+ == A* parameters ==
+                   Cost cap: 5
+   Upcoming seq. length cap: 5
+      Nodes equiv. classes?: true
+A* compressible equiv nodes: 8781602 (75.63%)
+
+ == Data ==
+         Original reference: 5138363 nodes, 5318019 edges
+                       Trie: 1334736 nodes, 16889910 edges, depth <=11
+  Reference+ReverseRef+Trie: 11611462 nodes, 27525948 edges, density: 0
+                      Reads: 100 x 100bp, coverage: 0.00x
+
+Aligning...done in 1.69s.
+ == Aligning statistics ==
+        Explored rate (avg): 4.65 states/read_bp
+     Pushed rate (avg, max): 16.88, 523.91    [states/bp] (states normalized by query length)
+     Popped rate (avg, max): 1.53, 36.08
+             Average popped: 0.00 from trie vs 0.00 from ref (influenced by greedy match flag)
+                 Total cost: 49
+ Non-unique best alignments: 0 out of 100
+
+ == Heuristic stats (astar-prefix) ==
+         eq. classes mem: 0.17gb
+      Table memory usage: 128064 entries  occupying [0.00, 0.00] gb
+   Memoization miss rate: 75.93%
+
+ == Performance ==
+    Memory:                    measured | estimated
+                   total: 0.88gb, 100% | -
+               reference: 0.45gb, 50.75% | 17.91%
+                   reads: 0.00gb, 0.00% | 0.00%
+                    trie: 0.39gb, 44.18% | 22.08%
+     equiv. classes opt.: 0.04gb, 4.91%
+          A*-memoization: 0.00gb, 0.00
+
+   Total wall runtime:    13.44s
+       reference loading: 1.59s
+         queries loading: 0.00s
+          construct trie: 9.56s
+              precompute: 0.36s
+                   align: 1.70s (wall time) => 60.25 reads/s <=> 5.83 Kbp/s
+
+ Total align cpu time:    1.69s (cpu time)
+ A* per read preparation: 0.00%
+                A* query: 38.90%
+                   queue: 6.56%
+                   dicts: 23.21%
+            greedy_match: 5.38%
+                   other: 25.94%
+ DONE
+
