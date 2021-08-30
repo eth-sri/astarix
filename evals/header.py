@@ -54,6 +54,7 @@ def algo2color(algo):
         'astar-seeds-intervals': 'red',
         'astarix-seeds-intervals': 'red',
         'vargas': 'blue',
+        'vg': 'orange',
         }
     if algo in d:
         return d[algo]
@@ -74,6 +75,7 @@ def algo2beautiful(algo):
         'graphaligner': 'GraphAligner',
         'pasgal': 'PaSGAL',
         'vargas': 'Vargas',
+        'vg': 'VG',
         }
     if algo in d:
         return d[algo]

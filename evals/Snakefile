@@ -9,23 +9,16 @@ PASGAL_BIN = config["pasgal_bin_path"]
 VG_BIN = config["vg_bin_path"]
 VARGAS_BIN = config["vargas_bin_path"]
 
-TIMELIMIT       = "(timeout 7200s"
+TIMELIMIT       = "(timeout 1800s"
 TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo timeouted)"
 
 ASTARIX_PREFIX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 5 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 ASTARIX_SEEDS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 5 --fixed_trie_depth 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 DIJKSTRA_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-GA_CMD = "{TIMELIMIT} {GA_BIN} -f {input.reads} -g {input.graph} >{output.file} {TIMEOUTPRINT} >>{output.file}"
+GA_CMD = "{TIMELIMIT} {GA_BIN} --seeds-first-full-rows 64 -b 10000 -a alignments.gaf -f {input.reads} -g {input.graph_vg} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} {TIMEOUTPRINT} >>{output.file}"
 VARGAS_CMD = "{TIMELIMIT} {VARGAS_BIN} align -g {input.graph_gdef} -U {input.reads} --ete >{output.align} 2>{output.file} {TIMEOUTPRINT}"
-
-ALIGN_CMD = {
-    'astarix-prefix': ASTARIX_PREFIX_CMD,
-    'astarix-seeds': ASTARIX_SEEDS_CMD,
-    'dijkstra': DIJKSTRA_CMD,
-    'graphaligner': GA_CMD,
-    'pasgal': PASGAL_CMD,
-}
+### VG_CMD = inlined ### "{TIMELIMIT} {VG_BIN} align -s \"${ary[1]}\" {input.graph_vg} >{output.align} 2>{output.file} {TIMEOUTPRINT}"
 
 PaSGAL_DATA_URL = "https://alurulab.cc.gatech.edu/sites/all/projectFiles/PaSGAL_Chirag"
 PaSGAL_FILES = ["L1.fa", "L2.fastq", "L3.fastq",
@@ -34,7 +27,7 @@ PaSGAL_FILES = ["L1.fa", "L2.fastq", "L3.fastq",
 
 # params
 
-REF_SIZE_ALGOS          = ["astarix-seeds", "astarix-prefix", "vargas"] #, "graphaligner"]
+REF_SIZE_ALGOS          = ["astarix-seeds", "astarix-prefix", "vargas", "graphaligner", "vg", "pasgal", "dijkstra"]
 REF_SIZE_SCALING_GRAPHS = ["ecoli"]
 REF_SIZE_GRAPH_HEADS    = [10000, 100000, 1000000, 10000000]
 REF_SIZE_Ns             = [10000]
@@ -171,9 +164,6 @@ rule benchmark_astarix_prefix:
     input:
         reads = "reads/"+params+"/illumina.fq",
         graph = "prefixes/"+graph_params+".fa"
-        #graph = "graphs/{graph}.fasta",
-        #reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fq",
-        #graph = "graphs/pasgal-{graph}.gfa",
     output:
         align = "results/astarix-prefix/"+params+"/out/alignments.tsv",
         file = "results/astarix-prefix/"+params+"/summary.txt"
@@ -188,9 +178,6 @@ rule benchmark_astarix_seeds:
     input:
         reads = "reads/"+params+"/illumina.fq",
         graph = "prefixes/"+graph_params+".fa"
-#        graph = "graphs/{graph}.fasta",
-#        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
-#        graph = "graphs/pasgal-{graph}.gfa",
     output:
         align = "results/astarix-seeds/"+params+"/out/alignments.tsv",
         file = "results/astarix-seeds/"+params+"/summary.txt"
@@ -203,17 +190,31 @@ rule benchmark_astarix_seeds:
 
 rule benchmark_dijkstra:
     input:
-        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
-        graph = "graphs/pasgal-{graph}.gfa",
+        reads = "reads/"+params+"/illumina.fq",
+        graph = "prefixes/"+graph_params+".fa"
     output:
-        align = "results/dijkstra/{graph}/out/alignments.tsv",
-        file = "results/dijkstra/{graph}/summary.txt"
+        align = "results/dijkstra/"+params+"/out/alignments.tsv",
+        file = "results/dijkstra/"+params+"/summary.txt"
     benchmark:
-        "results/dijkstra/{graph}/benchmark.txt"
+        "results/dijkstra/"+params+"/benchmark.txt"
     log:
-        "results/dijkstra/{graph}/log.txt"
+        "results/dijkstra/"+params+"/log.txt"
     shell:
         DIJKSTRA_CMD
+
+#rule benchmark_dijkstra:
+#    input:
+#        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
+#        graph = "graphs/pasgal-{graph}.gfa",
+#    output:
+#        align = "results/dijkstra/{graph}/out/alignments.tsv",
+#        file = "results/dijkstra/{graph}/summary.txt"
+#    benchmark:
+#        "results/dijkstra/{graph}/benchmark.txt"
+#    log:
+#        "results/dijkstra/{graph}/log.txt"
+#    shell:
+#        DIJKSTRA_CMD
 
 rule benchmark_vargas:
     input:
@@ -240,9 +241,8 @@ rule prepare_vargas_graph:
 rule benchmark_graphaligner:
     input:
         reads = "reads/"+params+"/illumina.fq",
-        graph = "prefixes/"+graph_params+".fa"
-        #reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
-        #graph = "graphs/pasgal-{graph}.gfa",
+        graph_vg = "graphs/"+graph_params+"_linear.vg"
+        #graph = "prefixes/"+graph_params+".fa"
     output:
         file = "results/graphaligner/"+params+"/summary.txt"
     benchmark:
@@ -254,15 +254,16 @@ rule benchmark_graphaligner:
 
 rule benchmark_pasgal:
     input:
-        reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
-        graph = "graphs/pasgal-{graph}.gfa",
-        graph_vg = "raw/PaSGAL/{graph}.vg"
+        reads = "reads/"+params+"/illumina.fq",
+        graph_vg = "graphs/"+graph_params+"_linear.vg"
+        #reads = lambda wlc: "reads/"+EXPERIMENT_READS[wlc.graph]+"_reads"+str(EXPERIMENT_N)+".fa",
+        #graph = "graphs/pasgal-{graph}.gfa",
     output:
-        file = "results/pasgal/{graph}/summary.txt"
+        file = "results/pasgal/"+params+"/summary.txt"
     benchmark:
-        "results/pasgal/{graph}/benchmark.txt"
+        "results/pasgal/"+params+"/benchmark.txt"
     log:
-        "results/pasgal/{graph}/log.txt"
+        "results/pasgal/"+params+"/log.txt"
     shell:
         PASGAL_CMD
 
@@ -325,7 +326,7 @@ rule create_linear_graph:
         gfa = "graphs/"+graph_params+"_linear.gfa",
         vg = "graphs/"+graph_params+"_linear.vg"
     shell:
-        "echo -n 'S\t1\t' >{output.gfa} && tail -n +2 {input} | tr -d '\n' >>{output.gfa}"
+        "echo -n 'S\t1\t' >{output.gfa} && tail -n +2 {input} | tr -d '\n' >>{output.gfa} && echo -n '\nS\t2\tA\nL\t1\t+\t2\t+\t0M\n' >>{output.gfa}"  # make PaSGAL happy: add a fictive segment
         "&& {VG_BIN} view -Fv {output.gfa} >{output.vg}"
 
 rule generate_illumina_reads:
@@ -422,10 +423,15 @@ rule head_pasgal_reads:
 #        "results/pasgal/"+params+"/log.txt"
 #    shell:
 #        PASGAL_CMD
-#
-#rule run_vg:
-#    input: **aligners_inputs
-#    output:
-#        file = "results/vg/"+params+"/summary.txt",
-#    shell:
-#        "{VG_BIN} -s AAATATATAAAAATATTTAA -g {input.graph} >{output}"
+
+rule run_vg:
+	input: **aligners_inputs
+	output:
+		file = "results/vg/"+params+"/summary.txt",
+		align = "results/vg/"+params+"/alignments.tsv"
+	benchmark:
+		"results/vg/"+params+"/benchmark.txt"
+	shell:
+		"while mapfile -t -n 4 ary && ((${{#ary[@]}})); do {VG_BIN} align -s \"${{ary[1]}}\" {input.graph_vg} -j; done <{input.reads} >{output.align} 2>{output.file}"
+		#query = "AAACGT",
+		#shell(VG_CMD)
