@@ -1,17 +1,19 @@
 # https://github.com/GATB/bcalm
-bcalm_bin_path: bcalm
-bcalm_convert_path: convertToGFA.py
+#bcalm_bin_path: bcalm
+#bcalm_convert_path: convertToGFA.py
 # https://github.com/pfaucon/PBSIM-PacBio-Simulator
-#pbsim_bin_path: pbsim
+
+# read simulators
+pbsim_bin_path: pbsim1
 #pbsim_config_path: /home/pesho/libs/PBSIM-PacBio-Simulator/data/model_qc_clr
 art_bin_path: art_illumina
-vargas_bin_path: vargas
 
 # aligners
 astarix_bin_path:      astarix
 graphaligner_bin_path: GraphAligner
 vg_bin_path:           vg
 pasgal_bin_path:       PaSGAL
+vargas_bin_path: vargas
 
 # generators
 bcalm_bin_path:        bcalm
