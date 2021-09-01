@@ -24,7 +24,7 @@ struct argp_option options[] = {
     { "match",          'M', "MATCH_COST",   0,  "Match penalty [0]" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty [1]" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty [5]" },
-    { "k_best_alignments", 'k', "TOP_K",     0,  "Output at most k optimal alignments per read [5]" },
+    { "k_best_alignments", 'k', "TOP_K",     0,  "Output at most k optimal alignments per read [1]" },
     { "threads",        't', "THREADS",      0,  "Number of threads [1]" },
     { "verbose",        'v', "THREADS",      0,  "Verbosity (silent=0, info=1, debug=2), [0]" },
     { 0 }
@@ -64,9 +64,9 @@ arguments read_args(int argc, char **argv) {
     args.greedy_match          = true;
     args.AStarNodeEqivClasses  = true;
 
-    args.astar_seeds.seed_len              = 15;
+    args.astar_seeds.seed_len              = -1;
     args.astar_seeds.max_seed_errors       = 0;
-    args.astar_seeds.max_indels            = 10;
+    args.astar_seeds.max_indels            = -1;
     args.astar_seeds.backwards_algo        = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::DFS_FOR_LINEAR;
 	args.astar_seeds.interval_intersection = false; //true;
 

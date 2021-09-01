@@ -134,7 +134,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 			*global_stats += aligner->stats;
             int crumbs = aligner->astar->states_with_crumbs.get();
 
-			char line[10000];
+			char line[60000];
 			line[0] = 0;
 			sprintf(line,
 					"%8s\t%3d\t%8s\t"
@@ -197,6 +197,12 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
     if (args->tree_depth == -1) {
         args->tree_depth = floor(log(G.nodes()) / log(4.0));
     }
+    if (args->astar_seeds.seed_len == -1) {
+		args->astar_seeds.seed_len = args->tree_depth;
+	}
+    if (args->astar_seeds.max_indels == -1) {
+		args->astar_seeds.max_indels = args->astar_seeds.seed_len;
+	}
     if (args->tree_depth <= 0)
         throw "Trie depth should be >0.";
 }
