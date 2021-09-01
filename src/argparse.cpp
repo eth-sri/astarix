@@ -50,7 +50,7 @@ arguments read_args(int argc, char **argv) {
 
     // Alignment parameters.
     args.costs                 = astarix::EditCosts(0, 1, 5, 5);
-	args.k_best_alignments     = 5;               // top 5 optimal alignments
+	args.k_best_alignments     = 1;               // top 5 optimal alignments
 
     // Performance parameters.
     args.algorithm             = (char *)"astar-prefix";
