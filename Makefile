@@ -76,9 +76,10 @@ eval150: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR)/ecoli_head1000000_linear/vg/)
 	$(VGBIN) map -d $(DATADIR)/ecoli_head1000000_linear/ecoli_1M -f $(DATADIR)/ecoli_head1000000_linear/illumina150.fq -q 1 -z 1 -o 1 -y 1 -L 0 -j -N 1 >$(TMPDIR)/ecoli_head1000000_linear/vg/illumina150.json 
 
+# art 
 eval250: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
-	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-seeds $(RUNFLAGS) --fixed_trie_depth 1 --seeds_max_errors 0 --seeds_max_indels 5 --seeds_backwards_algo dfs_for_linear
+	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina_250_10000.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-seeds $(RUNFLAGS) --fixed_trie_depth 1 --seeds_max_errors 0 --seeds_max_indels 5 --seeds_backwards_algo dfs_for_linear
 	#$(ASTARIXBIN) align-optimal -a astar-prefix -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/astar-prefix $(RUNFLAGS) --fixed_trie_depth 1
 	#$(ASTARIXBIN) align-optimal -a dijkstra -t 1 -g $(DATADIR)/ecoli_head1000000_linear/graph.gfa -q $(DATADIR)/ecoli_head1000000_linear/illumina250.fq -o $(TMPDIR)/ecoli_head1000000_linear_eval250/dijkstra $(RUNFLAGS) --fixed_trie_depth 1
 
@@ -99,8 +100,8 @@ eval_ccs: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR)/ecoli_head1000000_linear_ccs/minimap2/)
 
 	#$(VGBIN) map -d $(DATADIR)/ecoli_head1000000_linear/ecoli_1M -f $(DATADIR)/ecoli_head1000000_linear/ccs/sd_0001.fastq -q 1 -z 1 -o 1 -y 1 -L 0 -j -N 1 >$(TMPDIR)/ecoli_head1000000_linear_ccs/vg/aln.json 
-	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/ecoli.fasta -q $(DATADIR)/ecoli_head1000000_linear/long_ccs/head20000.fastq -o $(TMPDIR)/ecoli_head1000000_linear_ccs/astar-seeds $(RUNFLAGS) --fixed_trie_depth 1 --seeds_max_errors 0 -G 1 -S 1  --seeds_backwards_algo dfs_for_linear
-	$(MINIMAPBIN) -a -x map-pb $(DATADIR)/ecoli_head1000000_linear/ecoli.fasta $(DATADIR)/ecoli_head1000000_linear/long_ccs/head20000.fastq >$(TMPDIR)/ecoli_head1000000_linear_ccs/minimap2/aln.sam
+	$(ASTARIXBIN) align-optimal -a astar-seeds -t 1 -g $(DATADIR)/ecoli_head1000000_linear/ecoli.fasta -q $(DATADIR)/ecoli_head1000000_linear/ccs.fastq -o $(TMPDIR)/ecoli_head1000000_linear_ccs/astar-seeds $(RUNFLAGS) --fixed_trie_depth 1 --seeds_max_errors 0 -G 1 -S 1  --seeds_backwards_algo dfs_for_linear
+	$(MINIMAPBIN) -a -x map-pb $(DATADIR)/ecoli_head1000000_linear/ecoli.fasta $(DATADIR)/ecoli_head1000000_linear/ccs.fastq >$(TMPDIR)/ecoli_head1000000_linear_ccs/minimap2/aln.sam
 	#$(MINIMAPBIN) -ax map-pb $(DATADIR)/ecoli_head1000000_linear/ecoli.fasta $(DATADIR)/ecoli_head1000000_linear/ccs/ecoli_100.fq >$(TMPDIR)/ecoli_head1000000_linear_ccs/minimap2/aln.sam
 	#$(MINIMAPBIN) -A 1 -B 1 -O 1 -E 1 -N 0 -ax map-pb $(DATADIR)/ecoli_head1000000_linear/ecoli.fasta $(DATADIR)/ecoli_head1000000_linear/ccs/ecoli_100.fq >$(TMPDIR)/ecoli_head1000000_linear_ccs/minimap2/aln.sam
 #	$(MINIMAPBIN) -A 1 -B 1 -O 1 -E 1 -N 0 -cx map-pb $(DATADIR)/ecoli_head1000000_linear/ecoli.fasta $(DATADIR)/ecoli_head1000000_linear/ccs/ecoli_100.fq >$(TMPDIR)/ecoli_head1000000_linear_ccs/minimap2/aln.paf

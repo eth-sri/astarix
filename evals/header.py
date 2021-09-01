@@ -27,6 +27,7 @@ def read_astarix_performance(tsv_fn):
     df = pd.read_csv(tsv_fn, delim_whitespace=True)
     df['pushed+popped'] = df['pushed'] + df['popped']
     df['explored_per_bp'] = df['explored_states'] / df['len']
+    df['t(map)_per_bp'] = df['t(map)'] / df['len']
     if 'crumbs' in df:
         df['crumbs_per_bp'] = df['crumbs'] / df['len']
     df['error_rate'] = df['cost'] / df['len']
@@ -49,7 +50,7 @@ def algo2color(algo):
         'astarix-seeds': 'mediumseagreen',
         'astar-seeds': 'mediumseagreen',
         'dijkstra': 'darkorange',
-        'graphaligner': 'mediumseagreen',
+        'graphaligner': 'green',
         'pasgal': 'cornflowerblue',
         'astar-seeds-intervals': 'red',
         'astarix-seeds-intervals': 'red',
@@ -93,6 +94,7 @@ def col2name(col):
         'score':   'Alignment cost',
         'explored_states':  'Explored states',
         't(map)':  'Alignment time per read',  #  [sec/read]
+        't(map)_per_bp': 'Alignment time per bp',
         'align_sec':  'Alignment time',
         'cost':    'Alignment cost',
         'explored_per_bp': 'Explored states per bp',
@@ -120,6 +122,7 @@ def col2unit(col):
 
 def readlen2style(readlen):
     d = {
+        50:    '.',
         75:    ':',
         100:   '-o',
         150:   '-o',
