@@ -10,7 +10,7 @@ PASGAL_BIN = config["pasgal_bin_path"]
 VG_BIN = config["vg_bin_path"]
 VARGAS_BIN = config["vargas_bin_path"]
 
-TIMELIMIT       = "(timeout 1800s"
+TIMELIMIT       = "(timeout 7200s"
 TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo timeouted)"
 
 ASTARIX_PREFIX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 5 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
@@ -41,7 +41,7 @@ READLEN_SCALING_GRAPHS  = ["ecoli"]
 READLEN_GRAPH_HEADS     = [10000000]
 READLEN_Ns              = [200]
 READLEN_SEQ_TECHNOLOGY  = ["ccs"] #"illumina", 
-READLEN_ms              = [100, 300, 700, 1000, 2000, 3000, 5000] #, 7000, 10000]
+READLEN_ms              = [100, 300, 700, 1000, 2000, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
 #READLEN_ms              = [50, 100, 150, 200, 250, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 5000, 7000, 10000]
 #READLEN_ms              = [50, 100, 150, 160, 170, 180, 200, 250]
 
@@ -399,9 +399,9 @@ rule simulate_ccs_reads:
 		#shell("{PBSIM} --hmm_model pbsim_models/P4C2.model --depth 0.001 --accuracy-min 0.99 --accuracy-max 0.99 --accuracy-mean 0.99 --accuracy-sd 0 --length-mean {wildcards.m} --length-sd 0 {input}")
 		#"{PBSIM} --sample-fastq pbsim_sample.fastq --depth 0.001 --accuracy-min 0.98 --accuracy-max 0.98 --length-mean {wildcards.m} --length-sd 0 {input}"
 		#"{PBSIM} --data-type CCS --depth 0.001 --model_qc pbsim_profiles/model_qc_ccs --length-mean {wildcards.m} --length-sd 0 {input}"
-		shell("mv sd_0001.fastq {params.prefix}.fq")
-		shell("mv sd_0001.maf {params.prefix}.maf")
-		shell("mv sd_0001.ref {params.prefix}.ref")
+		shell("cp -L sd_0001.fastq {params.prefix}.fq")
+		shell("cp -L sd_0001.maf {params.prefix}.maf")
+		shell("cp -L sd_0001.ref {params.prefix}.ref")
 
 #ruleorder: head_ecoli_reads > head_reads
 
