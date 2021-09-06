@@ -139,7 +139,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // Accounts only for the last seeds.
     // O(1)
 
-    cost_t h(const state_t &st) const {
+    cost_t interval_h(const state_t &st) const {
         int all_seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
         int total_errors = (args.max_seed_errors+1)*all_seeds_to_end;  // the maximum number of errors
 
@@ -161,7 +161,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 						if (!args.interval_intersection || (seg.first <= piv && piv <= seg.second))   // TODO: uncomment to turn on the interval
 						{
 			//                LOG_DEBUG << "<" << st.v << ", " << st.i << ">: [" << seg.first << ", " << seg.second << "]";
-								curr_cost += C.find(st.v)->second.find(seed)->second;  // <=> const C[st.v][seed]
+								curr_cost += crumbs_it->second.find(seed)->second;  // <=> const C[st.v][seed]
+								//curr_cost += C.find(st.v)->second.find(seed)->second;  // <=> const C[st.v][seed]
 						}
 					}
 
@@ -193,14 +194,14 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         }
 
         cost_t res = total_errors * costs.get_min_mismatch_cost();
-        LOG_DEBUG << "h<" << st.v << ", " << st.i << ">: old=" << old_h(st) << ", new=" << res;
 
-        assert(res >= old_h(st));
+//        LOG_DEBUG << "h<" << st.v << ", " << st.i << ">: old=" << old_h(st) << ", new=" << res;
+//        assert(res >= old_h(st));
 
         return res;
     }
 
-    cost_t old_h(const state_t &st) const {
+    cost_t h(const state_t &st) const {
         int all_seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
         int total_errors = (args.max_seed_errors+1)*all_seeds_to_end;  // the maximum number of errors
         
@@ -241,6 +242,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // Cut r into chunks of length seed_len, starting from the end.
     void before_every_alignment(const read_t *r) {
         r_ = r;  // potentially useful for after_every_alignment()
+		args.max_indels = r->len / args.seed_len;  // auto
 
         read_cnt.clear();
         read_cnt.reads.set(1);

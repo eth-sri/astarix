@@ -64,6 +64,10 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
             throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
 
         AStarSeedsWithErrors::Args astar_seeds = args.astar_seeds;
+		assert (astar_seeds.max_indels == -1);
+		//if (astar_seeds.max_indels == -1) {
+		//	astar_seeds.max_indels = astar_seeds.seed_len;
+		//}
         //astar_seeds.seed_len        = std::max( (int)(std::ceil( log(4, G.edges()) )+1e-8), args.tree_depth);
         //astar_seeds.max_seed_errors = 1;
         //astar_seeds.max_indels      = 15;
@@ -199,9 +203,6 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
     }
     if (args->astar_seeds.seed_len == -1) {
 		args->astar_seeds.seed_len = args->tree_depth;
-	}
-    if (args->astar_seeds.max_indels == -1) {
-		args->astar_seeds.max_indels = args->astar_seeds.seed_len;
 	}
     if (args->tree_depth <= 0)
         throw "Trie depth should be >0.";
