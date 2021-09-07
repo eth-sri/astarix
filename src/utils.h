@@ -198,11 +198,17 @@ class EditCosts {
     EditCosts() : match(-1), subst(-1), ins(-1), del(-1) {}
     EditCosts(cost_t _match, cost_t _subst, cost_t _ins, cost_t _del)
         : match(_match), subst(_subst), ins(_ins), del(_del) {
+		if (match > get_min_mismatch_cost())
+			throw "Match cost should not be more expensive than other edit costs.";
     }
 
     cost_t get_min_mismatch_cost() const {
         return std::min(subst, std::min(ins, del));
     }
+
+	cost_t get_delta_min_special() const {
+		return std::min(std::min(subst-match, del), ins-match);
+	}
         
     cost_t edge2score(const edge_t &e) const {
         switch (e.type) {

@@ -211,7 +211,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 if (seed < all_seeds_to_end)
                     total_errors -= cost;
 
-        cost_t res = total_errors * costs.get_min_mismatch_cost();
+        //cost_t res = total_errors * costs.get_min_mismatch_cost(); // tested
+        cost_t res = (r_->len - st.i) * costs.match + total_errors * costs.get_delta_min_special(); // fuller
+
         //LOG_DEBUG << "h<" << st.v << ", " << st.i << ">: old=" << old_h(st) << ", new=" << res;
         //assert(res == old_h(st));
         return res;
@@ -242,7 +244,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // Cut r into chunks of length seed_len, starting from the end.
     void before_every_alignment(const read_t *r) {
         r_ = r;  // potentially useful for after_every_alignment()
-		args.max_indels = r->len / args.seed_len;  // auto
+
+		int seeds = r->len / args.seed_len;
+		//args.max_indels = (seeds * costs.get_min_mismatch_cost()) / costs.del;  // stable 
+		args.max_indels = (r->len * costs.match + seeds * costs.get_delta_min_special()) / costs.del;  // fuller
 
         read_cnt.clear();
         read_cnt.reads.set(1);
