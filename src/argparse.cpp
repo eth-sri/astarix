@@ -17,7 +17,7 @@ struct argp_option options[] = {
 //    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
     { "seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
     { "seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have" },
-    { "seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned" },
+    //{ "seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned" },
     { "seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match" },
     { "seeds_interval_intersection",  2005, "{0,1}", 0,  "Counting only crumbs with intersecting intervals" },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty [0]" },
@@ -65,7 +65,7 @@ arguments read_args(int argc, char **argv) {
 
     args.astar_seeds.seed_len              = -1;
     args.astar_seeds.max_seed_errors       = 0;
-    args.astar_seeds.max_indels            = -1;
+    //args.astar_seeds.max_indels            = -1;
     args.astar_seeds.backwards_algo        = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::DFS_FOR_LINEAR;
 	args.astar_seeds.interval_intersection = false; //true;
 
@@ -148,11 +148,11 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
             if (!(std::stoi(arg) >= 0)) throw "MaxSeedErrors should be non-negative.";
             arguments->astar_seeds.max_seed_errors = std::stod(arg);
             break;
-        case 2003:
-            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "MaxIndels only for astar-seeds.";
-            if (!(std::stoi(arg) >= 0)) throw "MaxIndels should be non-negative.";
-            arguments->astar_seeds.max_indels = std::stod(arg);
-            break;
+        //case 2003:
+        //    if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "MaxIndels only for astar-seeds.";
+        //    if (!(std::stoi(arg) >= 0)) throw "MaxIndels should be non-negative.";
+        //    arguments->astar_seeds.max_indels = std::stod(arg);
+        //    break;
         case 2004:
             if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "SeedsWithErrors only for astar-seeds.";
             //arguments->astar_seeds.backwards_algo = astarix::AStarSeedsWithErrors::Args::name2backwards_algo(arg);
