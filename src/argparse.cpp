@@ -1,6 +1,5 @@
 #include <string>
 
-#include "astar-seeds-approx.h"
 #include "argparse.h"
 
 struct argp_option options[] = {
@@ -156,7 +155,7 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
             break;
         case 2004:
             if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "SeedsWithErrors only for astar-seeds.";
-            arguments->astar_seeds.backwards_algo = astarix::AStarSeedsWithErrors::Args::name2backwards_algo(arg);
+            //arguments->astar_seeds.backwards_algo = astarix::AStarSeedsWithErrors::Args::name2backwards_algo(arg);
             break;
         case 2005:
             if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "IntervalIntersection only for astar-seeds.";
