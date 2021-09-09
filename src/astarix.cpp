@@ -54,14 +54,14 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
     if (algo == "astar-prefix") {
         astar = make_unique<AStarPrefix>(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
     } else if (algo == "astar-seeds-exact") {
-        if (!args.fixed_trie_depth)
-            throw invalid_argument("astar-seeds-exact algorithm can only be used with fixed_trie_depth flag on.");
+        //if (!args.fixed_trie_depth)
+        //    throw invalid_argument("astar-seeds-exact algorithm can only be used with fixed_trie_depth flag on.");
         //if (args.astar_seeds_max_errors != 0) 
         //    throw invalid_argument("astar-seeds-exact needs astar_seeds_max_errors flag set to 0.");
         astar = make_unique<AStarSeedsExact>(G, args.costs, args.astar_seeds.seed_len, -1);
     } else if (algo == "astar-seeds") {
-        if (!args.fixed_trie_depth)
-            throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
+        //if (!args.fixed_trie_depth)
+        //    throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
 
         AStarSeedsWithErrors::Args astar_seeds = args.astar_seeds;
 

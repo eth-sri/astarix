@@ -76,20 +76,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         : G(_G), costs(_costs), args(_args) {
     }
 
-    cost_t h(const state_t &st) const {
-        int seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
-        int potential = seeds_to_end;  // the maximum number of errors
-        
-        const auto crumbs_it = C.find(st.v);
-        if (crumbs_it != C.end())
-            for (const auto &[seed, cost]: crumbs_it->second)
-                if (seed < seeds_to_end)
-                    potential -= cost;
-
-        //return potential * costs.get_min_mismatch_cost(); // tested
-        return (r_->len - st.i) * costs.match + potential * costs.get_delta_min_special(); // fuller
-    }
-
     // Cut r into chunks of length seed_len, starting from the end.
     void before_every_alignment(const read_t *r) {
         r_ = r;  // potentially useful for after_every_alignment()
@@ -112,7 +98,20 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         log_read_stats();
 
         global_cnt += read_cnt;
-        states_with_crumbs = read_cnt.states_with_crumbs;  // TODO: refactor
+    }
+
+    cost_t h(const state_t &st) const {
+        int seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
+        int potential = seeds_to_end;  // the maximum number of errors
+        
+        const auto crumbs_it = C.find(st.v);
+        if (crumbs_it != C.end())
+            for (const auto &[seed, cost]: crumbs_it->second)
+                if (seed < seeds_to_end)
+                    potential -= cost;
+
+        //return potential * costs.get_min_mismatch_cost(); // tested
+        return (r_->len - st.i) * costs.match + potential * costs.get_delta_min_special(); // fuller
     }
 
     void after_every_alignment() {
@@ -146,14 +145,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
   private:
-    inline bool crumbs_already_set(int p, node_t v) const {
-        auto crumbs_it = C.find(v); 
-        if (crumbs_it != C.end())
-            if (crumbs_it->second.contains(p))
-                return true;
-        return false;
-    }
-
     inline void update_crumbs_for_node(int p, node_t v) {
 		auto crumbs_it = C.find(v);
 		if (crumbs_it == C.end()) {
@@ -180,9 +171,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         ++read_cnt.paths_considered;
 
         do {
-            if (crumbs_already_set(p, trie_v))  // optimization
-                return;
-
             update_crumbs_for_node(p, trie_v);
             if (trie_v == 0)
                 break;
@@ -201,16 +189,14 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // Returns if the the supersource was reached at least once.
     bool put_crumbs_backwards(int p, int i, node_t v) {
         for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
-            if (!crumbs_already_set(p, it->to)) {  // Checking leafs is enough
-                if (G.node_in_trie(it->to)) {  // If goint go try -> skip the queue
-                    if (i-1 - G.get_trie_depth() <= max_indels_) {
-						update_crumbs_up_the_trie(p, it->to);
-                    }
-                } else if (i-1 >= -max_indels_ + G.get_trie_depth()) { // prev in GRAPH
-					update_crumbs_for_node(p, it->to);
-                    put_crumbs_backwards(p, i-1, it->to);
-                }
-            }
+			if (G.node_in_trie(it->to)) {  // If goint go try -> skip the queue
+				if (i-1 - G.get_trie_depth() <= max_indels_) {
+					update_crumbs_up_the_trie(p, it->to);
+				}
+			} else if (i-1 >= -max_indels_ + G.get_trie_depth()) { // prev in GRAPH
+				update_crumbs_for_node(p, it->to);
+				put_crumbs_backwards(p, i-1, it->to);
+			}
         }
 
         return true;
@@ -227,10 +213,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                 if (it->type == ORIG || it->type == JUMP)  // ORIG in the graph, JUMP in the trie
                     match_seed_put_crumbs(r, p, start, new_i, it->to);
             }
-//        } else if (G.node_in_trie(v)) {
-//            // Climb the trie.
-//            for (auto it=G.begin_orig_edges(v); it!=G.end_orig_edges(); ++it)
-//                match_seed_put_crumbs(r, start, i+1, it->to);
         } else {
             assert(!G.node_in_trie(v));
 			put_crumbs_backwards(p, i, v);
