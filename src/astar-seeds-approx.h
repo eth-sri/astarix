@@ -77,19 +77,17 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     cost_t h(const state_t &st) const {
-        int all_seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
-        int total_errors = (args.max_seed_errors+1)*all_seeds_to_end;  // the maximum number of errors
+        int seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
+        int potential = seeds_to_end;  // the maximum number of errors
         
         const auto crumbs_it = C.find(st.v);
         if (crumbs_it != C.end())
             for (const auto &[seed, cost]: crumbs_it->second)
-                if (seed < all_seeds_to_end)
-                    total_errors -= cost;
+                if (seed < seeds_to_end)
+                    potential -= cost;
 
-        cost_t res = total_errors * costs.get_min_mismatch_cost(); // tested
-        //cost_t res = (r_->len - st.i) * costs.match + total_errors * costs.get_delta_min_special(); // fuller
-
-        return res;
+        //return potential * costs.get_min_mismatch_cost(); // tested
+        return (r_->len - st.i) * costs.match + potential * costs.get_delta_min_special(); // fuller
     }
 
     // Cut r into chunks of length seed_len, starting from the end.
@@ -110,7 +108,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
         read_cnt.seeds.set(seeds);
         read_cnt.root_heuristic.set( h(state_t(0.0, 0, 0, -1, -1)) );
-        read_cnt.heuristic_potential.set( (args.max_seed_errors+1)*read_cnt.seeds.get() );
+        read_cnt.heuristic_potential.set(seeds);
         log_read_stats();
 
         global_cnt += read_cnt;
@@ -122,7 +120,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
     void print_params(std::ostream &out) const {
         out << "          seed length: " << args.seed_len << " bp"         << std::endl;
-        out << "      max seed errors: " << args.max_seed_errors           << std::endl;
     }
 
     void log_read_stats() {
@@ -133,7 +130,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             << "over " << read_cnt.states_with_crumbs << " states"
             << "(" << read_cnt.repeated_states << " repeated)"
             << "with best heuristic " << read_cnt.root_heuristic.get() << " "
-            << "out of possible " << (args.max_seed_errors+1)*read_cnt.seeds.get() << " "
 			<< "with " << max_indels_ << "max_indels";
     }
 
@@ -150,9 +146,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
   private:
-    inline bool crumbs_already_set(int p, int errors, node_t v) const {
-        //return false;  // for the intervals to work correctly
-
+    inline bool crumbs_already_set(int p, node_t v) const {
         auto crumbs_it = C.find(v); 
         if (crumbs_it != C.end())
             if (crumbs_it->second.contains(p))
@@ -160,14 +154,13 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         return false;
     }
 
-    inline void update_crumbs_for_node(int p, int errors, node_t v) {
-        cost_t cost = args.max_seed_errors + 1 - errors;
+    inline void update_crumbs_for_node(int p, node_t v) {
 		auto crumbs_it = C.find(v);
 		if (crumbs_it == C.end()) {
 			++read_cnt.states_with_crumbs;
 
 			std::unordered_map<int, cost_t> tmp;
-			tmp[p] = cost;
+			tmp[p] = 1;
 			C[v] = tmp;
 		}
 		else {
@@ -175,22 +168,22 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			if (seeds.contains(p)) {
 				++read_cnt.repeated_states;    
 			} else {
-				seeds[p] = cost;
+				seeds[p] = 1;
 				++read_cnt.states_with_crumbs;
 			}
 		}
 		assert(C.contains(v) && C[v].contains(p));
     }
 
-    void update_crumbs_up_the_trie(int p, int errors, node_t trie_v) {
+    void update_crumbs_up_the_trie(int p, node_t trie_v) {
         assert(G.node_in_trie(trie_v));
         ++read_cnt.paths_considered;
 
         do {
-            if (crumbs_already_set(p, errors, trie_v))  // optimization
+            if (crumbs_already_set(p, trie_v))  // optimization
                 return;
 
-            update_crumbs_for_node(p, errors, trie_v);
+            update_crumbs_for_node(p, trie_v);
             if (trie_v == 0)
                 break;
             int cnt = 0;
@@ -206,16 +199,16 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // `C[u]++` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
-    bool put_crumbs_backwards(int p, int i, node_t v, int errors) {
+    bool put_crumbs_backwards(int p, int i, node_t v) {
         for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
-            if (!crumbs_already_set(p, errors, it->to)) {  // Checking leafs is enough
+            if (!crumbs_already_set(p, it->to)) {  // Checking leafs is enough
                 if (G.node_in_trie(it->to)) {  // If goint go try -> skip the queue
                     if (i-1 - G.get_trie_depth() <= max_indels_) {
-						update_crumbs_up_the_trie(p, errors, it->to);
+						update_crumbs_up_the_trie(p, it->to);
                     }
                 } else if (i-1 >= -max_indels_ + G.get_trie_depth()) { // prev in GRAPH
-					update_crumbs_for_node(p, errors, it->to);
-                    put_crumbs_backwards(p, i-1, it->to, errors);
+					update_crumbs_for_node(p, it->to);
+                    put_crumbs_backwards(p, i-1, it->to);
                 }
             }
         }
@@ -224,18 +217,15 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     // Assumes that seed_len <= D so there are no duplicating outgoing labels.
-    void match_seed_put_crumbs(const read_t *r, int p, int start, int i, node_t v, int remaining_errors) {
+    void match_seed_put_crumbs(const read_t *r, int p, int start, int i, node_t v) {
         if (i < start + args.seed_len) {
             // Match exactly down the trie and then through the original graph.
             for (auto it=G.begin_all_matching_edges(v, r->s[i]); it!=G.end_all_edges(); ++it) {
-                int new_remaining_errors = remaining_errors;
                 int new_i = i;
                 if (it->type != DEL)
                     ++new_i;
-                if (it->type != ORIG && it->type != JUMP)  // ORIG in the graph, JUMP in the trie
-                    --new_remaining_errors;
-                if (new_remaining_errors >= 0)
-                    match_seed_put_crumbs(r, p, start, new_i, it->to, new_remaining_errors);
+                if (it->type == ORIG || it->type == JUMP)  // ORIG in the graph, JUMP in the trie
+                    match_seed_put_crumbs(r, p, start, new_i, it->to);
             }
 //        } else if (G.node_in_trie(v)) {
 //            // Climb the trie.
@@ -243,7 +233,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 //                match_seed_put_crumbs(r, start, i+1, it->to);
         } else {
             assert(!G.node_in_trie(v));
-			put_crumbs_backwards(p, i, v, args.max_seed_errors-remaining_errors);
+			put_crumbs_backwards(p, i, v);
             ++read_cnt.seed_matches;  // debug info
         }
     }
@@ -255,7 +245,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     int generate_seeds_match_put_crumbs(const read_t *r) {
         int seeds = 0;
         for (int i=r->len-args.seed_len; i>=0; i-=args.seed_len) {
-            match_seed_put_crumbs(r, seeds, i, i, 0, args.max_seed_errors);  // seed from [i, i+seed_len)
+            match_seed_put_crumbs(r, seeds, i, i, 0);  // seed from [i, i+seed_len)
             seeds++;
         }
         return seeds;
