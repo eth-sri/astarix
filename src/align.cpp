@@ -37,8 +37,6 @@ std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max
         
         //prev_cost = Q.top().second.cost;
         auto [curr_score, curr_st] = pop(Q);
-        stats.explored_states.inc();
-
 
         //LOG_INFO << "node in tree: " << G.node_in_trie(curr_st.v);
         if (G.node_in_trie(curr_st.v)) stats.popped_trie.inc();
@@ -129,6 +127,7 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
     }
 }
 
+// Greedy fast-forward exact matching
 state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, const read_t &r) {
     stats.t.ff.start();
 

@@ -189,6 +189,7 @@ class Aligner {
   private:
     inline void push(queue_t &Q, cost_t sort_cost, const state_t &st) {
         stats.pushed.inc();
+        stats.explored_states.inc();
         //stats.pushed_hist[st.i].inc();
         stats.t.queue.start();
             Q.push(score_state_t(sort_cost, st));
