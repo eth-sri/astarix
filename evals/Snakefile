@@ -39,12 +39,12 @@ REF_SIZE_Ns             = [10000]  # number of reads
 REF_SIZE_SEQ_TECHNOLOGY = ["illumina"]
 REF_SIZE_ms             = [150]
 
-READLEN_ALGOS           = ["astarix-seeds"] #, "dijkstra"] #, "astarix-prefix", "dijkstra"] #"vargas", "graphaligner", "vg", "pasgal",# "astarix-seeds-approx"]
+READLEN_ALGOS           = ["astarix-seeds", "dijkstra"] #, "astarix-prefix", "dijkstra"] #"vargas", "graphaligner", "vg", "pasgal",# "astarix-seeds-approx"]
 READLEN_SCALING_GRAPHS  = ["ecoli"]
 READLEN_GRAPH_HEADS     = [10000000]
 READLEN_Ns              = [200]
 READLEN_SEQ_TECHNOLOGY  = ["hifi"] #"ccs", "illumina", 
-READLEN_ms              = [100, 300, 700, 1000, 2000, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
+READLEN_ms              = [100] #, 300, 700, 1000, 2000, 3000, 5000] #, 7000, 10000, 13000, 15000, 18000, 20000]
 #READLEN_ms              = [50, 100, 150, 200, 250, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 5000, 7000, 10000]
 #READLEN_ms              = [50, 100, 150, 160, 170, 180, 200, 250]
 
