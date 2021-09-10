@@ -7,15 +7,6 @@ std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max
 
 	assert(max_best_alignments >= 1);
 
-    // Clean up
-	p.clear();
-	pe.clear();
-	vis.clear();
-
-    stats.clear();
-    stats.t.total.start();
-    //stats.pushed_hist.resize(r.len);
-
     std::vector<state_t> final_states;    // the best final state; computed in map()
     queue_t Q;              // edge_t(i, u) in Q <=> read[1..i] has been matched with a path ending at u; the prev_state is not used
 

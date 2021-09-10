@@ -85,6 +85,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
     
     aligner->astar_before_every_alignment(&r);      // prepare read
     final_states = aligner->readmap(r, algo, args.k_best_alignments);  // align
+	aligner->astar_after_every_alignment();         // return preparation to previous state
 
 	if ((int)final_states.size() >= args.k_best_alignments) {
 		LOG_DEBUG << r.s << " aligned >= " << args.k_best_alignments << " times.";
@@ -93,7 +94,6 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 	for (auto &final_state: final_states) {
 		best_path->clear();
 		aligner->get_best_path_to_state(final_state, best_path);
-		aligner->astar_after_every_alignment();         // return preparation to previous state
 
 		if (!performance_file.empty()) {
 			string precomp_str = "align";
@@ -578,7 +578,7 @@ int exec(int argc, char **argv) {
         out << "    Total align cpu time: " << align_cpu_time << "s = "
                                             << R.size() / align_cpu_time << " reads/s = "
                                             << size_sum(R) / 1000.0 / align_cpu_time << " Kbp/s"    << endl; 
-        out << "     | Per read preprocessing: " << 100.0 * global_stats.t.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
+        out << "     |          Preprocessing: " << 100.0 * global_stats.t.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
         out << "     |               A* query: " << 100.0 * global_stats.t.astar.get_sec() / align_cpu_time << "%"   << endl;
         out << "     |                  queue: " << 100.0 * global_stats.t.queue.get_sec() / align_cpu_time << "%" << endl;
         out << "     |                  dicts: " << 100.0 * global_stats.t.dicts.get_sec() / align_cpu_time << "%" << endl;

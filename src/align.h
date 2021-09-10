@@ -173,6 +173,15 @@ class Aligner {
     }
 
     inline void astar_before_every_alignment(const read_t *r) {
+		// Clean up
+		p.clear();
+		pe.clear();
+		vis.clear();
+
+		stats.clear();
+		stats.t.total.start();
+		//stats.pushed_hist.resize(r.len);
+
         stats.t.astar_prepare_reads.start();
         astar->before_every_alignment(r);
         stats.t.astar_prepare_reads.stop();

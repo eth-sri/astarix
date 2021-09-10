@@ -10,6 +10,7 @@
 #include "io.h"
 
 typedef int node_t;
+typedef int seed_t;
 
 namespace astarix {
 
@@ -66,7 +67,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
 	// Read alignment state
     int max_indels_;
-    std::unordered_map< node_t, std::unordered_set<int> > C;                        // node -> seeds
+    std::unordered_map< node_t, std::map<node_t, seed_t> > C;                        // node -> { match_position -> seed } }
+
+	//const int BINNING = 10000;
 
 	// Stats
     Stats read_cnt, global_cnt;
@@ -79,6 +82,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // Cut r into chunks of length seed_len, starting from the end.
     void before_every_alignment(const read_t *r) {
         r_ = r;  // potentially useful for after_every_alignment()
+
+		assert(C.empty());
 
 		int seeds = r->len / args.seed_len;
 		max_indels_ = (r->len * costs.match + seeds * costs.get_delta_min_special()) / costs.del;  // fuller
@@ -102,10 +107,20 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		int missing = seeds_to_end;  // the maximum number of errors
 				  
 		const auto crumbs_it = C.find(st.v);
-		if (crumbs_it != C.end())
-			for (const auto &seed: crumbs_it->second)
-				if (seed < seeds_to_end)  // the seeds are numbered from 0 starting from the back of the read
-					--missing;
+		if (crumbs_it != C.end()) {
+			for (auto it1 = crumbs_it->second.begin(); it1 != crumbs_it->second.end(); ++it1) {  // *it1 == [match_v, seed]: 
+//				LOG_DEBUG << "C<" << st.i << ", " << st.v << ">: " << it1->first << ", " << it1->second;
+				std::unordered_set<seed_t> S;
+				for (auto it2 = it1; it2 != crumbs_it->second.end(); ++it2) {
+					assert(it2->first >= it1->first);
+					if (it2->first - it1->first > max_indels_ + r_->len) // + BINNING)
+						break;
+					if (it2->second < seeds_to_end)
+						S.insert(it2->second);
+				}
+				missing = std::min(missing, seeds_to_end - (int)S.size());
+			}
+		}
    
 		return (r_->len - st.i)*costs.match + missing*costs.get_delta_min_special(); // fuller
 	}
@@ -115,43 +130,72 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
   private:
-    inline void add_crumb_to_node(int p, node_t v) {
-		auto crumbs_it = C.find(v);
+    inline void add_crumb_to_node(const seed_t p, const node_t match_v, const node_t curr_v) {
+		auto crumbs_it = C.find(curr_v);
+		//node_t end_v = BINNING * (match_v / BINNING);
+		node_t end_v = match_v;  // + p*args.seed_len;
 		if (crumbs_it == C.end()) {
 			++read_cnt.states_with_crumbs;
-
-			std::unordered_set<int> tmp;
-			tmp.insert(p);
-			C[v] = tmp;
+			C[curr_v] = { {end_v, p} };
 		}
 		else {
 			auto &seeds = crumbs_it->second;
 			if (seeds.contains(p)) {
 				++read_cnt.repeated_states;    
 			} else {
-				seeds.insert(p);
+				seeds[end_v] = p;
 				++read_cnt.states_with_crumbs;
 			}
 		}
-		assert(C.contains(v) && C[v].contains(p));
+		assert(C.contains(curr_v) && C[curr_v].contains(end_v));
     }
 
     // `C[u]++` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
 	// TODO: match back the seed letters (make sure it is not exponential: maybe reimplement with sets as in the paper)
-    bool add_crumbs_backwards(int p, int i, node_t v) {
-		add_crumb_to_node(p, v);
-		if (i > -max_indels_)
-			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
-				add_crumbs_backwards(p, i-1, it->to);
+    void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
+		std::queue<node_t> Q({curr_v});
+		std::unordered_map<node_t, int> pos = { {curr_v, i} };  // from curr_v
 
-        return true;
+		while (!Q.empty()) {
+			node_t v = Q.front(); Q.pop();
+			add_crumb_to_node(p, match_v, v);
+			if (pos[v] <= -max_indels_)
+				break;
+			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
+				if (G.node_in_trie(it->to) && pos[v] > args.seed_len + max_indels_)  // assuming trie_depth <= seed_len
+					continue;
+				if (!pos.contains(it->to)) {
+					pos[it->to] = pos[v]-1;
+					Q.push(it->to);
+				}
+			}
+		}
+
+		// solution 1
+		//int curr_arr=0;
+		//std::unordered_set<node_t> S[2];
+		//S[curr_arr].insert(curr_v);
+		//for (; i > -max_indels_; --i, curr_arr^=1) {
+		//	S[curr_arr^1].clear();
+		//	for (const node_t v: S[curr_arr])
+		//		for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
+		//			S[curr_arr^1].insert(it->to);
+		//}
+		//for (const node_t v: S[curr_arr])
+		//	add_crumb_to_node(p, match_v, v);
+
+		// solution 0
+		//add_crumb_to_node(p, match_v, curr_v);
+		//if (i > -max_indels_)
+		//	for (auto it=G.begin_orig_rev_edges(curr_v); it!=G.end_orig_rev_edges(); ++it)
+		//		add_crumbs_backwards(p, match_v, i-1, it->to);
     }
 
     // Assumes that seed_len <= D so there are no duplicating outgoing labels.
 	// Aligns a seed to the trie and stops when it goes to the reference
-    void match_seed_put_crumbs(const read_t *r, int p, int start, int i, node_t v) {
+    void match_seed_put_crumbs(const read_t *r, const seed_t p, const int start, const int i, const node_t v) {
         if (i < start + args.seed_len) {
             // Match exactly down the trie and then through the original graph.
             for (auto it=G.begin_all_matching_edges(v, r->s[i]); it!=G.end_all_edges(); ++it) {
@@ -160,7 +204,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             }
         } else {
             assert(!G.node_in_trie(v));
-			add_crumbs_backwards(p, i, v);   // DEBUG: first go back to the starting of the match
+			add_crumbs_backwards(p, v, i, v);   // DEBUG: first go back to the starting of the match
             ++read_cnt.seed_matches;  // debug info
         }
     }
