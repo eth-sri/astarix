@@ -10,7 +10,6 @@
 #include "utils.h"
 #include "io.h"
 
-typedef int node_t;
 typedef int seed_t;
 
 namespace astarix {
@@ -19,10 +18,15 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // A*-seeds params
   public:
     struct Args {
-        enum backwards_algo_t { DFS_FOR_LINEAR, BFS, COMPLEX, TOPSORT };
-
         int seed_len;
+
+		bool linear_reference;			// assume that the reference is linear
+		bool match_pos_optimization;	// use the position of seed matches in order to maximize the heuristic function
+		bool skip_near_crumbs;			// put crumbs in the trie only for nodes within [-m-delta, -m+delta] instead of [-m-delta, 0]
+
+		// NOT USED
         int max_seed_errors;
+        enum backwards_algo_t { DFS_FOR_LINEAR, BFS, COMPLEX, TOPSORT };
         backwards_algo_t backwards_algo;
 		bool interval_intersection;  // only counting crumbs with intersecting intervals
     };
@@ -61,9 +65,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     };
 	
 	struct crumb_t {
-		node_t v;
-		node_t match_v;
-		seed_t s;
+		node_t v;  // can be in the trie or not
+		node_t match_v;  // cannot be in the trie
+		seed_t s;  // 0 for the rightmost seed
 		crumb_t(const node_t _v, const node_t _match_v, const seed_t _s)
 			: v(_v), match_v(_match_v), s(_s) {}
 		bool operator<(const crumb_t &other) const {
@@ -101,7 +105,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     void before_every_alignment(const read_t *r) {
 		assert(C.empty());
         r_ = r;  // potentially useful for after_every_alignment()
-		seeds_ = r->len / args.seed_len;
+		seeds_ = r->len / args.seed_len;  // TODO: not all seeds
 		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller
 		LOG_DEBUG << "max_indels: " << max_indels_;
 
@@ -120,17 +124,17 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
 	cost_t h(const state_t &st) const {
-		int seeds_to_end = (r_->len - st.i - 1) / args.seed_len;
+		int seeds_to_end = (r_->len - st.i - 1) / args.seed_len;  // TODO: not all seeds
 		int missing = seeds_to_end;  // the maximum number of errors
 
 		const auto from = std::lower_bound(C.begin(), C.end(), crumb_t(st.v, 0, 0));
 		const auto to = std::lower_bound(C.begin(), C.end(), crumb_t(st.v+1, 0, 0));
 
 		std::vector<int> cnt(seeds_to_end);
-		int m = missing;
+		int m = missing;  // m is the current number of different seeds inside of [it1, it2]
 
-		for (auto it1=from, it2=from; it1 != to && it2 != to; ++it1) {
-			for (; it2 != to && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)
+		for (auto it1=from, it2=from; it1 != to && it2 != to; ++it1) {  // left iterator
+			for (; it2 != to && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)  // right itarator
 				if (it2->s < seeds_to_end)
 					if (cnt[it2->s]++ == 0)
 						missing = std::min(missing, --m);
@@ -176,7 +180,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
   private:
     inline void add_crumb_to_node(const seed_t p, const node_t match_v, const node_t curr_v) {
-		C.push_back(crumb_t(curr_v,match_v,p));
+		if (args.match_pos_optimization)
+			C.push_back(crumb_t(curr_v,match_v,p));
+		else
+			C.push_back(crumb_t(curr_v,0,p));  // turned off match position optimization
 
 		//auto crumbs_it = C.find(curr_v);
 		//node_t end_v = match_v;  // + p*args.seed_len;
@@ -202,8 +209,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 	// TODO: match back the seed letters (make sure it is not exponential: maybe reimplement with sets as in the paper)
     void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
 		// solution 2
-		std::queue<node_t> Q({curr_v});
-		std::unordered_map<node_t, int> pos = { {curr_v, i} };  // from curr_v
+		//std::queue<node_t> Q({curr_v});
+		//std::unordered_map<node_t, int> pos = { {curr_v, i} };  // from curr_v
 
 		//while (!Q.empty()) {
 		//	node_t v = Q.front(); Q.pop();
@@ -237,7 +244,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		add_crumb_to_node(p, match_v, curr_v);
 		if (i > -max_indels_)
 			for (auto it=G.begin_orig_rev_edges(curr_v); it!=G.end_orig_rev_edges(); ++it)
-				if (!G.node_in_trie(it->to) || i-1 <= args.seed_len + max_indels_)  // assuming trie_depth <= seed_len
+				if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= args.seed_len + max_indels_))  // +/-delta optimization; assuming trie_depth <= seed_len
 					add_crumbs_backwards(p, match_v, i-1, it->to);
     }
 
@@ -283,8 +290,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
             << "over " << read_cnt.states_with_crumbs << " states"
             << "(" << read_cnt.repeated_states << " repeated)"
             << "with best heuristic " << read_cnt.root_heuristic.get() << " "
-			<< "with " << max_indels_ << "max_indels";
-    }
+			<< "with " << max_indels_ << "max_indels"; }
 
     void print_stats(std::ostream &out) const {
         int reads = global_cnt.reads.get();

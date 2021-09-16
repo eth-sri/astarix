@@ -16,9 +16,11 @@ TIMELIMIT       = "(timeout 7200s"
 TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo timeouted)"
 
 ASTARIX_PREFIX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-#ASTARIX_SEEDS_EXACT_SHORT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 --fixed_trie_depth 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 --fixed_trie_depth 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_APPROX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_max_errors 1 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 5 --fixed_trie_depth 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+#ASTARIX_SEEDS_EXACT_SHORT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_match_pos_optimization 0 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_skip_near_crumbs 0 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_APPROX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_max_errors 1 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 5 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 DIJKSTRA_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 GA_CMD = "{TIMELIMIT} {GA_BIN} --seeds-first-full-rows 64 -b 10000 -a alignments.gaf -f {input.reads} -g {input.graph_vg} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} {TIMEOUTPRINT} >>{output.file}"
@@ -39,14 +41,21 @@ REF_SIZE_Ns             = [10000]  # number of reads
 REF_SIZE_SEQ_TECHNOLOGY = ["illumina"]
 REF_SIZE_ms             = [150]
 
-READLEN_ALGOS           = ["astarix-seeds"] #, "dijkstra"] #, "vargas"] "astarix-prefix", "dijkstra"] , "graphaligner", "vg", "pasgal",# "astarix-seeds-approx"]
+READLEN_ALGOS           = ["astarix-seeds"] #, "vargas"] #, "dijkstra"] #, "vargas"] "astarix-prefix", "dijkstra"] , "graphaligner", "vg", "pasgal",# "astarix-seeds-approx"]
 READLEN_SCALING_GRAPHS  = ["ecoli"]
 READLEN_GRAPH_HEADS     = [10000000]
 READLEN_Ns              = [200]
 READLEN_SEQ_TECHNOLOGY  = ["hifi"] #"ccs", "illumina", 
-READLEN_ms              = [100, 300, 700, 1000, 2000, 3000, 5000] #, 7000, 10000, 13000, 15000, 18000, 20000]
+READLEN_ms              = [100, 2000, 7000, 15000, 25000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
 #READLEN_ms              = [50, 100, 150, 200, 250, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 5000, 7000, 10000]
 #READLEN_ms              = [50, 100, 150, 160, 170, 180, 200, 250]
+
+ABLATION_ALGOS			= ["astarix-seeds", "astarix-seeds_wo_skip_near_crumbs_pos", "astarix-seeds_wo_match_pos"]
+ABLATION_SCALING_GRAPHS = ["ecoli"]
+ABLATION_GRAPH_HEADS    = [10000000]
+ABLATION_Ns             = [200]
+ABLATION_SEQ_TECHNOLOGY = ["hifi"] #"ccs", "illumina", 
+ABLATION_ms             = [100, 2000, 7000, 10000] #, 15000, 20000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
 
 NUMREADS_ALGOS          = ["astarix-seeds", "astarix-prefix", "vargas"] #, "graphaligner"]
 NUMREADS_SCALING_GRAPHS = ["ecoli"]
@@ -91,6 +100,7 @@ rule all:
 #        agg1 = "results/aggregated_benchmarks.csv"
         ref_size = "results/REF_SIZE_SCALING_DONE",
         readlen = "results/READLEN_SCALING_DONE",
+        ablation = "results/ABLATION_SCALING_DONE",
 #        numreads = "results/NUMREADS_SCALING_DONE"
 #        astar_prefix_vs_seeds = "results/PREFIX_VS_SEEDS_RAN",
 #        visualization = "results/VISUALIZATION_RAN",
@@ -119,6 +129,19 @@ rule readlen_experiment:
         "results/READLEN_SCALING_DONE"
     params:
         prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=READLEN_ALGOS, graph=READLEN_SCALING_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms)
+    shell:
+        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
+#        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
+
+rule ablation_experiment:
+    input:
+        refs = expand("prefixes/"+graph_params+".fa", graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS),
+        reads = expand("reads/"+params+"/reads.fq", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY),
+    output:
+        "results/ABLATION_SCALING_DONE"
+    params:
+        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 #        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
@@ -218,6 +241,36 @@ rule astarix_seeds_exact:
         "results/astarix-seeds/"+params+"/log.txt"
     shell:
         ASTARIX_SEEDS_EXACT_CMD
+
+rule astarix_seeds_wo_match_pos:
+    input:
+        reads = "reads/"+params+"/reads.fq",
+        graph = "prefixes/"+graph_params+".fa"
+    output:
+        align = "results/astarix-seeds_wo_match_pos/"+params+"/out/alignments.tsv",
+        file = "results/astarix-seeds_wo_match_pos/"+params+"/summary.txt"
+	#priority: 100 
+    benchmark:
+        "results/astarix-seeds_wo_match_pos/"+params+"/benchmark.txt"
+    log:
+        "results/astarix-seeds_wo_match_pos/"+params+"/log.txt"
+    shell:
+        ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD
+
+rule astarix_seeds_wo_skip_near_crumbs_pos:
+    input:
+        reads = "reads/"+params+"/reads.fq",
+        graph = "prefixes/"+graph_params+".fa"
+    output:
+        align = "results/astarix-seeds_wo_skip_near_crumbs_pos/"+params+"/out/alignments.tsv",
+        file = "results/astarix-seeds_wo_skip_near_crumbs_pos/"+params+"/summary.txt"
+	#priority: 100 
+    benchmark:
+        "results/astarix-seeds_wo_skip_near_crumbs_pos/"+params+"/benchmark.txt"
+    log:
+        "results/astarix-seeds_wo_skip_near_crumbs_pos/"+params+"/log.txt"
+    shell:
+        ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD
 
 rule astarix_seeds_approx:
     input:

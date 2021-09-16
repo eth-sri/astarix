@@ -130,7 +130,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 			*global_stats += aligner->stats;
             int crumbs = aligner->astar->states_with_crumbs.get();
 
-			char line[60000];
+			char line[100000];
 			line[0] = 0;
 			sprintf(line,
 					"%8s\t%3d\t%8s\t"

@@ -21,8 +21,10 @@ namespace astarix {
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define EQ(a, b) ((a<b) ? (b-a) < eps : (a-b) < eps)
 
-typedef int cost_t;
-typedef char label_t;
+typedef int				cost_t;
+typedef char			label_t;
+typedef short			pos_t;
+typedef int				node_t;
 
 class state_t;
 typedef std::pair<cost_t, state_t>                                      score_state_t;

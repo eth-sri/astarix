@@ -23,7 +23,7 @@ def read_benchmarks_aggregation(benchmarks_file):
 def num_lower(serie):
     return serie.apply(lambda s: sum(1 for c in s if c.islower()))
 
-def read_astarix_performance(tsv_fn):
+def read_astarix_performance(tsv_fn, algo=None):
     df = pd.read_csv(tsv_fn, delim_whitespace=True)
     df['pushed+popped'] = df['pushed'] + df['popped']
     df['explored_per_bp'] = df['explored_states'] / df['len']
@@ -34,7 +34,10 @@ def read_astarix_performance(tsv_fn):
     #df['generated_errors'] = df['readname'].apply(lambda rn: int(rn.split()[0]) if rn.split()[0].isdigit() else -1)  # TODO: uncomment
     #df['explored_states'] = df['pushed'] * df['len']
     #df['algo'] = df['algo'].replace(['astar-prefix'], 'astarix')
-    df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"], ordered=True)
+    if algo:
+        df['algo'] = algo
+    else:
+        df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"], ordered=True)
     #df['algo'] = df['algo'].cat.remove_unused_categories()
     #df['performance'] = df['len'] / df['t(map)'] / 1000000  # [MBp/sec]
     #if 'spell' in df:  # TODO: uncomment
@@ -49,6 +52,8 @@ def algo2color(algo):
         'astar-prefix': 'red',
         'astarix-seeds': 'mediumseagreen',
         'astar-seeds': 'mediumseagreen',
+        'astarix-seeds_wo_skip_near_crumbs_pos': 'yellow',  ## ablation
+        'astarix-seeds_wo_match_pos': 'orange',   ## ablation
         'dijkstra': 'darkorange',
         'graphaligner': 'green',
         'pasgal': 'cornflowerblue',
@@ -70,6 +75,8 @@ def algo2beautiful(algo):
         'astar-seeds': 'Seeds heuristic',
         'astarix-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astar-seeds-intervals': 'Seeds heuristic (+intervals)',
+        'astarix-seeds_wo_skip_near_crumbs_pos': 'Seeds -near crumbs',  ## ablation
+        'astarix-seeds_wo_match_pos': 'Seeds -match positions',   ## ablation
         'astarix-prefix': 'Prefix heuristic',
         'astar-prefix': 'Prefix heuristic',
         'dijkstra': 'Dijkstra',

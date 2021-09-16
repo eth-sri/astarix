@@ -19,13 +19,12 @@ const cost_t INF  = 1000000000.0;
 class state_t {
   public:
     cost_t cost;  // cost of a path
-    int i;    // index in the query string
-    int v;    // vertex in the graph
-    int prev_i, prev_v;
+    pos_t i, prev_i;    // index in the query string
+    node_t v, prev_v;    // vertex in the graph
 
-    state_t() : cost(INF), i(-1), v(-1), prev_i(-1), prev_v(-1) {}
+    state_t() : cost(INF), i(-1), prev_i(-1), v(-1), prev_v(-1) {}
     state_t(cost_t _cost, int _i, int _v, int _prev_i, int _prev_v) 
-        : cost(_cost), i(_i), v(_v), prev_i(_prev_i), prev_v(_prev_v) {}
+        : cost(_cost), i(_i), prev_i(_prev_i), v(_v), prev_v(_prev_v) {}
 
     bool undef() {
         return i == -1;

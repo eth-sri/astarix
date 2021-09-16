@@ -15,11 +15,14 @@ struct argp_option options[] = {
     { "prefix_equivalence_classes",
                         'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
 //    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
-    { "seeds_len",  2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
-    { "seeds_max_errors",  2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have" },
-    //{ "seeds_max_indels",  2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned" },
-    { "seeds_backwards_algo",  2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match" },
-    { "seeds_interval_intersection",  2005, "{0,1}", 0,  "Counting only crumbs with intersecting intervals" },
+    { "seeds_len",  					2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
+    { "seeds_max_errors",  				2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have" },
+    //{ "seeds_max_indels",  			2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned" },
+    { "seeds_backwards_algo",  			2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match" },
+    { "seeds_interval_intersection",	2005, "{0,1}", 0,  "Counting only crumbs with intersecting intervals" },
+    { "seeds_linear_reference",  		2006, "{0,1}", 0,  "" },
+    { "seeds_match_pos_optimization",	2007, "{0,1}", 0,  "" },
+    { "seeds_skip_near_crumbs",  		2008, "{0,1}", 0,  "" },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty [0]" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty [1]" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty [5]" },
@@ -63,9 +66,13 @@ arguments read_args(int argc, char **argv) {
     args.greedy_match          = true;
     args.AStarNodeEqivClasses  = true;
 
-    args.astar_seeds.seed_len              = -1;
-    args.astar_seeds.max_seed_errors       = 0;
+    args.astar_seeds.seed_len              	= -1;
+	args.astar_seeds.linear_reference		= false;
+	args.astar_seeds.match_pos_optimization	= true;
+	args.astar_seeds.skip_near_crumbs		= true;
+
     //args.astar_seeds.max_indels            = -1;
+    args.astar_seeds.max_seed_errors       = 0;
     args.astar_seeds.backwards_algo        = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::DFS_FOR_LINEAR;
 	args.astar_seeds.interval_intersection = false; //true;
 
@@ -161,6 +168,15 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
             if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "IntervalIntersection only for astar-seeds.";
             if (!(std::stoi(arg) >= 0 && std::stoi(arg) <= 1)) throw "IntervalIntersection should be 0 or 1.";
             arguments->astar_seeds.interval_intersection = std::stod(arg);
+            break;
+        case 2006:
+            arguments->astar_seeds.linear_reference = (bool)std::stod(arg);
+            break;
+        case 2007:
+            arguments->astar_seeds.match_pos_optimization = (bool)std::stod(arg);
+            break;
+        case 2008:
+            arguments->astar_seeds.skip_near_crumbs = (bool)std::stod(arg);
             break;
         case 'o':
             arguments->output_dir = arg;

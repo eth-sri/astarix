@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 #include "graph.h"
+#include "utils.h"
 
 #include <plog/Log.h>
 
@@ -144,17 +145,15 @@ class Aligner {
     const graph_t &G;
     const AlignParams &params;
 
-    typedef std::unordered_map<std::pair<int,int>, state_t, pairhash> path_t;
-    typedef std::unordered_map<std::pair<int,int>, edge_t, pairhash> prev_edge_t;
-    typedef std::unordered_map<std::pair<int,int>, bool, pairhash> visited_t;
+    typedef std::unordered_map<std::pair<pos_t,node_t>, state_t, pairhash> path_t;
+    typedef std::unordered_map<std::pair<pos_t,node_t>, edge_t, pairhash> prev_edge_t;
+    typedef std::unordered_map<std::pair<pos_t,node_t>, bool, pairhash> visited_t;
 
   public:
     // Local vars
     path_t p;
     prev_edge_t pe;
-//#ifndef NDEBUG
-    visited_t vis; 				// not needed; for performance analysis only
-//#endif
+	visited_t vis;
 
     AStarHeuristic *astar;    // Concurrent Aligner's can read and write to the same AStar (it computes and memoizes heuristics).
 
@@ -214,7 +213,7 @@ class Aligner {
         return el;
     }
 
-    inline const state_t& get_const_path(const path_t &p, int i, int v) const {
+    inline const state_t& get_const_path(const path_t &p, pos_t i, node_t v) const {
         stats.t.dicts.start();
         auto it = p.find(std::make_pair(i, v));
         stats.t.dicts.stop();
@@ -222,14 +221,14 @@ class Aligner {
         return it->second;
     }
 
-    inline state_t& get_path(path_t &p, int i, int v) {
+    inline state_t& get_path(path_t &p, pos_t i, node_t v) {
         stats.t.dicts.start();
         auto &ret = p[std::make_pair(i, v)];
         stats.t.dicts.stop();
         return ret;
     }
 
-    inline const edge_t& get_prev_edge(const prev_edge_t &pe, int i, int v) const {
+    inline const edge_t& get_prev_edge(const prev_edge_t &pe, pos_t i, node_t v) const {
         stats.t.dicts.start();
         auto it = pe.find(std::make_pair(i, v));
         stats.t.dicts.stop();
@@ -237,13 +236,13 @@ class Aligner {
         return it->second;
     }
 
-    inline void set_prev_edge(prev_edge_t &pe, int i, int v, const edge_t &e) {
+    inline void set_prev_edge(prev_edge_t &pe, pos_t i, node_t v, const edge_t &e) {
         stats.t.dicts.start();
         pe[std::make_pair(i, v)] = e;
         stats.t.dicts.stop();
     }
 
-    inline bool& visited(visited_t &vis, int i, int v) {
+    inline bool& visited(visited_t &vis, pos_t i, node_t v) {
         stats.t.dicts.start();
         auto &ret = vis[std::make_pair(i, v)];
         stats.t.dicts.stop();

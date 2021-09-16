@@ -15,7 +15,8 @@ std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max
     std::string start_suff;
 
     {
-        int i=0, v=0;
+        pos_t i=0;
+		node_t v=0;
         state_t st(0.0, i, v, -1, -1);          // dummy one-after-last state
         push(Q, 0.0, st);                       // to push the next and pop the best
         get_path(p, i, v).optimize(st);         // to hold the optimal values
@@ -95,7 +96,7 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
     if (e.label != EPS && e.label != r.s[curr.i])
         return;
     
-    int i_next = (e.label != EPS) ? curr.i+1 : curr.i;      // maybe move one position in the read
+    pos_t i_next = (e.label != EPS) ? curr.i+1 : curr.i;      // maybe move one position in the read
     cost_t g = get_const_path(p, curr.i, curr.v).cost + edge_cost;
 
     assert(get_const_path(p, curr.i, curr.v).cost < INF);
