@@ -54,6 +54,7 @@ def algo2color(algo):
         'astar-seeds': 'mediumseagreen',
         'astarix-seeds_wo_skip_near_crumbs_pos': 'yellow',  ## ablation
         'astarix-seeds_wo_match_pos': 'orange',   ## ablation
+        'astarix-seeds_wo_opt': 'blue',
         'dijkstra': 'darkorange',
         'graphaligner': 'green',
         'pasgal': 'cornflowerblue',
@@ -77,6 +78,7 @@ def algo2beautiful(algo):
         'astar-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astarix-seeds_wo_skip_near_crumbs_pos': 'Seeds -near crumbs',  ## ablation
         'astarix-seeds_wo_match_pos': 'Seeds -match positions',   ## ablation
+        'astarix-seeds_wo_opt': 'Seeds -nearcrumbs -matchpos',
         'astarix-prefix': 'Prefix heuristic',
         'astar-prefix': 'Prefix heuristic',
         'dijkstra': 'Dijkstra',

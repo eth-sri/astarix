@@ -256,6 +256,16 @@ struct graph_t {
         return res;
     }
 
+    int numInOrigEdges(int u, edge_t *e) const {
+        int cnt=0;
+        for (int idx=V_rev[u]; idx!=-1; idx=E_rev[idx].next)
+            if (E_rev[idx].type == ORIG) {
+                cnt++;
+                *e = E_rev[idx];
+            }
+        return cnt;
+    }
+
     int numOutOrigEdges(int u, edge_t *e) const {
         int cnt=0;
         for (int idx=V[u]; idx!=-1; idx=E[idx].next)

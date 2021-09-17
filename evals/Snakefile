@@ -20,6 +20,7 @@ ASTARIX_PREFIX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -q
 ASTARIX_SEEDS_EXACT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_match_pos_optimization 0 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_skip_near_crumbs 0 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_OPT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 ASTARIX_SEEDS_APPROX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_max_errors 1 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 5 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 DIJKSTRA_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 GA_CMD = "{TIMELIMIT} {GA_BIN} --seeds-first-full-rows 64 -b 10000 -a alignments.gaf -f {input.reads} -g {input.graph_vg} >{output.file} {TIMEOUTPRINT} >>{output.file}"
@@ -50,12 +51,12 @@ READLEN_ms              = [100, 2000, 7000, 15000, 25000] # [100, 300, 700, 1000
 #READLEN_ms              = [50, 100, 150, 200, 250, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 5000, 7000, 10000]
 #READLEN_ms              = [50, 100, 150, 160, 170, 180, 200, 250]
 
-ABLATION_ALGOS			= ["astarix-seeds", "astarix-seeds_wo_skip_near_crumbs_pos", "astarix-seeds_wo_match_pos"]
+ABLATION_ALGOS			= ["astarix-seeds", "astarix-seeds_wo_skip_near_crumbs_pos", "astarix-seeds_wo_match_pos", "astarix-seeds_wo_opt", "vargas"]
 ABLATION_SCALING_GRAPHS = ["ecoli"]
 ABLATION_GRAPH_HEADS    = [10000000]
 ABLATION_Ns             = [200]
 ABLATION_SEQ_TECHNOLOGY = ["hifi"] #"ccs", "illumina", 
-ABLATION_ms             = [100, 2000, 7000, 10000] #, 15000, 20000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
+ABLATION_ms             = [100, 2000, 7000, 10000, 15000, 20000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
 
 NUMREADS_ALGOS          = ["astarix-seeds", "astarix-prefix", "vargas"] #, "graphaligner"]
 NUMREADS_SCALING_GRAPHS = ["ecoli"]
@@ -271,6 +272,21 @@ rule astarix_seeds_wo_skip_near_crumbs_pos:
         "results/astarix-seeds_wo_skip_near_crumbs_pos/"+params+"/log.txt"
     shell:
         ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD
+
+rule astarix_seeds_wo_opt:
+    input:
+        reads = "reads/"+params+"/reads.fq",
+        graph = "prefixes/"+graph_params+".fa"
+    output:
+        align = "results/astarix-seeds_wo_opt/"+params+"/out/alignments.tsv",
+        file = "results/astarix-seeds_wo_opt/"+params+"/summary.txt"
+	#priority: 100 
+    benchmark:
+        "results/astarix-seeds_wo_opt/"+params+"/benchmark.txt"
+    log:
+        "results/astarix-seeds_wo_opt/"+params+"/log.txt"
+    shell:
+        ASTARIX_SEEDS_EXACT_WO_OPT_CMD
 
 rule astarix_seeds_approx:
     input:

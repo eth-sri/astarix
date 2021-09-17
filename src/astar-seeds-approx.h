@@ -105,14 +105,16 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     void before_every_alignment(const read_t *r) {
 		assert(C.empty());
         r_ = r;  // potentially useful for after_every_alignment()
-		seeds_ = r->len / args.seed_len;  // TODO: not all seeds
-		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller
 		LOG_DEBUG << "max_indels: " << max_indels_;
 
         read_cnt.clear();
         read_cnt.reads.set(1);
 
-		generate_seeds_match_put_crumbs(r);
+		std::vector<pos_t> seed_starts = generate_seeds(r, 0.1);
+		seeds_ = seed_starts.size();    //seeds_ = r->len / args.seed_len;  // TODO: not all seeds
+		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller
+
+		generate_seeds_match_put_crumbs(seed_starts, r);
 		std::sort(C.begin(), C.end());
 
         read_cnt.seeds.set(seeds_);
@@ -124,7 +126,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
 	cost_t h(const state_t &st) const {
-		int seeds_to_end = (r_->len - st.i - 1) / args.seed_len;  // TODO: not all seeds
+		int seeds_to_end = std::min((r_->len - st.i - 1) / args.seed_len, seeds_);  // TODO: not all seeds
 		int missing = seeds_to_end;  // the maximum number of errors
 
 		const auto from = std::lower_bound(C.begin(), C.end(), crumb_t(st.v, 0, 0));
@@ -203,30 +205,32 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		////assert(C.contains(curr_v) && C[curr_v].contains(end_v));
     }
 
+	// BFS solution
+    void add_crumbs_backwards_bfs(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
+		std::queue<node_t> Q({curr_v});
+		std::unordered_map<node_t, int> pos = { {curr_v, i} };  // from curr_v
+
+		while (!Q.empty()) {
+			node_t v = Q.front(); Q.pop();
+			int i = pos[v];
+			add_crumb_to_node(p, match_v, v);
+			//if (args.skip_near_crumbs) numInOrigEdges
+			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
+				if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= args.seed_len + max_indels_))  // +/-delta optimization; assuming trie_depth <= seed_len
+					if (i > -max_indels_)
+						if (!pos.contains(it->to)) {
+							pos[it->to] = i-1;
+							Q.push(it->to);
+						}
+			}
+		}
+	}
+
     // `C[u]++` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
 	// TODO: match back the seed letters (make sure it is not exponential: maybe reimplement with sets as in the paper)
     void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
-		// solution 2
-		//std::queue<node_t> Q({curr_v});
-		//std::unordered_map<node_t, int> pos = { {curr_v, i} };  // from curr_v
-
-		//while (!Q.empty()) {
-		//	node_t v = Q.front(); Q.pop();
-		//	add_crumb_to_node(p, match_v, v);
-		//	if (pos[v] <= -max_indels_)
-		//		break;
-		//	for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
-		//		//if (G.node_in_trie(it->to) && pos[v] > args.seed_len + max_indels_)  // assuming trie_depth <= seed_len
-		//		//	continue;
-		//		if (!pos.contains(it->to)) {
-		//			pos[it->to] = pos[v]-1;
-		//			Q.push(it->to);
-		//		}
-		//	}
-		//}
-
 		// solution 1
 		//int curr_arr=0;
 		//std::unordered_set<node_t> S[2];
@@ -264,17 +268,26 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         }
     }
 
-    // Split r into seeds of length seed_len.
+    // Split r into seeds of length seed_len. Return a vector of starting points of the seeds from last to first;
+	std::vector<pos_t> generate_seeds(const read_t *r, double retain_frac) {
+		int max_seeds = r->len / args.seed_len;
+		std::vector<pos_t> seed_starts;
+        for (int i=r->len-args.seed_len; i>=0; i-=args.seed_len) {
+			seed_starts.push_back(i);
+			if ((int)seed_starts.size() == int(retain_frac * max_seeds))
+				break;
+		}
+		return seed_starts;
+	}
+
+	
     // For each exact occurence of a seed (i,v) in the graph,
     //   add 1 to C[u] for all nodes u on the path of match-length exactly `i` from supersource `0` to `v`
-    // Returns the number of seeds.
-    int generate_seeds_match_put_crumbs(const read_t *r) {
-        int seeds = 0;
-        for (int i=r->len-args.seed_len; i>=0; i-=args.seed_len) {
-            match_seed_put_crumbs(r, seeds, i, i, 0);  // seed from [i, i+seed_len)
-            seeds++;
-        }
-        return seeds;
+    void generate_seeds_match_put_crumbs(const std::vector<pos_t> &seed_starts, const read_t *r) {
+		for (int i=0; i<(int)seed_starts.size(); i++) {
+			pos_t st = seed_starts[i];
+            match_seed_put_crumbs(r, i, st, st, 0);  // seed from [st, st+seed_len)
+		}
     }
 
   public:
