@@ -184,10 +184,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         C.clear();  // clean up all crumbs for the next alignment
 
 		// modify the retain_frac to keep the precomputation+A*query to take 50% of the time
-		double astar_frac_time = (t.astar_prepare_reads.get_sec() + t.astar.get_sec()) / t.total.get_sec();
-		retain_frac_ += 0.3*retain_frac_*sign(0.5-astar_frac_time);    // update the number of seeds
-		if (retain_frac_ > 1.0) retain_frac_ = 1.0;
-		else if (retain_frac_ < 0.0) retain_frac_ = 0.0;
+		//double astar_frac_time = (t.astar_prepare_reads.get_sec() + t.astar.get_sec()) / t.total.get_sec();
+		//retain_frac_ += 0.3*retain_frac_*sign(0.5-astar_frac_time);    // update the number of seeds
+		//if (retain_frac_ > 1.0) retain_frac_ = 1.0;
+		//else if (retain_frac_ < 0.0) retain_frac_ = 0.0;
 
 		//LOG_DEBUG << "astar_frac_time: " << astar_frac_time << ", retain_frac_: " << retain_frac_;
     }
