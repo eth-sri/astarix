@@ -91,7 +91,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     //std::unordered_map< node_t, std::vector<std::pair<node_t, seed_t> > > C;                        // node -> { match_position -> seed } }
 	std::vector<crumb_t> C;   // all crumbs sorted by node, then by matching node, then by seed
 
-	//const int BINNING = 10000;
+	//static constexpr double learning_rate_ = 0.1;
+	double retain_frac_;
 
 	// Stats
     Stats read_cnt, global_cnt;
@@ -99,6 +100,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
   public:
     AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, const Args &_args)
         : G(_G), costs(_costs), args(_args) {
+		retain_frac_ = 0.1;  // start with using all seeds
     }
 
     // Cut r into chunks of length seed_len, starting from the end.
@@ -110,7 +112,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         read_cnt.clear();
         read_cnt.reads.set(1);
 
-		std::vector<pos_t> seed_starts = generate_seeds(r, 0.1);
+		std::vector<pos_t> seed_starts = generate_seeds(r, retain_frac_);
 		seeds_ = seed_starts.size();    //seeds_ = r->len / args.seed_len;  // TODO: not all seeds
 		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller
 
@@ -176,8 +178,18 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		return (r_->len - st.i)*costs.match + missing*costs.get_delta_min_special(); // fuller
 	}
 
-    void after_every_alignment() {
+	inline int sign(double x) { return x < 0.0 ? -1 : +1; }
+
+    void after_every_alignment(const AlignerTimers &t) {
         C.clear();  // clean up all crumbs for the next alignment
+
+		// modify the retain_frac to keep the precomputation+A*query to take 50% of the time
+		double astar_frac_time = (t.astar_prepare_reads.get_sec() + t.astar.get_sec()) / t.total.get_sec();
+		retain_frac_ += 0.3*retain_frac_*sign(0.5-astar_frac_time);    // update the number of seeds
+		if (retain_frac_ > 1.0) retain_frac_ = 1.0;
+		else if (retain_frac_ < 0.0) retain_frac_ = 0.0;
+
+		//LOG_DEBUG << "astar_frac_time: " << astar_frac_time << ", retain_frac_: " << retain_frac_;
     }
 
   private:
@@ -270,7 +282,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
     // Split r into seeds of length seed_len. Return a vector of starting points of the seeds from last to first;
 	std::vector<pos_t> generate_seeds(const read_t *r, double retain_frac) {
-		int max_seeds = r->len / args.seed_len;
+		int max_seeds = (r->len + args.seed_len - 1) / args.seed_len;  // ceil of r->len/seed_len
 		std::vector<pos_t> seed_starts;
         for (int i=r->len-args.seed_len; i>=0; i-=args.seed_len) {
 			seed_starts.push_back(i);
@@ -311,6 +323,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         out << "        For all reads:"                                                     << std::endl;
         out << "                            Seeds: " << global_cnt.seeds << " (" << 1.0*global_cnt.seeds.get()/reads << " per read)"                  << std::endl;
         out << "                     Seed matches: " << global_cnt.seed_matches << " (" << 1.0*global_cnt.seed_matches.get()/reads << " per read, " << 1.0*global_cnt.seed_matches.get()/global_cnt.seeds.get() << " per seed)" << std::endl;
+		out << "           Retained seed fraction: " << retain_frac_ << std::endl;
         out << "                 Paths considered: " << global_cnt.paths_considered << " (" << 1.0*global_cnt.paths_considered.get()/reads << " per read)"     << std::endl;
         out << "               States with crumbs: " << global_cnt.states_with_crumbs
             << " [+" << 100.0*global_cnt.repeated_states.get()/(global_cnt.states_with_crumbs.get()+global_cnt.repeated_states.get()) << "% repeated], (" << 1.0*global_cnt.states_with_crumbs.get()/reads << " per read)" << std::endl;

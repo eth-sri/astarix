@@ -86,7 +86,6 @@ std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max
     else 
         stats.align_status.unique.inc();
 
-    stats.t.total.stop();
     return final_states;
 }
 

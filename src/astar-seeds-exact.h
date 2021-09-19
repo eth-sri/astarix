@@ -100,7 +100,7 @@ class AStarSeedsExact: public AStarHeuristic {
         marked_states_ += marked_states;
     }
 
-    void after_every_alignment() {
+    void after_every_alignment(const AlignerTimers &t) {
         // Revert the updates by adding -1 instead of +1.
         gen_pivots_and_update(r_, pivot_len, -1);
 

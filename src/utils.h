@@ -84,6 +84,30 @@ class Timer {
     }
 };
 
+struct AlignerTimers {
+    Timer queue, ff, dicts, astar, total;
+    Timer astar_prepare_reads;
+
+    void clear() {
+        queue.clear();
+        ff.clear();
+        dicts.clear();
+        astar.clear();
+        astar_prepare_reads.clear();
+        total.clear();
+    }
+
+    AlignerTimers& operator+=(const AlignerTimers &b) {
+        queue += b.queue;
+        ff += b.ff;
+        dicts += b.dicts;
+        astar += b.astar;
+        astar_prepare_reads += b.astar_prepare_reads;
+        total += b.total;
+        return *this;
+    }
+};
+
 class MemoryMeasurer {
     double start_mem;
     double accum_mem;

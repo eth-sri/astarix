@@ -83,8 +83,6 @@ class AStarPrefix: public AStarHeuristic {
 
     cost_t h(const state_t &st) const;
 
-    void after_every_alignment() { }
-
     void print_params(std::ostream &out) const {
         out << "                   Cost cap: " << (int)max_prefix_cost                       << std::endl;
         out << "   Upcoming seq. length cap: " << max_prefix_len                         << std::endl;

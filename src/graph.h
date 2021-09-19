@@ -485,11 +485,11 @@ class AStarHeuristic {
   public:
     Counter<> states_with_crumbs;  // TODO: refactor
 
-    virtual void before_every_alignment(const read_t *r) = 0;   // to be invoked once in the beginning of the alignment of each read
+    virtual void before_every_alignment(const read_t *r) {}   // to be invoked once in the beginning of the alignment of each read
     virtual cost_t h(const state_t &st) const = 0;
-    virtual void after_every_alignment() = 0;
-    virtual void print_params(std::ostream &out) const = 0;
-    virtual void print_stats(std::ostream &out) const = 0;
+    virtual void after_every_alignment(const AlignerTimers &t) {}
+    virtual void print_params(std::ostream &out) const {}
+    virtual void print_stats(std::ostream &out) const {}
 };
 
 }

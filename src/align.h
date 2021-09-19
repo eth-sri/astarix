@@ -24,30 +24,6 @@ struct pairhash {
     }
 };
 
-struct AlignerTimers {
-    Timer queue, ff, dicts, astar, total;
-    Timer astar_prepare_reads;
-
-    void clear() {
-        queue.clear();
-        ff.clear();
-        dicts.clear();
-        astar.clear();
-        astar_prepare_reads.clear();
-        total.clear();
-    }
-
-    AlignerTimers& operator+=(const AlignerTimers &b) {
-        queue += b.queue;
-        ff += b.ff;
-        dicts += b.dicts;
-        astar += b.astar;
-        astar_prepare_reads += b.astar_prepare_reads;
-        total += b.total;
-        return *this;
-    }
-};
-
 struct Stats {
     Counter<> pushed, popped, greedy_matched;
     Counter<> popped_trie, popped_ref;
@@ -189,9 +165,14 @@ class Aligner {
     inline void astar_after_every_alignment() {
         assert(stats.align_status.total() == 1);
 
+		auto timers_copy = stats.t;  // in order not to pass a running timer as an argument
+		timers_copy.total.stop();
+
         stats.t.astar_prepare_reads.start();
-        astar->after_every_alignment();
+        astar->after_every_alignment(timers_copy);
         stats.t.astar_prepare_reads.stop();
+
+		stats.t.total.stop();
     }
   
   private:
