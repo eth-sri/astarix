@@ -226,9 +226,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			node_t v = Q.front(); Q.pop();
 			int i = pos[v];
 			add_crumb_to_node(p, match_v, v);
-			//if (args.skip_near_crumbs) numInOrigEdges
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
-				if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= args.seed_len + max_indels_))  // +/-delta optimization; assuming trie_depth <= seed_len
+				if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= args.seed_len + max_indels_))  // +/-delta optimization; assuming trie_depth <= seed_len  // TODO: +max_indels is not needed; change to max_deletions; 
 					if (i > -max_indels_)
 						if (!pos.contains(it->to)) {
 							pos[it->to] = i-1;

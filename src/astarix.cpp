@@ -58,6 +58,7 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
         //    throw invalid_argument("astar-seeds-exact algorithm can only be used with fixed_trie_depth flag on.");
         //if (args.astar_seeds_max_errors != 0) 
         //    throw invalid_argument("astar-seeds-exact needs astar_seeds_max_errors flag set to 0.");
+		throw "Exact not up to date.";
         astar = make_unique<AStarSeedsExact>(G, args.costs, args.astar_seeds.seed_len, -1);
     } else if (algo == "astar-seeds") {
         //if (!args.fixed_trie_depth)
@@ -193,9 +194,9 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
     if (args->tree_depth == -1) {
         args->tree_depth = floor(log(G.nodes()) / log(4.0));
     }
-    if (args->astar_seeds.seed_len == -1) {
-		args->astar_seeds.seed_len = args->tree_depth;
-	}
+    //if (args->astar_seeds.seed_len == -1) {
+	//	args->astar_seeds.seed_len = args->tree_depth;
+	//}
     if (args->tree_depth <= 0)
         throw "Trie depth should be >0.";
 }
