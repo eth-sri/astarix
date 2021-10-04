@@ -119,6 +119,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		generate_seeds_match_put_crumbs(seed_starts, r);
 		std::sort(C.begin(), C.end());
 
+		read_cnt.states_with_crumbs.set(C.size());
         read_cnt.seeds.set(seeds_);
         read_cnt.root_heuristic.set( h(state_t(0.0, 0, 0, -1, -1)) );
         read_cnt.heuristic_potential.set(seeds_);
@@ -227,7 +228,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			int i = pos[v];
 			add_crumb_to_node(p, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
-				if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= args.seed_len + max_indels_))  // +/-delta optimization; assuming trie_depth <= seed_len  // TODO: +max_indels is not needed; change to max_deletions; 
+				if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= G.get_trie_depth() + max_indels_))  // +/-delta optimization; assuming trie_depth <= G.get_trie_depth()  // TODO: +max_indels is not needed; change to max_deletions; 
 					if (i > -max_indels_)
 						if (!pos.contains(it->to)) {
 							pos[it->to] = i-1;
@@ -253,11 +254,20 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		//	add_crumb_to_node(p, match_v, v);
 	}
 
+    void update_crumbs_up_the_trie(const seed_t p, const node_t match_v, node_t v) {
+		if (v != 0)
+			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
+				if (G.node_in_trie(it->to)) {
+					add_crumb_to_node(p, match_v, it->to);
+					update_crumbs_up_the_trie(p, match_v, it->to);
+				}
+    }
+
 	// Breath-First-TopSort
-    void add_crumbs_backwards_topsort(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
-		std::map<node_t, int> min_dist;
-		std::map<node_t, int> max_dist;
-		std::map<node_t, int> outgoing;
+    void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
+		std::unordered_map<node_t, int> min_dist;
+		std::unordered_map<node_t, int> max_dist;
+		std::unordered_map<node_t, int> outgoing;
 		std::queue<node_t> Q;
 		edge_t e;
 
@@ -268,8 +278,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			node_t v = Q.front(); Q.pop();
 			assert(min_dist.contains(v));
 			assert(max_dist.contains(v));
-			if (min_dist[v] <= 0)
-				add_crumb_to_node(p, match_v, v);
+			add_crumb_to_node(p, match_v, v);
+			if (min_dist[v] <= G.get_trie_depth() + max_indels_) {
+				update_crumbs_up_the_trie(p, match_v, v);
+			}
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
 				if (!G.node_in_trie(u)) {
@@ -301,12 +313,12 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     // Fully ignores labels.
     // Returns if the the supersource was reached at least once.
 	// TODO: match back the seed letters (make sure it is not exponential: maybe reimplement with sets as in the paper)
-    void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
+    void add_crumbs_backwards_linear(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
 		// solution 0: fastest
 		add_crumb_to_node(p, match_v, curr_v);
 		if (i > -max_indels_)
 			for (auto it=G.begin_orig_rev_edges(curr_v); it!=G.end_orig_rev_edges(); ++it)
-				if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= args.seed_len + max_indels_))  // +/-delta optimization; assuming trie_depth <= seed_len
+				if (!args.skip_near_crumbs || !G.node_in_trie(it->to) || i-1 <= G.get_trie_depth())  // +/-delta optimization
 					add_crumbs_backwards(p, match_v, i-1, it->to);
     }
 

@@ -15,14 +15,14 @@ VARGAS_BIN = config["vargas_bin_path"]
 TIMELIMIT       = "(timeout 7200s"
 TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo timeouted)"
 
-ASTARIX_PREFIX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -q {input.reads} -g {input.graph} -d 5 -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-#ASTARIX_SEEDS_EXACT_SHORT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_match_pos_optimization 0 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_skip_near_crumbs 0 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_OPT_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_APPROX_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds --seeds_max_errors 1 -q {input.reads} -g {input.graph} -M 0 -S 1 -G 5 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-DIJKSTRA_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra -q {input.reads} -g {input.graph} -M 0 -S 1 -G 1 -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_PREFIX_CMD							= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 12 -M 0 -S 1 -G 1 -d 5                                                        -q {input.reads} -g {input.graph} -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+#ASTARIX_SEEDS_EXACT_SHORT_CMD 				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 12 -M 0 -S 1 -G 1                                                             -q {input.reads} -g {input.graph} -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 12 -M 0 -S 1 -G 1                                                             -q {input.reads} -g {input.graph} -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD		= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 12 -M 0 -S 1 -G 1 --seeds_match_pos_optimization 0                            -q {input.reads} -g {input.graph} -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 12 -M 0 -S 1 -G 1 --seeds_skip_near_crumbs 0                                  -q {input.reads} -g {input.graph} -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_OPT_CMD				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 12 -M 0 -S 1 -G 1 --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g {input.graph} -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_APPROX_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 12 -M 0 -S 1 -G 1 --seeds_max_errors 1                                        -q {input.reads} -g {input.graph} -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+DIJKSTRA_CMD								= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra     -D 12 -M 0 -S 1 -G 1                                                             -q {input.reads} -g {input.graph} -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 GA_CMD = "{TIMELIMIT} {GA_BIN} --seeds-first-full-rows 64 -b 10000 -a alignments.gaf -f {input.reads} -g {input.graph_vg} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} {TIMEOUTPRINT} >>{output.file}"
 VARGAS_CMD = "{TIMELIMIT} {VARGAS_BIN} align -g {input.graph_gdef} -U {input.reads} --ete >{output.align} 2>{output.file} {TIMEOUTPRINT}"
@@ -41,22 +41,34 @@ REF_SIZE_GRAPH_HEADS    = [10000, 100000, 1000000, 10000000]
 REF_SIZE_Ns             = [10000]  # number of reads
 REF_SIZE_SEQ_TECHNOLOGY = ["illumina"]
 REF_SIZE_ms             = [150]
+REF_SIZE_errors         = [0.003]
 
 READLEN_ALGOS           = ["astarix-seeds"] #, "vargas"] #, "dijkstra"] #, "vargas"] "astarix-prefix", "dijkstra"] , "graphaligner", "vg", "pasgal",# "astarix-seeds-approx"]
 READLEN_SCALING_GRAPHS  = ["ecoli"]
-READLEN_GRAPH_HEADS     = [10000000]
-READLEN_Ns              = [200]
+READLEN_GRAPH_HEADS     = [100000, 1000000, 10000000]
+#READLEN_GRAPH_HEADS     = [10000000]
+READLEN_Ns              = [100]
 READLEN_SEQ_TECHNOLOGY  = ["hifi"] #"ccs", "illumina", 
-READLEN_ms              = [100, 2000, 7000, 15000, 25000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
+READLEN_ms              = [100, 2000, 7000, 15000] #, 25000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
 #READLEN_ms              = [50, 100, 150, 200, 250, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 5000, 7000, 10000]
 #READLEN_ms              = [50, 100, 150, 160, 170, 180, 200, 250]
+READLEN_errors          = [0.003]
 
-ABLATION_ALGOS			= ["astarix-seeds", "astarix-seeds_wo_skip_near_crumbs_pos", "astarix-seeds_wo_match_pos", "astarix-seeds_wo_opt", "vargas"]
+ABLATION_ALGOS			= ["astarix-seeds"] #, "astarix-seeds_wo_match_pos"] #, "astarix-seeds_wo_skip_near_crumbs_pos", "astarix-seeds_wo_opt", "vargas"]
 ABLATION_SCALING_GRAPHS = ["ecoli"]
 ABLATION_GRAPH_HEADS    = [10000000]
 ABLATION_Ns             = [200]
 ABLATION_SEQ_TECHNOLOGY = ["hifi"] #"ccs", "illumina", 
-ABLATION_ms             = [100, 2000, 7000, 10000, 15000, 20000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
+ABLATION_ms             = [100, 2000, 7000, 10000, 15000, 20000] #, 25000, 30000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
+ABLATION_errors         = [0.003, 0.005]
+
+ERRORRATE_ALGOS			 = ["astarix-seeds"] #, "astarix-seeds_wo_match_pos"]
+ERRORRATE_GRAPHS         = ["ecoli"]
+ERRORRATE_GRAPH_HEADS    = [10000000]
+ERRORRATE_Ns             = [200]
+ERRORRATE_SEQ_TECHNOLOGY = ["hifi"] #"ccs", "illumina", 
+ERRORRATE_ms             = [2000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
+ERRORRATE_errors         = [0.003, 0.005, 0.01, 0.02, 0.03] 
 
 NUMREADS_ALGOS          = ["astarix-seeds", "astarix-prefix", "vargas"] #, "graphaligner"]
 NUMREADS_SCALING_GRAPHS = ["ecoli"]
@@ -73,16 +85,16 @@ GRAPH_HEADS = GRAPH_HEADS_SMALL #+ GRAPH_HEADS_BIG
 Ns           = [10000] #, 1000, 10000]       # number of reads
 ms           = [100] #75] #, 100, 150, 250]          # read len
 
-FIRST_ROW       = "algo\tgraph\thead\tN\tm\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
+FIRST_ROW       = "algo\tgraph\thead\tN\tm\tsequencing_technology\terrorrate\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
 AGGREGATED_BENCHMARKS = "results/aggregated_benchmarks.csv"
 AGGREGATED_EXPERIMENTS = "results/aggregated_experiments.csv"
 
 graph_params = "{graph}_head{head}"
-read_params = "N{N}_m{m}_{seq_technology}"
+read_params = "N{N}_m{m}_{seq_technology}_errors{errors}"
 params = graph_params + "_" + read_params
 
 EXPERIMENT_N = 1000 #20000
-EXPERIMENT_FIRST_ROW       = "algo\tgraph\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
+#EXPERIMENT_FIRST_ROW       = "algo\tgraph\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
 EXPERIMENT_GRAPHS = ["MHC1", "LRC"]
 EXPERIMENT_READS = { "MHC1": "M1", "LRC": "L1", "ecoli": "ecoli"}
 experiment_graph = "graphs/pasgal-{graph}.gfa"
@@ -102,6 +114,7 @@ rule all:
         ref_size = "results/REF_SIZE_SCALING_DONE",
         readlen = "results/READLEN_SCALING_DONE",
         ablation = "results/ABLATION_SCALING_DONE",
+        errorrate = "results/ERRORRATE_DONE",
 #        numreads = "results/NUMREADS_SCALING_DONE"
 #        astar_prefix_vs_seeds = "results/PREFIX_VS_SEEDS_RAN",
 #        visualization = "results/VISUALIZATION_RAN",
@@ -111,12 +124,12 @@ rule all:
 rule refsize_experiment:
     input:
         refs = expand("prefixes/"+graph_params+".fa", graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms, seq_technology=REF_SIZE_SEQ_TECHNOLOGY),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms, seq_technology=REF_SIZE_SEQ_TECHNOLOGY),
+        reads = expand("reads/"+params+"/reads.fq", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms, seq_technology=REF_SIZE_SEQ_TECHNOLOGY, errors=REF_SIZE_errors),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms, seq_technology=REF_SIZE_SEQ_TECHNOLOGY, errors=REF_SIZE_errors),
     output:
         "results/REF_SIZE_SCALING_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms)
+        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=REF_SIZE_ALGOS, graph=REF_SIZE_SCALING_GRAPHS, head=REF_SIZE_GRAPH_HEADS, N=REF_SIZE_Ns, m=REF_SIZE_ms, seq_technology=REF_SIZE_SEQ_TECHNOLOGY, errors=REF_SIZE_errors)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 #        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
@@ -124,12 +137,12 @@ rule refsize_experiment:
 rule readlen_experiment:
     input:
         refs = expand("prefixes/"+graph_params+".fa", graph=READLEN_SCALING_GRAPHS, head=READLEN_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=READLEN_ALGOS, graph=READLEN_SCALING_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=READLEN_ALGOS, graph=READLEN_SCALING_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY),
+        reads = expand("reads/"+params+"/reads.fq", algo=READLEN_ALGOS, graph=READLEN_SCALING_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=READLEN_ALGOS, graph=READLEN_SCALING_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors),
     output:
         "results/READLEN_SCALING_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=READLEN_ALGOS, graph=READLEN_SCALING_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms)
+        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=READLEN_ALGOS, graph=READLEN_SCALING_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 #        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
@@ -137,12 +150,25 @@ rule readlen_experiment:
 rule ablation_experiment:
     input:
         refs = expand("prefixes/"+graph_params+".fa", graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY),
+        reads = expand("reads/"+params+"/reads.fq", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors),
     output:
         "results/ABLATION_SCALING_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms)
+        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=ABLATION_ALGOS, graph=ABLATION_SCALING_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors)
+    shell:
+        "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
+#        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
+
+rule errorrate_experiment:
+    input:
+        refs = expand("prefixes/"+graph_params+".fa", graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS),
+        reads = expand("reads/"+params+"/reads.fq", algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors),
+    output:
+        "results/ERRORRATE_DONE"
+    params:
+        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 #        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
@@ -453,39 +479,40 @@ rule simmulate_illumina_reads:
     params:
         prefix = "reads/"+graph_params+"_N{N}_m{m}_illumina/reads"
     output:
-        "reads/"+graph_params+"_N{N}_m{m}_illumina/reads.fq"
+        "reads/"+graph_params+"_N{N}_m{m}_illumina_errors{errors}/reads.fq"
     shadow: "shallow"
     shell:
         "{ART} -ss MSv3 -sam -i {input} -c {wildcards.N} -l {wildcards.m} -o {params.prefix} --rndSeed 42"
 
-rule simulate_ccs_reads:
-	input:
-		"prefixes/"+graph_params+".fa"
-	params:
-		prefix = "reads/"+graph_params+"_N{N}_m{m}_ccs/reads"
-	output:
-		"reads/"+graph_params+"_N{N}_m{m}_ccs/reads.fq"
-	shadow: "shallow"
-	run:
-		shell("{PBSIM} --data-type CLR --depth 0.02 --model_qc pbsim_profiles/model_qc_clr --length-min {wildcards.m} --length-max {wildcards.m} --length-mean {wildcards.m} --accuracy-min 0.99 --accuracy-sd 0 --accuracy-mean 1 {input}")
-		#shell("{PBSIM} --hmm_model pbsim_models/P4C2.model --depth 0.001 --accuracy-min 0.99 --accuracy-max 0.99 --accuracy-mean 0.99 --accuracy-sd 0 --length-mean {wildcards.m} --length-sd 0 {input}")
-		#"{PBSIM} --sample-fastq pbsim_sample.fastq --depth 0.001 --accuracy-min 0.98 --accuracy-max 0.98 --length-mean {wildcards.m} --length-sd 0 {input}"
-		#"{PBSIM} --data-type CCS --depth 0.001 --model_qc pbsim_profiles/model_qc_ccs --length-mean {wildcards.m} --length-sd 0 {input}"
-		shell("cp -L sd_0001.fastq {params.prefix}.fq")
-		shell("cp -L sd_0001.maf {params.prefix}.maf")
-		shell("cp -L sd_0001.ref {params.prefix}.ref")
+#rule simulate_ccs_reads:
+#	input:
+#		"prefixes/"+graph_params+".fa"
+#	params:
+#		prefix = "reads/"+graph_params+"_N{N}_m{m}_ccs/reads"
+#	output:
+#		"reads/"+graph_params+"_N{N}_m{m}_ccs/reads.fq"
+#	shadow: "shallow"
+#	run:
+#		shell("{PBSIM} --data-type CLR --depth 0.02 --model_qc pbsim_profiles/model_qc_clr --length-min {wildcards.m} --length-max {wildcards.m} --length-mean {wildcards.m} --accuracy-min 0.99 --accuracy-sd 0 --accuracy-mean 1 {input}")
+#		#shell("{PBSIM} --hmm_model pbsim_models/P4C2.model --depth 0.001 --accuracy-min 0.99 --accuracy-max 0.99 --accuracy-mean 0.99 --accuracy-sd 0 --length-mean {wildcards.m} --length-sd 0 {input}")
+#		#"{PBSIM} --sample-fastq pbsim_sample.fastq --depth 0.001 --accuracy-min 0.98 --accuracy-max 0.98 --length-mean {wildcards.m} --length-sd 0 {input}"
+#		#"{PBSIM} --data-type CCS --depth 0.001 --model_qc pbsim_profiles/model_qc_ccs --length-mean {wildcards.m} --length-sd 0 {input}"
+#		shell("cp -L sd_0001.fastq {params.prefix}.fq")
+#		shell("cp -L sd_0001.maf {params.prefix}.maf")
+#		shell("cp -L sd_0001.ref {params.prefix}.ref")
 
 rule simulate_hifi_reads:
 	input:
 		"prefixes/"+graph_params+".fa"
 	params:
-		prefix = "reads/"+graph_params+"_N{N}_m{m}_hifi/reads"
+		prefix = "reads/"+graph_params+"_N{N}_m{m}_hifi_errors{errors}/reads"
 	output:
-		"reads/"+graph_params+"_N{N}_m{m}_hifi/reads.fq"
+		"reads/"+graph_params+"_N{N}_m{m}_hifi_errors{errors}/reads.fq"
 	shadow: "shallow"
 	shell:
-		#"{RANDOMREADS} build=1 ow=t seed=1 ref={input} illuminanames=t addslash=t pacbio=t pbmin=0.003 pbmax=0.003 coverage=0.02 paired=f minlength={wildcards.m} midlength={wildcards.m} maxlength={wildcards.m} out={output}"
-		"{RANDOMREADS} build=1 ow=t seed=1 ref={input} illuminanames=t addslash=t pacbio=t pbmin=0.003 pbmax=0.003 coverage=0.02 paired=f gaussianlength=t minlength={wildcards.m} midlength={wildcards.m} maxlength={wildcards.m} out={output}"
+		"{RANDOMREADS} build=1 ow=t seed=1 ref={input} illuminanames=t addslash=t pacbio=t pbmin={wildcards.errors} pbmax={wildcards.errors} reads={wildcards.N} paired=f gaussianlength=t minlength={wildcards.m} midlength={wildcards.m} maxlength={wildcards.m} out={output}"
+		#"{RANDOMREADS} build=1 ow=t seed=1 ref={input} illuminanames=t addslash=t pacbio=t pbmin={wildcards.errors} pbmax={wildcards.errors} coverage=$(echo 'scale=5; {wildcards.N}*1000000/{wildcards.head}' | bc) paired=f gaussianlength=t minlength={wildcards.m} midlength={wildcards.m} maxlength={wildcards.m} out={output}"
+		#"{RANDOMREADS} build=1 ow=t seed=1 ref={input} illuminanames=t addslash=t pacbio=t pbmin={wildcards.errors} pbmax={wildcards.errors} coverage=1 paired=f gaussianlength=t minlength={wildcards.m} midlength={wildcards.m} maxlength={wildcards.m} out={output}"
 
 #ruleorder: head_ecoli_reads > head_reads
 

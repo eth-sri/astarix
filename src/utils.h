@@ -64,11 +64,15 @@ class Timer {
     void start() {
         assert(!running);
         running = true;
+#ifdef DEBUG
         start_time = std::clock();
+#endif
     }
 
     void stop() {
+#ifdef DEBUG
         accum_time += std::clock() - start_time;
+#endif
         assert(running);
         running = false;
     }
