@@ -217,7 +217,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		////assert(C.contains(curr_v) && C[curr_v].contains(end_v));
     }
 
-	// BFS solution
+	// NOT USED. BFS solution
     void add_crumbs_backwards_bfs(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
 		std::queue<node_t> Q({curr_v});
 		std::unordered_map<node_t, int> pos = { {curr_v, i} };  // from curr_v
@@ -237,11 +237,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		}
 	}
 
-    // `C[u]++` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
-    // Fully ignores labels.
-    // Returns if the the supersource was reached at least once.
-	// TODO: match back the seed letters (make sure it is not exponential: maybe reimplement with sets as in the paper)
-    void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
+	// NOT USED
+	void add_crumbs_backwards_anothersolution() {
 		// solution 1
 		//int curr_arr=0;
 		//std::unordered_set<node_t> S[2];
@@ -254,7 +251,57 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		//}
 		//for (const node_t v: S[curr_arr])
 		//	add_crumb_to_node(p, match_v, v);
+	}
 
+	// Breath-First-TopSort
+    void add_crumbs_backwards_topsort(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
+		std::map<node_t, int> min_dist;
+		std::map<node_t, int> max_dist;
+		std::map<node_t, int> outgoing;
+		std::queue<node_t> Q;
+		edge_t e;
+
+		Q.push(match_v);
+		min_dist[match_v] = i;
+		max_dist[match_v] = i;
+		while(!Q.empty()) {
+			node_t v = Q.front(); Q.pop();
+			assert(min_dist.contains(v));
+			assert(max_dist.contains(v));
+			if (min_dist[v] <= 0)
+				add_crumb_to_node(p, match_v, v);
+			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
+				node_t u = it->to;
+				if (!G.node_in_trie(u)) {
+					if (outgoing.contains(u)) outgoing[u] = outgoing[u]+1;
+					else {
+						outgoing[u] = 1;
+						assert(!max_dist.contains(u));
+						max_dist[u] = max_dist[v]-1;
+					}
+					assert(outgoing.contains(u));
+					if (G.numOutOrigEdges(u,&e) == outgoing[u]) {
+						assert(max_dist.contains(u));
+						if (max_dist[u] >= -max_indels_) {
+							Q.push(u);
+							assert(!min_dist.contains(u));
+							min_dist[u] = min_dist[v] - 1;
+							//outgoing.remove(u);
+						}
+					}
+				}
+			}
+		}
+		//for (const auto it: outgoing)
+		//	Q.push();
+	}
+
+	// For linear case only
+    // `C[u]++` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
+    // Fully ignores labels.
+    // Returns if the the supersource was reached at least once.
+	// TODO: match back the seed letters (make sure it is not exponential: maybe reimplement with sets as in the paper)
+    void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
 		// solution 0: fastest
 		add_crumb_to_node(p, match_v, curr_v);
 		if (i > -max_indels_)
@@ -273,7 +320,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                     match_seed_put_crumbs(r, p, start, i+1, it->to);
             }
         } else {
-            assert(!G.node_in_trie(v));
 			add_crumbs_backwards(p, v, i, v);   // DEBUG: first go back to the starting of the match
             ++read_cnt.seed_matches;  // debug info
         }

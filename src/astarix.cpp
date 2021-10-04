@@ -64,9 +64,7 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
         //if (!args.fixed_trie_depth)
         //    throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
 
-        AStarSeedsWithErrors::Args astar_seeds = args.astar_seeds;
-
-        astar = make_unique<AStarSeedsWithErrors>(G, args.costs, astar_seeds);
+        astar = make_unique<AStarSeedsWithErrors>(G, args.costs, args.astar_seeds);
     } else if (algo == "dijkstra") { 
         astar = make_unique<DijkstraDummy>();
     } else {
@@ -194,9 +192,9 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
     if (args->tree_depth == -1) {
         args->tree_depth = floor(log(G.nodes()) / log(4.0));
     }
-    //if (args->astar_seeds.seed_len == -1) {
-	//	args->astar_seeds.seed_len = args->tree_depth;
-	//}
+    if (args->astar_seeds.seed_len == -1) {
+		args->astar_seeds.seed_len = args->tree_depth;
+	}
     if (args->tree_depth <= 0)
         throw "Trie depth should be >0.";
 }
