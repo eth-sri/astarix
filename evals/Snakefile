@@ -45,8 +45,8 @@ REF_SIZE_errors         = [0.003]
 
 READLEN_ALGOS           = ["astarix-seeds"] #, "vargas"] #, "dijkstra"] #, "vargas"] "astarix-prefix", "dijkstra"] , "graphaligner", "vg", "pasgal",# "astarix-seeds-approx"]
 READLEN_SCALING_GRAPHS  = ["ecoli"]
-READLEN_GRAPH_HEADS     = [100000, 1000000, 10000000]
-#READLEN_GRAPH_HEADS     = [10000000]
+#READLEN_GRAPH_HEADS     = [100000, 1000000, 10000000]
+READLEN_GRAPH_HEADS     = [10000000]
 READLEN_Ns              = [100]
 READLEN_SEQ_TECHNOLOGY  = ["hifi"] #"ccs", "illumina", 
 READLEN_ms              = [100, 2000, 7000, 15000] #, 25000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]

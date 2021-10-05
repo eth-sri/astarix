@@ -254,6 +254,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		//	add_crumb_to_node(p, match_v, v);
 	}
 
+	// Skip v (which is in the reference) and add crumbs only to the trie
     void update_crumbs_up_the_trie(const seed_t p, const node_t match_v, node_t v) {
 		if (v != 0)
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
@@ -265,12 +266,13 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
 	// Breath-First-TopSort
     void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
-		std::unordered_map<node_t, int> min_dist;
-		std::unordered_map<node_t, int> max_dist;
+		std::unordered_map<node_t, int> min_dist;  // the minimal read index where a node can be aligned without indels
+		std::unordered_map<node_t, int> max_dist;  // the maximal read index --||--
 		std::unordered_map<node_t, int> outgoing;
 		std::queue<node_t> Q;
 		edge_t e;
 
+		// TopSort iterations
 		Q.push(match_v);
 		min_dist[match_v] = i;
 		max_dist[match_v] = i;
@@ -279,9 +281,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			assert(min_dist.contains(v));
 			assert(max_dist.contains(v));
 			add_crumb_to_node(p, match_v, v);
-			if (min_dist[v] <= G.get_trie_depth() + max_indels_) {
+			if (min_dist[v] <= G.get_trie_depth() + max_indels_)
 				update_crumbs_up_the_trie(p, match_v, v);
-			}
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
 				if (!G.node_in_trie(u)) {
@@ -295,17 +296,35 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 					if (G.numOutOrigEdges(u,&e) == outgoing[u]) {
 						assert(max_dist.contains(u));
 						if (max_dist[u] >= -max_indels_) {
-							Q.push(u);
 							assert(!min_dist.contains(u));
 							min_dist[u] = min_dist[v] - 1;
-							//outgoing.remove(u);
+							Q.push(u);
 						}
 					}
 				}
 			}
 		}
-		//for (const auto it: outgoing)
-		//	Q.push();
+
+		// Initialize Q with nodes from reached cycles
+		for (const auto it: max_dist) {
+			const node_t v = it.first;
+			if (!min_dist.contains(v))
+				Q.push(v);
+		}
+		LOG_DEBUG << "Cycles reached: " << Q.size();
+
+		// BFS from all cycle
+		while (!Q.empty()) {
+			node_t v = Q.front(); Q.pop();
+			add_crumb_to_node(p, match_v, v);
+			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
+				node_t u = it->to;
+				if (max_dist[v]-1 >= -max_indels_) {
+					max_dist[u] = max_dist[v]-1;
+					Q.push(u);
+				}
+			}
+		}
 	}
 
 	// For linear case only
