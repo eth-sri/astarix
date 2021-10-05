@@ -32,10 +32,11 @@ void assure_dir_exists(const char *dir_str) {
     }
     else if (ENOENT == errno) {  // Directory does not exist
         _mkdir(dir_str);
+        LOG_INFO << "Creating " << dir_str;
     }
     else {  // opendir() failed for some other reason
         LOG_ERROR << "Error opening dir " << dir_str;
-        exit(0);
+        throw std::string("Error opening dir ") + dir_str;
     }
 }
 

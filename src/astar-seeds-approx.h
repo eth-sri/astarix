@@ -107,7 +107,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     void before_every_alignment(const read_t *r) {
 		assert(C.empty());
         r_ = r;  // potentially useful for after_every_alignment()
-		LOG_DEBUG << "max_indels: " << max_indels_;
 
         read_cnt.clear();
         read_cnt.reads.set(1);
@@ -115,6 +114,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		std::vector<pos_t> seed_starts = generate_seeds(r, retain_frac_);
 		seeds_ = seed_starts.size();    //seeds_ = r->len / args.seed_len;  // TODO: not all seeds
 		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller
+		LOG_DEBUG << "max_indels: " << max_indels_;
 
 		generate_seeds_match_put_crumbs(seed_starts, r);
 		std::sort(C.begin(), C.end());
@@ -264,24 +264,25 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 				}
     }
 
-	// Breath-First-TopSort
-    void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
-		std::unordered_map<node_t, int> min_dist;  // the minimal read index where a node can be aligned without indels
-		std::unordered_map<node_t, int> max_dist;  // the maximal read index --||--
-		std::unordered_map<node_t, int> outgoing;
+	// TopSort from match_v on backwards edges with max distance i+max_indels_
+    void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v_IGNORED) {
+		std::unordered_map<node_t, int> min_pos;  // _minimal_ read index where an _expanded_ node can be aligned without indels so that r[i] aligns at match_v
+		std::unordered_map<node_t, int> max_pos;  // _maximal_ read index where an _explored_ node --||--
+		std::unordered_map<node_t, int> outgoing;  // number of explored outgoing edges of a node
 		std::queue<node_t> Q;
 		edge_t e;
 
-		// TopSort iterations
+		// TODO: what if match_v is in a cycle
+		// TopSort in referece (w/o trie)
 		Q.push(match_v);
-		min_dist[match_v] = i;
-		max_dist[match_v] = i;
+		min_pos[match_v] = i;
+		max_pos[match_v] = i;
 		while(!Q.empty()) {
 			node_t v = Q.front(); Q.pop();
-			assert(min_dist.contains(v));
-			assert(max_dist.contains(v));
+			assert(min_pos.contains(v));
+			assert(max_pos.contains(v));
 			add_crumb_to_node(p, match_v, v);
-			if (min_dist[v] <= G.get_trie_depth() + max_indels_)
+			if (min_pos[v] <= G.get_trie_depth() + max_indels_)  // Trie crumbs only around the beginning // TODO: remove +max_indels_
 				update_crumbs_up_the_trie(p, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
@@ -289,15 +290,15 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 					if (outgoing.contains(u)) outgoing[u] = outgoing[u]+1;
 					else {
 						outgoing[u] = 1;
-						assert(!max_dist.contains(u));
-						max_dist[u] = max_dist[v]-1;
+						assert(!max_pos.contains(u));
+						max_pos[u] = max_pos[v]-1;
 					}
 					assert(outgoing.contains(u));
 					if (G.numOutOrigEdges(u,&e) == outgoing[u]) {
-						assert(max_dist.contains(u));
-						if (max_dist[u] >= -max_indels_) {
-							assert(!min_dist.contains(u));
-							min_dist[u] = min_dist[v] - 1;
+						assert(max_pos.contains(u));
+						assert(!min_pos.contains(u));
+						min_pos[u] = min_pos[v] - 1;
+						if (max_pos[u] >= -max_indels_) {
 							Q.push(u);
 						}
 					}
@@ -305,22 +306,20 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			}
 		}
 
-		// Initialize Q with nodes from reached cycles
-		for (const auto it: max_dist) {
-			const node_t v = it.first;
-			if (!min_dist.contains(v))
+		// Initialize Q with nodes from explored but not expanded nodes (aka from cycles)
+		for (const auto &[v, _]: max_pos)
+			if (!min_pos.contains(v))
 				Q.push(v);
-		}
 		LOG_DEBUG << "Cycles reached: " << Q.size();
 
-		// BFS from all cycle
+		// BFS on both reference graph and trie: add a crumb to all nodes before position -max_indels_
 		while (!Q.empty()) {
 			node_t v = Q.front(); Q.pop();
 			add_crumb_to_node(p, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
-				if (max_dist[v]-1 >= -max_indels_) {
-					max_dist[u] = max_dist[v]-1;
+				if (max_pos[v]-1 >= -max_indels_) {
+					max_pos[u] = max_pos[v]-1;
 					Q.push(u);
 				}
 			}
