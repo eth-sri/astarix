@@ -165,6 +165,8 @@ struct graph_t {
         assert(a >= 0 && a < nodes());
         assert(b >= 0 && b < nodes());
 
+		//std::cerr << a << "->" << b << "(" << label << ")" << std::endl;
+
         edge_t e(a, b, label, V[a], type, node_id, offset);
         E.push_back(e);
         V[a] = (int)E.size()-1;
@@ -245,6 +247,13 @@ struct graph_t {
             if (E[idx].to != u)
                 return true;
         }
+        return false;
+    }
+
+    bool hasIncomingEdges(int u) const {
+        for (int idx=V_rev[u]; idx!=-1; idx=E_rev[idx].next)
+            if (E_rev[idx].type == ORIG)
+				return true;
         return false;
     }
 

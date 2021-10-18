@@ -299,7 +299,7 @@ void extract_args_to_dict(const arguments &args, dict_t *dict) {
     (*dict)["threads"] = to_string(args.threads);
 }
 
-int exec(int argc, char **argv) {
+int exec_astarix(int argc, char **argv) {
     cout << "----" << endl;
 #ifdef NDEBUG
     cout << "Assert() checks:       OFF" << endl;
@@ -629,7 +629,7 @@ int main(int argc, char **argv) {
     }
 
     try {
-        return exec(argc, argv);
+        return exec_astarix(argc, argv);
     } catch (const std::string& ex) {
         std::cout << std::endl;
         std::cout << "Caught exception: " << ex << std::endl;
