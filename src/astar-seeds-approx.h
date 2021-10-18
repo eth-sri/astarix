@@ -266,37 +266,41 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
 	// TopSort from match_v on backwards edges with max distance i+max_indels_
     void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v_IGNORED) {
-		std::unordered_map<node_t, int> min_pos;  // _minimal_ read index where an _expanded_ node can be aligned without indels so that r[i] aligns at match_v
-		std::unordered_map<node_t, int> max_pos;  // _maximal_ read index where an _explored_ node --||--
-		std::unordered_map<node_t, int> outgoing;  // number of explored outgoing edges of a node
+		std::unordered_map<node_t, int> min_pos;                        // _minimal_ read index where an _expanded_ node can be aligned without indels so that r[i] aligns at match_v
+		std::unordered_map<node_t, int> max_pos;                        // _maximal_ read index where an _explored_ node --||--
+		std::unordered_map<node_t, int> outgoing;                       // Number of explored outgoing edges of a node
 		std::queue<node_t> Q;
 		edge_t e;
 
-		// TODO: what if match_v is in a cycle
+		bool start_in_a_loop = false;									// Handle the case when match_v is in a (small enough) cycle.
+
 		// TopSort in referece (w/o trie)
 		Q.push(match_v);
-		min_pos[match_v] = i;
-		max_pos[match_v] = i;
-		while(!Q.empty()) {
+		min_pos[match_v] = max_pos[match_v] = i;
+		while(!Q.empty() && !start_in_a_loop) {
 			node_t v = Q.front(); Q.pop();
-			assert(min_pos.contains(v));
-			assert(max_pos.contains(v));
+																		assert(min_pos.contains(v));
+																		assert(max_pos.contains(v));
 			add_crumb_to_node(p, match_v, v);
-			if (min_pos[v] <= G.get_trie_depth() + max_indels_)  // Trie crumbs only around the beginning // TODO: remove +max_indels_
+			if (min_pos[v] <= G.get_trie_depth() + max_indels_)   		// Trie crumbs only around the beginning.
 				update_crumbs_up_the_trie(p, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
 				if (!G.node_in_trie(u)) {
+					if (u == match_v) { 								// Looping back to the starting node.
+						start_in_a_loop = true;
+						break;
+					}
 					if (outgoing.contains(u)) outgoing[u] = outgoing[u]+1;
 					else {
 						outgoing[u] = 1;
-						assert(!max_pos.contains(u));
+																		assert(!max_pos.contains(u));
 						max_pos[u] = max_pos[v]-1;
 					}
-					assert(outgoing.contains(u));
+																		assert(outgoing.contains(u));
 					if (G.numOutOrigEdges(u,&e) == outgoing[u]) {
-						assert(max_pos.contains(u));
-						assert(!min_pos.contains(u));
+																		assert(max_pos.contains(u));
+																		assert(!min_pos.contains(u));
 						min_pos[u] = min_pos[v] - 1;
 						if (max_pos[u] >= -max_indels_) {
 							Q.push(u);
@@ -306,22 +310,30 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			}
 		}
 
-		// Initialize Q with nodes from explored but not expanded nodes (aka from cycles)
-		for (const auto &[v, _]: max_pos)
-			if (!min_pos.contains(v))
-				Q.push(v);
-		LOG_DEBUG << "Cycles reached: " << Q.size();
+		if (start_in_a_loop) {
+			// Start from the beginning. Does not matter if any crumbs were already added.
+			max_pos.clear();
+			max_pos[match_v] = i;
+			Q.push(match_v);
+		} else {
+			// Initialize Q with nodes from explored but not expanded nodes (aka from cycles).
+			for (const auto &[v, _]: max_pos)
+				if (!min_pos.contains(v))
+					Q.push(v);
+			LOG_DEBUG << "Cycles reached: " << Q.size();
+		}
 
-		// BFS on both reference graph and trie: add a crumb to all nodes before position -max_indels_
+		// BFS on both reference graph and trie: add a crumb to all nodes before position -max_indels_.
 		while (!Q.empty()) {
 			node_t v = Q.front(); Q.pop();
 			add_crumb_to_node(p, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
-				if (max_pos[v]-1 >= -max_indels_) {
-					max_pos[u] = max_pos[v]-1;
-					Q.push(u);
-				}
+				if (!max_pos.contains(u))
+					if (max_pos[v]-1 >= -max_indels_) {
+						max_pos[u] = max_pos[v]-1;
+						Q.push(u);
+					}
 			}
 		}
 	}
