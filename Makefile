@@ -43,6 +43,9 @@ $(ASTARIXBIN): $(SRCDIR)/astarix.cpp $(DEPS) $(OBJ)
 $(ODIR)/%.o: %.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
+gfa2fa: $(SRCDIR)/gfa2fa.cpp $(DEPS) $(OBJ)
+	$(GPP) $< -o $@ $(OBJ) $(LINKFLAGS)
+
 test: $(ASTARIXBIN)
 	$(shell mkdir -p $(TMPDIR))
 
