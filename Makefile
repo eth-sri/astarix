@@ -1,13 +1,13 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -std=c++2a -O3 -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter -Wno-missing-field-initializers
+CPPFLAGS=-Wall -Wextra -std=c++2a -Iext/plog/include/ -Iext/GraphAligner/ -Iext/concurrentqueue/ -Iext/parallel_hashmap/ -Wno-unused-parameter -Wno-missing-field-initializers
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
-    CPPFLAGS += -DDEBUG -g
+    CPPFLAGS += -DDEBUG -g -O0
 	BINDIR=debug
 	RUNFLAGS += -v 2
 else
-    CPPFLAGS += -DNDEBUG
+    CPPFLAGS += -DNDEBUG -O3
 	BINDIR=release
 	RUNFLAGS += -v 0
 endif
