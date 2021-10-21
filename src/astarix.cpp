@@ -538,8 +538,8 @@ int exec_astarix(int argc, char **argv) {
         double align_cpu_time = T.align.t.get_sec();
         out << " == Aligning statistics =="                                                     << endl;
         out << "        Explored rate (avg): " << 1.0*global_stats.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
-        out << "     Pushed rate (avg, max): " << pushed_rate_sum / R.size() << ", " << pushed_rate_max << "    [states/bp] (states normalized by query length)" << endl;
-        out << "     Popped rate (avg, max): " << popped_rate_sum / R.size() << ", " << popped_rate_max << endl;
+        out << "     Pushed rate (avg, max): " << pushed_rate_sum/R.size() << ", " << pushed_rate_max/R.size() << "    [states/bp] (states normalized by query length)" << endl;
+        out << "     Popped rate (avg, max): " << popped_rate_sum/R.size() << ", " << popped_rate_max/R.size() << endl;
         out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads)
                                             << " from trie (" << 100.0*popped_trie_total.load()/(popped_trie_total.load() + popped_ref_total.load()) << "%) vs "
                                             << 1.0 * popped_ref_total.load() / (R.size()/args.threads) << " from ref"  << " (per read)" << endl;

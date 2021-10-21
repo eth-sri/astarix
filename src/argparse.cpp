@@ -23,6 +23,7 @@ struct argp_option options[] = {
     { "seeds_linear_reference",  		2006, "{0,1}", 0,  "" },
     { "seeds_match_pos_optimization",	2007, "{0,1}", 0,  "" },
     { "seeds_skip_near_crumbs",  		2008, "{0,1}", 0,  "" },
+    { "seeds_retain_frac",      		2009, "[0;1]", 0,  "Fraction of the seeds to retain" },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty [0]" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty [1]" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty [5]" },
@@ -48,7 +49,7 @@ arguments read_args(int argc, char **argv) {
     // IO
     args.graph_file            = NULL;
     args.query_file            = NULL;
-    args.output_dir            = NULL;
+    args.output_dir            = "";
 
     // Alignment parameters.
     args.costs                 = astarix::EditCosts(0, 1, 5, 5);
@@ -70,6 +71,7 @@ arguments read_args(int argc, char **argv) {
 	args.astar_seeds.linear_reference		= false;
 	args.astar_seeds.match_pos_optimization	= true;
 	args.astar_seeds.skip_near_crumbs		= true;
+	args.astar_seeds.seeds_retain_frac		= 1.0;
 
     //args.astar_seeds.max_indels            = -1;
     args.astar_seeds.max_seed_errors       = 0;
@@ -177,6 +179,9 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
             break;
         case 2008:
             arguments->astar_seeds.skip_near_crumbs = (bool)std::stod(arg);
+            break;
+        case 2009:
+            arguments->astar_seeds.seeds_retain_frac = std::stod(arg);
             break;
         case 'o':
             arguments->output_dir = arg;

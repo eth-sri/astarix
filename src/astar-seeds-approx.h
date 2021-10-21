@@ -10,7 +10,7 @@
 #include "utils.h"
 #include "io.h"
 
-typedef int seed_t;
+typedef short seed_t;
 
 namespace astarix {
 
@@ -23,6 +23,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		bool linear_reference;			// assume that the reference is linear
 		bool match_pos_optimization;	// use the position of seed matches in order to maximize the heuristic function
 		bool skip_near_crumbs;			// put crumbs in the trie only for nodes within [-m-delta, -m+delta] instead of [-m-delta, 0]
+
+		double seeds_retain_frac;				// fraction of seeds to be retained
 
 		// NOT USED
         int max_seed_errors;
@@ -66,15 +68,15 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 	
 	struct crumb_t {
 		node_t v;  // can be in the trie or not
-		node_t match_v;  // cannot be in the trie
+		//node_t match_v;  // cannot be in the trie
 		seed_t s;  // 0 for the rightmost seed
 		crumb_t(const node_t _v, const node_t _match_v, const seed_t _s)
-			: v(_v), match_v(_match_v), s(_s) {}
+			: v(_v), /*match_v(_match_v), */s(_s) {}
 		bool operator<(const crumb_t &other) const {
 			if (v != other.v)
 				return v < other.v;
-			if (match_v != other.match_v)
-				return match_v < other.match_v;
+			//if (match_v != other.match_v)
+			//	return match_v < other.match_v;
 			return s < other.s;
 		}
 	};
@@ -92,7 +94,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 	std::vector<crumb_t> C;   // all crumbs sorted by node, then by matching node, then by seed
 
 	//static constexpr double learning_rate_ = 0.1;
-	double retain_frac_;
 
 	// Stats
     Stats read_cnt, global_cnt;
@@ -100,7 +101,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
   public:
     AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, const Args &_args)
         : G(_G), costs(_costs), args(_args) {
-		retain_frac_ = 0.1;  // start with using all seeds
     }
 
     // Cut r into chunks of length seed_len, starting from the end.
@@ -111,7 +111,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         read_cnt.clear();
         read_cnt.reads.set(1);
 
-		std::vector<pos_t> seed_starts = generate_seeds(r, retain_frac_);
+		std::vector<pos_t> seed_starts = generate_seeds(r, args.seeds_retain_frac);
 		seeds_ = seed_starts.size();    //seeds_ = r->len / args.seed_len;  // TODO: not all seeds
 		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller
 		LOG_DEBUG << "max_indels: " << max_indels_;
@@ -139,7 +139,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		int m = missing;  // m is the current number of different seeds inside of [it1, it2]
 
 		for (auto it1=from, it2=from; it1 != to && it2 != to; ++it1) {  // left iterator
-			for (; it2 != to && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)  // right itarator
+			for (; it2 != to; ++it2) // TODO: uncomment for match_v: && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)  // right itarator
+			//for (; it2 != to && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)  // right itarator
 				if (it2->s < seeds_to_end)
 					if (cnt[it2->s]++ == 0)
 						missing = std::min(missing, --m);
@@ -282,7 +283,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 																		assert(min_pos.contains(v));
 																		assert(max_pos.contains(v));
 			add_crumb_to_node(p, match_v, v);
-			if (min_pos[v] <= G.get_trie_depth() + max_indels_)   		// Trie crumbs only around the beginning.
+			if (!args.skip_near_crumbs || min_pos[v] <= G.get_trie_depth() + max_indels_)   		// Trie crumbs only around the beginning.
 				update_crumbs_up_the_trie(p, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
@@ -368,12 +369,12 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
     // Split r into seeds of length seed_len. Return a vector of starting points of the seeds from last to first;
-	std::vector<pos_t> generate_seeds(const read_t *r, double retain_frac) {
+	std::vector<pos_t> generate_seeds(const read_t *r, double seeds_retain_frac) {
 		int max_seeds = (r->len + args.seed_len - 1) / args.seed_len;  // ceil of r->len/seed_len
 		std::vector<pos_t> seed_starts;
         for (int i=r->len-args.seed_len; i>=0; i-=args.seed_len) {
 			seed_starts.push_back(i);
-			if ((int)seed_starts.size() == int(retain_frac * max_seeds))
+			if ((int)seed_starts.size() == int(seeds_retain_frac * max_seeds))
 				break;
 		}
 		return seed_starts;
@@ -392,6 +393,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
   public:
     void print_params(std::ostream &out) const {
         out << "          seed length: " << args.seed_len << " bp"         << std::endl;
+        out << "     skip near crumbs: " << args.skip_near_crumbs          << std::endl;
+        out << "seeds retain fraction: " << args.seeds_retain_frac         << std::endl;
     }
 
     void log_read_stats() {
@@ -410,7 +413,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         out << "        For all reads:"                                                     << std::endl;
         out << "                            Seeds: " << global_cnt.seeds << " (" << 1.0*global_cnt.seeds.get()/reads << " per read)"                  << std::endl;
         out << "                     Seed matches: " << global_cnt.seed_matches << " (" << 1.0*global_cnt.seed_matches.get()/reads << " per read, " << 1.0*global_cnt.seed_matches.get()/global_cnt.seeds.get() << " per seed)" << std::endl;
-		out << "           Retained seed fraction: " << retain_frac_ << std::endl;
+		out << "          Seeds retained fraction: " << args.seeds_retain_frac << std::endl;
         out << "                 Paths considered: " << global_cnt.paths_considered << " (" << 1.0*global_cnt.paths_considered.get()/reads << " per read)"     << std::endl;
         out << "               States with crumbs: " << global_cnt.states_with_crumbs
             << " [+" << 100.0*global_cnt.repeated_states.get()/(global_cnt.states_with_crumbs.get()+global_cnt.repeated_states.get()) << "% repeated], (" << 1.0*global_cnt.states_with_crumbs.get()/reads << " per read)" << std::endl;
