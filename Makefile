@@ -7,7 +7,7 @@ ifeq ($(DEBUG), 1)
 	BINDIR=debug
 	RUNFLAGS += -v 2
 else
-    CPPFLAGS += -DNDEBUG -O3
+    CPPFLAGS += -DNDEBUG -O3 -march=native
 	BINDIR=release
 	RUNFLAGS += -v 0
 endif
