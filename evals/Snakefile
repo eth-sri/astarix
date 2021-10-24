@@ -13,18 +13,18 @@ VG_BIN = config["vg_bin_path"]
 VARGAS_BIN = config["vargas_bin_path"]
 
 TIMELIMIT       = "(timeout 3600s"
-TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo -e \"timeout\ntimeout\" >{benchmark}) || (echo -e \"exit error code\n$?\" | tee {benchmark})"
+TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo -e \"timeout\ntimeout\" >{log}) || (echo -e \"exit error code\n$?\" | tee {log})"
 
-DIJKSTRA_CMD								= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra     -D 14 -M 0 -S 1 -G 5                                                             -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_PREFIX_ILLUMINA_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 14 -M 0 -S 1 -G 5 -d 5                                                        -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_ILLUMINA_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 5                                                             -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-#ASTARIX_PREFIX_CMD							= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 14 -M 0 -S 1 -G 1 -d 5                                                        -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-#ASTARIX_SEEDS_EXACT_SHORT_CMD 				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50                                     -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50                                     -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD		= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_match_pos_optimization 0    -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_skip_near_crumbs 0          -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_OPT_CMD				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_APPROX_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_max_errors 1                -q {input.reads} -g $(echo {input.graph} | sed 's|_head\d+_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+DIJKSTRA_CMD								= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra     -D 14 -M 0 -S 1 -G 5                                                             -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_PREFIX_ILLUMINA_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 14 -M 0 -S 1 -G 5 -d 5                                                        -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_PREFIX_CMD							= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 14 -M 0 -S 1 -G 1 -d 5                                                        -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_ILLUMINA_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 5 --seeds_len 25                                                            -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+#ASTARIX_SEEDS_EXACT_SHORT_CMD 				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50                                              -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50                                              -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD		= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_match_pos_optimization 0             -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_skip_near_crumbs 0                   -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_APPROX_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_max_errors 1                         -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_OPT_CMD				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000_|_head0_|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 GA_CMD = "{TIMELIMIT} {GA_BIN} --seeds-first-full-rows 64 -b 10000 -t 1 -a alignments.gaf -f {input.reads} -g {input.graph_vg} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} {TIMEOUTPRINT} >>{output.file}"
 VARGAS_CMD = "{TIMELIMIT} {VARGAS_BIN} align -g {input.graph_gdef} -U {input.reads} --ete >{output.align} 2>{output.file} {TIMEOUTPRINT}"
@@ -38,15 +38,15 @@ PaSGAL_FILES = ["L1.fa", "L2.fastq", "L3.fastq",
 # -- PaSGAL does not accept .gaf and bi-directional .vg;
 # -- Vargas does not accept .gaf and .vg but only .gdef that can be build by .fa
 
-TABLE_ILLUMINA_ALGOS          = ["astarix-seeds-illumina", "graphaligner", "pasgal", "vargas", "astarix-prefix-illumina", "dijkstra"] #, "vg", 
+TABLE_ILLUMINA_ALGOS          = ["astarix-seeds-illumina", "graphaligner", "pasgal", "vargas", "astarix-prefix-illumina", "dijkstra"]
 TABLE_ILLUMINA_GRAPHS         = ["MHC1", "ecoli"] #, "LRC"]
 TABLE_ILLUMINA_GRAPH_HEADS    = [100000000]
 TABLE_ILLUMINA_Ns             = [1000]  # number of reads
 TABLE_ILLUMINA_SEQ_TECHNOLOGY = ["illumina"]
 TABLE_ILLUMINA_ms             = [200]
-TABLE_ILLUMINA_errors         = [0.01]
+TABLE_ILLUMINA_errors         = [-1]
 
-TABLE_HIFI_ALGOS          = ["astarix-seeds", "graphaligner", "vargas", "pasgal"]
+TABLE_HIFI_ALGOS          = ["astarix-seeds", "graphaligner", "vargas", "pasgal", "dijkstra", "astarix-prefix"]
 TABLE_HIFI_GRAPHS         = ["MHC1", "ecoli"]
 TABLE_HIFI_GRAPH_HEADS    = [100000000]
 TABLE_HIFI_Ns             = [0.1]  # number of reads
@@ -54,13 +54,13 @@ TABLE_HIFI_SEQ_TECHNOLOGY = ["hifi-natural"]
 TABLE_HIFI_ms             = [0]
 TABLE_HIFI_errors         = [0.003]
 
-REF_SIZE_ALGOS          = ["astarix-seeds-illumina", "astarix-prefix-illumina", "vargas", "graphaligner", "pasgal"] # "dijkstra"
+REF_SIZE_ALGOS          = ["astarix-seeds-illumina", "vargas", "graphaligner", "pasgal"] #, "astarix-prefix-illumina", ] # "dijkstra"
 REF_SIZE_GRAPHS         = ["MHC1"]
-REF_SIZE_GRAPH_HEADS    = [10000, 100000, 1000000, 10000000, 100000000]
-REF_SIZE_Ns             = [10000]  # number of reads
+REF_SIZE_GRAPH_HEADS    = [5000, 50000, 500000, 5000000]
+REF_SIZE_Ns             = [100000]  # number of reads
 REF_SIZE_SEQ_TECHNOLOGY = ["illumina"]
-REF_SIZE_ms             = [150]
-REF_SIZE_errors         = [0.003]
+REF_SIZE_ms             = [200]
+REF_SIZE_errors         = [-1]
 
 #reference scaling experiment on HiFi
 
@@ -117,7 +117,7 @@ aligners_inputs = {
 rule all:
     input:
 #        agg1 = "results/aggregated_benchmarks.csv"
-        table = "results/TABLE_ILLUMINA_DONE",
+        table_illumina = "results/TABLE_ILLUMINA_DONE",
         table_hifi = "results/TABLE_HIFI_DONE",
         ref_size = "results/REF_SIZE_DONE",
         readlen = "results/READLEN_DONE",
@@ -129,7 +129,7 @@ rule all:
 #        agg2 = "results/aggregated_experiments.csv",
 #        trie = "results/TRIE_DUMMY"
 
-rule table_exp:
+rule table_illumina_exp:
     input:
         refs = expand("graphs/"+graph_params+".fa", graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS),
         reads = expand("reads/"+params+"/reads.fq", algo=TABLE_ILLUMINA_ALGOS, graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS, N=TABLE_ILLUMINA_Ns, m=TABLE_ILLUMINA_ms, seq_technology=TABLE_ILLUMINA_SEQ_TECHNOLOGY, errors=TABLE_ILLUMINA_errors),
@@ -261,19 +261,19 @@ rule astar_prefix_vs_seeds:
     shell:
         "jupyter nbconvert --to notebook --inplace --execute astar_vs_dijkstra.ipynb > {output}"
 
-#rule astarix_prefix:
-#    input:
-#        reads = "reads/"+params+"/reads.fq",
-#        graph = "graphs/"+graph_params+".gfa"
-#    output:
-#        align = "results/astarix-prefix/"+params+"/out/alignments.tsv",
-#        file = "results/astarix-prefix/"+params+"/summary.txt"
-#    benchmark:
-#        "results/astarix-prefix/"+params+"/benchmark.txt"
-#    log:
-#        "results/astarix-prefix/"+params+"/log.txt"
-#    shell:
-#        ASTARIX_PREFIX_CMD
+rule astarix_prefix:
+    input:
+        reads = "reads/"+params+"/reads.fq",
+        graph = "graphs/"+graph_params+".gfa"
+    output:
+        align = "results/astarix-prefix/"+params+"/out/alignments.tsv",
+        file = "results/astarix-prefix/"+params+"/summary.txt"
+    benchmark:
+        "results/astarix-prefix/"+params+"/benchmark.txt"
+    log:
+        "results/astarix-prefix/"+params+"/log.txt"
+    shell:
+        ASTARIX_PREFIX_CMD
 
 rule astarix_prefix_illumina:
     input:

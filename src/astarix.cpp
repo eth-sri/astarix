@@ -193,7 +193,15 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
         args->tree_depth = floor(log(G.nodes()) / log(4.0));
     }
     if (args->astar_seeds.seed_len == -1) {
-		args->astar_seeds.seed_len = args->tree_depth;
+		// seeds = m / seedlen
+		// errors = m * errorrate
+		// maxerrors = 2 * errors = 2*m*errorrate
+		// seeds > 2*maxerrors = 4*m*errorrate
+		//   m/seedlen > 4*m*errorrate
+		//   1/seedlen > 4*errorrate
+		//   seedlen < 1 / (4*errorrate)
+		//args->astar_seeds.seed_len = 1 / errorrate;
+		throw "seed len not set.";
 	}
     if (args->tree_depth <= 0)
         throw "Trie depth should be >0.";
