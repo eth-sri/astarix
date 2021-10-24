@@ -101,6 +101,17 @@ class AStarSeedsWithErrors: public AStarHeuristic {
   public:
     AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, const Args &_args)
         : G(_G), costs(_costs), args(_args) {
+		if (args.seed_len == -1) {
+			// seeds = m / seedlen
+			// errors = m * errorrate
+			// maxerrors = 2 * errors = 2*m*errorrate
+			// seeds > 2*maxerrors = 4*m*errorrate
+			//   m/seedlen > 4*m*errorrate
+			//   1/seedlen > 4*errorrate
+			//   seedlen < 1 / (4*errorrate)
+			//args->astar_seeds.seed_len = 1 / errorrate;
+			throw "seed len not set.";
+		}
     }
 
     // Cut r into chunks of length seed_len, starting from the end.
@@ -398,16 +409,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         out << "seeds retain fraction: " << args.seeds_retain_frac         << std::endl;
     }
 
-    void log_read_stats() {
-        LOG_INFO << r_->comment << " A* seeds stats: "
-            << read_cnt.seeds.get() << " seeds " 
-            << "matching at " << read_cnt.seed_matches << " graph positions "
-            << "and generating " << read_cnt.paths_considered << " paths "
-            << "over " << read_cnt.states_with_crumbs << " states"
-            << "(" << read_cnt.repeated_states << " repeated)"
-            << "with best heuristic " << read_cnt.root_heuristic.get() << " "
-			<< "with " << max_indels_ << "max_indels"; }
-
     void print_stats(std::ostream &out) const {
         int reads = global_cnt.reads.get();
 
@@ -421,6 +422,20 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         out << "                  Heuristic (avg): " << 1.0*global_cnt.root_heuristic.get()/reads << " of potential " << 1.0*global_cnt.heuristic_potential.get()/reads << std::endl;
     }
 
+    void log_read_stats() {
+        LOG_INFO << r_->comment << " A* seeds stats: "
+            << read_cnt.seeds.get() << " seeds " 
+            << "matching at " << read_cnt.seed_matches << " graph positions "
+            << "and generating " << read_cnt.paths_considered << " paths "
+            << "over " << read_cnt.states_with_crumbs << " states"
+            << "(" << read_cnt.repeated_states << " repeated)"
+            << "with best heuristic " << read_cnt.root_heuristic.get() << " "
+			<< "with " << max_indels_ << "max_indels";
+	}
+
+	int crumbs() const {
+		return global_cnt.states_with_crumbs.get();
+	}
 };
 
 }

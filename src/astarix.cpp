@@ -127,7 +127,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 			*repeat_rate_max = max(*repeat_rate_max, repeat_rate);
 
 			*global_stats += aligner->stats;
-            int crumbs = aligner->astar->states_with_crumbs.get();
+            int crumbs = 0; //aligner->astar->states_with_crumbs.get();
 
 			char line[100000];
 			line[0] = 0;
@@ -192,17 +192,6 @@ void auto_params(const graph_t &G, const vector<read_t> &R, arguments *args) {
     if (args->tree_depth == -1) {
         args->tree_depth = floor(log(G.nodes()) / log(4.0));
     }
-    if (args->astar_seeds.seed_len == -1) {
-		// seeds = m / seedlen
-		// errors = m * errorrate
-		// maxerrors = 2 * errors = 2*m*errorrate
-		// seeds > 2*maxerrors = 4*m*errorrate
-		//   m/seedlen > 4*m*errorrate
-		//   1/seedlen > 4*errorrate
-		//   seedlen < 1 / (4*errorrate)
-		//args->astar_seeds.seed_len = 1 / errorrate;
-		throw "seed len not set.";
-	}
     if (args->tree_depth <= 0)
         throw "Trie depth should be >0.";
 }
@@ -546,6 +535,7 @@ int exec_astarix(int argc, char **argv) {
         double align_cpu_time = T.align.t.get_sec();
         out << " == Aligning statistics =="                                                     << endl;
         out << "        Explored rate (avg): " << 1.0*global_stats.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
+		out << "          Unexplored states: " << 100.0 - 100.0*(astar->crumbs() + global_stats.explored_states.get()) / (size_sum(R) * G.orig_nodes) << "%" << endl;
         out << "     Pushed rate (avg, max): " << pushed_rate_sum/R.size() << ", " << pushed_rate_max/R.size() << "    [states/bp] (states normalized by query length)" << endl;
         out << "     Popped rate (avg, max): " << popped_rate_sum/R.size() << ", " << popped_rate_max/R.size() << endl;
         out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads)
