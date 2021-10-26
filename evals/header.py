@@ -12,12 +12,20 @@ pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
+time_limit = 3600  # sec
+memory_limit = 20000  # MB
+
 def read_benchmarks_aggregation(benchmarks_file):
     df = pd.read_csv(benchmarks_file, sep='\t', index_col=False)
     #df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"])
     #df['c'] = df['algo'].apply(algo2color)
     #df['marker'] = df['m'].apply(readlen2marker)
     df['head_Mbp'] = df['head'] / 10**6
+    return df
+
+def remove_tle_mle(df):
+    df = df.loc[df.s <= time_limit]
+    df = df.loc[df.max_rss <= memory_limit]
     return df
 
 def num_lower(serie):
@@ -46,22 +54,25 @@ def read_astarix_performance(tsv_fn, algo=None):
     return df.set_index('readname', verify_integrity=False)
 
 def algo2color(algo):
+    palette = sns.color_palette("tab10", 10)
     d = {
-        'astarix': 'red', #'mediumseagreen', #' forestgreen',
-        'astarix-prefix': 'red',
-        'astar-prefix': 'red',
-        'astarix-seeds': 'mediumseagreen',
-        'astar-seeds': 'mediumseagreen',
-        'astarix-seeds_wo_skip_near_crumbs_pos': 'yellow',  ## ablation
-        'astarix-seeds_wo_match_pos': 'orange',   ## ablation
-        'astarix-seeds_wo_opt': 'blue',
-        'dijkstra': 'darkorange',
-        'graphaligner': 'green',
-        'pasgal': 'cornflowerblue',
-        'astar-seeds-intervals': 'red',
-        'astarix-seeds-intervals': 'red',
-        'vargas': 'blue',
-        'vg': 'orange',
+        'astarix-prefix': palette[5],
+        'astar-prefix': palette[5],
+        'astarix-prefix-illumina': palette[5],
+        'astarix-seeds': palette[3],
+        'astar-seeds': palette[3],
+        'astarix-seeds-illumina': palette[3],
+        'dijkstra': palette[4],
+        'graphaligner': palette[0],
+        'pasgal': palette[1],
+        'vargas': palette[2],
+        #'astarix': 'red', #'mediumseagreen', #' forestgreen',
+        #'astarix-seeds_wo_skip_near_crumbs_pos': 'yellow',  ## ablation
+        #'astarix-seeds_wo_match_pos': 'orange',   ## ablation
+        #'astarix-seeds_wo_opt': 'blue',
+        #'astar-seeds-intervals': 'red',
+        #'astarix-seeds-intervals': 'red',
+        #'vg': 'orange',
         }
     if algo in d:
         return d[algo]
@@ -74,6 +85,7 @@ def algo2beautiful(algo):
         'astarix': 'AStarix',
         'astarix-seeds': 'Seeds heuristic',
         'astar-seeds': 'Seeds heuristic',
+        'astarix-seeds-illumina': 'A*-seeds',
         'astarix-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astar-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astarix-seeds_wo_skip_near_crumbs_pos': 'Seeds -near crumbs',  ## ablation
@@ -81,6 +93,7 @@ def algo2beautiful(algo):
         'astarix-seeds_wo_opt': 'Seeds -nearcrumbs -matchpos',
         'astarix-prefix': 'Prefix heuristic',
         'astar-prefix': 'Prefix heuristic',
+        'astarix-prefix-illumina': 'A*-prefix',
         'dijkstra': 'Dijkstra',
         'graphaligner': 'GraphAligner',
         'pasgal': 'PaSGAL',
