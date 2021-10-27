@@ -18,13 +18,14 @@ TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo -e \"timeout\" >{log}) || (echo 
 DIJKSTRA_CMD								= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra     -D 14 -M 0 -S 1 -G 5                                                             -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 ASTARIX_PREFIX_ILLUMINA_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 14 -M 0 -S 1 -G 5 -d 5                                                        -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 ASTARIX_PREFIX_CMD							= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 14 -M 0 -S 1 -G 1 -d 5                                                        -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_ILLUMINA_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 5 --seeds_len 25                                              -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-#ASTARIX_SEEDS_EXACT_SHORT_CMD 				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50                                              -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50                                              -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD		= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_match_pos_optimization 0             -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_skip_near_crumbs 0                   -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_APPROX_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_max_errors 1                         -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_OPT_CMD				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len 50 --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_ILLUMINA_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 5 --seeds_len {input.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+#ASTARIX_SEEDS_EXACT_SHORT_CMD 				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD		= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen} --seeds_match_pos_optimization 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen} --seeds_skip_near_crumbs 0       -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_APPROX_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen} --seeds_max_errors 1             -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_OPT_CMD				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen} --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+
 GA_CMD = "{TIMELIMIT} {GA_BIN} --seeds-first-full-rows 64 -b 10000 -t 1 -a alignments.gaf -f {input.reads} -g {input.graph_vg} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} >{output.file} {TIMEOUTPRINT}"
 VARGAS_CMD = "{TIMELIMIT} {VARGAS_BIN} align -g {input.graph_gdef} -U {input.reads} --ete >{output.align} 2>{output.file} {TIMEOUTPRINT}"
@@ -39,20 +40,22 @@ PaSGAL_FILES = ["L1.fa", "L2.fastq", "L3.fastq",
 # -- Vargas does not accept .gaf and .vg but only .gdef that can be build by .fa
 
 TABLE_ILLUMINA_ALGOS          = ["astarix-seeds-illumina", "graphaligner", "pasgal", "vargas", "astarix-prefix-illumina", "dijkstra"]
+TABLE_ILLUMINA_Ns             = [100000, 1000, 1000, 1000, 1000, 1000]  # number of reads
 TABLE_ILLUMINA_GRAPHS         = ["MHC1", "ecoli"] #, "LRC"]
 TABLE_ILLUMINA_GRAPH_HEADS    = [100000000]
-TABLE_ILLUMINA_Ns             = [1000]  # number of reads
 TABLE_ILLUMINA_SEQ_TECHNOLOGY = ["illumina"]
 TABLE_ILLUMINA_ms             = [200]
 TABLE_ILLUMINA_errors         = [-1]
+TABLE_ILLUMINA_seedlen        = [25]
 
 TABLE_HIFI_ALGOS          = ["astarix-seeds", "graphaligner", "vargas", "pasgal", "dijkstra", "astarix-prefix"]
+TABLE_HIFI_Ns             = [2, 0.1, 0.02, 0.1, 0.1, 0.1]  # coverage of reads
 TABLE_HIFI_GRAPHS         = ["MHC1", "ecoli"]
 TABLE_HIFI_GRAPH_HEADS    = [100000000]
-TABLE_HIFI_Ns             = [0.1]  # coverage of reads
 TABLE_HIFI_SEQ_TECHNOLOGY = ["hifi-natural"]
 TABLE_HIFI_ms             = [0]
 TABLE_HIFI_errors         = [0.003]
+TABLE_HIFI_seedlen        = [50]
 
 REF_SIZE_ILLUMINA_ALGOS          = ["astarix-seeds-illumina", "vargas", "graphaligner", "pasgal", "astarix-prefix-illumina", "dijkstra"]
 REF_SIZE_ILLUMINA_GRAPHS         = ["MHC1"]
@@ -61,6 +64,7 @@ REF_SIZE_ILLUMINA_Ns             = [100000]  # number of reads
 REF_SIZE_ILLUMINA_SEQ_TECHNOLOGY = ["illumina"]
 REF_SIZE_ILLUMINA_ms             = [200]
 REF_SIZE_ILLUMINA_errors         = [-1]
+REF_SIZE_ILLUMINA_seedlen        = [25]
 
 REF_SIZE_HIFI_ALGOS          = ["astarix-seeds-illumina", "vargas", "graphaligner", "pasgal"] #, "astarix-prefix-illumina", ] # "dijkstra"
 REF_SIZE_HIFI_GRAPHS         = ["MHC1"]
@@ -69,6 +73,7 @@ REF_SIZE_HIFI_Ns             = [0.1]  # coverage
 REF_SIZE_HIFI_SEQ_TECHNOLOGY = ["hifi-natural"]
 REF_SIZE_HIFI_ms             = ["-1"]
 REF_SIZE_HIFI_errors         = [0.003]
+REF_SIZE_HIFI_seedlen        = [50]
 
 READLEN_ALGOS           = ["astarix-seeds", "graphaligner", "pasgal", "vargas"]
 READLEN_GRAPHS          = ["MHC1"]  #["ecoli"]
@@ -77,15 +82,17 @@ READLEN_Ns              = [0.03]
 READLEN_SEQ_TECHNOLOGY  = ["hifi"] #"ccs"
 READLEN_ms              = [2000, 7000, 15000, 25000]
 READLEN_errors          = [0.003]
+READLEN_seedlen         = [50]
 
 # NOT USED
-ABLATION_ALGOS          = ["astarix-seeds"] #, "astarix-seeds_wo_match_pos"] #, "astarix-seeds_wo_skip_near_crumbs_pos", "astarix-seeds_wo_opt", "vargas"]
+ABLATION_ALGOS          = ["astarix-seeds", "astarix-seeds_wo_skip_near_crumbs_pos"] #"astarix-seeds_wo_match_pos"] #"astarix-seeds_wo_opt", "vargas"]
+ABLATION_Ns             = [1, 0.1]  # coverage
 ABLATION_GRAPHS         = ["MHC1"] #["ecoli"]
 ABLATION_GRAPH_HEADS    = [100000000]
-ABLATION_Ns             = [200]
 ABLATION_SEQ_TECHNOLOGY = ["hifi"] #"ccs", "illumina",
-ABLATION_ms             = [100, 2000, 7000, 10000, 15000, 20000] #, 25000, 30000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
+ABLATION_ms             = [2000, 10000, 20000, 25000] #, 25000, 30000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
 ABLATION_errors         = [0.003]
+ABLATION_seedlen        = [50]
 
 # NOT USED
 ERRORRATE_ALGOS          = ["astarix-seeds"] #, "astarix-seeds_wo_match_pos"]
@@ -95,14 +102,21 @@ ERRORRATE_Ns             = [0.03]
 ERRORRATE_SEQ_TECHNOLOGY = ["hifi"] #"ccs", "illumina",
 ERRORRATE_ms             = [20000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
 ERRORRATE_errors         = [0.003, 0.005, 0.01, 0.02, 0.03]
+ERRORRATE_seedlen        = [50]
 
 FIRST_ROW       = "algo\tgraph\thead\tN\tm\tsequencing_technology\terrorrate\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
 AGGREGATED_BENCHMARKS = "results/aggregated_benchmarks.csv"
 AGGREGATED_EXPERIMENTS = "results/aggregated_experiments.csv"
 
 graph_params = "{graph}_head{head}"
-read_params = "N{N}_m{m}_{seq_technology}_errors{errors}"
-params = graph_params + "_" + read_params
+read_params  = "N{N}_m{m}_{seq_technology}_errors{errors}"
+params       = graph_params + "_" + read_params + "_seedlen{seedlen}"
+prefix       = "{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}\t{seedlen}"
+
+graph_params1 = "{{graph}}_head{{head}}"
+read_params1  = "N{N}_m{{m}}_{{seq_technology}}_errors{{errors}}"
+params1       = graph_params1 + "_" + read_params1 + "_seedlen{{seedlen}}"
+prefix1       = "{algo}\t{{graph}}\t{{head}}\t{N}\t{{m}}\t{{seq_technology}}\t{{errors}}\t{{seedlen}}"
 
 #EXPERIMENT_N = 1000 #20000
 #EXPERIMENT_FIRST_ROW       = "algo\tgraph\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
@@ -135,39 +149,45 @@ rule all:
 #        agg2 = "results/aggregated_experiments.csv",
 #        trie = "results/TRIE_DUMMY"
 
+table_illumina_zippedreads = [("reads/"+params1+"/reads.fq").format(algo=algo, N=N) for (algo, N) in zip(TABLE_ILLUMINA_ALGOS, TABLE_ILLUMINA_Ns)]
+table_illumina_zippedfile = [("results/{algo}/"+params1+"/benchmark.txt").format(algo=algo, N=N) for (algo, N) in zip(TABLE_ILLUMINA_ALGOS, TABLE_ILLUMINA_Ns)]
+table_illumina_zippedprefix = [prefix1.format(algo=algo, N=N) for (algo, N) in zip(TABLE_ILLUMINA_ALGOS, TABLE_ILLUMINA_Ns)]
 rule table_illumina:
     input:
         refs = expand("graphs/"+graph_params+".fa", graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=TABLE_ILLUMINA_ALGOS, graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS, N=TABLE_ILLUMINA_Ns, m=TABLE_ILLUMINA_ms, seq_technology=TABLE_ILLUMINA_SEQ_TECHNOLOGY, errors=TABLE_ILLUMINA_errors),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=TABLE_ILLUMINA_ALGOS, graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS, N=TABLE_ILLUMINA_Ns, m=TABLE_ILLUMINA_ms, seq_technology=TABLE_ILLUMINA_SEQ_TECHNOLOGY, errors=TABLE_ILLUMINA_errors),
+        reads = expand(table_illumina_zippedreads, graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS, m=TABLE_ILLUMINA_ms, seq_technology=TABLE_ILLUMINA_SEQ_TECHNOLOGY, errors=TABLE_ILLUMINA_errors, seedlen=TABLE_ILLUMINA_seedlen),
+        file = expand(table_illumina_zippedfile, graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS, m=TABLE_ILLUMINA_ms, seq_technology=TABLE_ILLUMINA_SEQ_TECHNOLOGY, errors=TABLE_ILLUMINA_errors, seedlen=TABLE_ILLUMINA_seedlen),
     output:
         "results/TABLE_ILLUMINA_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=TABLE_ILLUMINA_ALGOS, graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS, N=TABLE_ILLUMINA_Ns, m=TABLE_ILLUMINA_ms, seq_technology=TABLE_ILLUMINA_SEQ_TECHNOLOGY, errors=TABLE_ILLUMINA_errors)
+        prefix = expand(table_illumina_zippedprefix, graph=TABLE_ILLUMINA_GRAPHS, head=TABLE_ILLUMINA_GRAPH_HEADS, N=TABLE_ILLUMINA_Ns, m=TABLE_ILLUMINA_ms, seq_technology=TABLE_ILLUMINA_SEQ_TECHNOLOGY, errors=TABLE_ILLUMINA_errors, seedlen=TABLE_ILLUMINA_seedlen)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 
+table_hifi_zippedreads = [("reads/"+params1+"/reads.fq").format(algo=algo, N=N) for (algo, N) in zip(TABLE_HIFI_ALGOS, TABLE_HIFI_Ns)]
+table_hifi_zippedfile = [("results/{algo}/"+params1+"/benchmark.txt").format(algo=algo, N=N) for (algo, N) in zip(TABLE_HIFI_ALGOS, TABLE_HIFI_Ns)]
+table_hifi_zippedprefix = [prefix1.format(algo=algo, N=N) for (algo, N) in zip(TABLE_HIFI_ALGOS, TABLE_HIFI_Ns)]
 rule table_hifi:
     input:
         refs = expand("graphs/"+graph_params+".fa", graph=TABLE_HIFI_GRAPHS, head=TABLE_HIFI_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=TABLE_HIFI_ALGOS, graph=TABLE_HIFI_GRAPHS, head=TABLE_HIFI_GRAPH_HEADS, N=TABLE_HIFI_Ns, m=TABLE_HIFI_ms, seq_technology=TABLE_HIFI_SEQ_TECHNOLOGY, errors=TABLE_HIFI_errors),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=TABLE_HIFI_ALGOS, graph=TABLE_HIFI_GRAPHS, head=TABLE_HIFI_GRAPH_HEADS, N=TABLE_HIFI_Ns, m=TABLE_HIFI_ms, seq_technology=TABLE_HIFI_SEQ_TECHNOLOGY, errors=TABLE_HIFI_errors),
+        reads = expand(table_hifi_zippedreads, graph=TABLE_HIFI_GRAPHS, head=TABLE_HIFI_GRAPH_HEADS, m=TABLE_HIFI_ms, seq_technology=TABLE_HIFI_SEQ_TECHNOLOGY, errors=TABLE_HIFI_errors, seedlen=TABLE_HIFI_seedlen),
+        file = expand(table_hifi_zippedfile, graph=TABLE_HIFI_GRAPHS, head=TABLE_HIFI_GRAPH_HEADS, m=TABLE_HIFI_ms, seq_technology=TABLE_HIFI_SEQ_TECHNOLOGY, errors=TABLE_HIFI_errors, seedlen=TABLE_HIFI_seedlen),
     output:
         "results/TABLE_HIFI_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=TABLE_HIFI_ALGOS, graph=TABLE_HIFI_GRAPHS, head=TABLE_HIFI_GRAPH_HEADS, N=TABLE_HIFI_Ns, m=TABLE_HIFI_ms, seq_technology=TABLE_HIFI_SEQ_TECHNOLOGY, errors=TABLE_HIFI_errors)
+        prefix = expand(table_hifi_zippedprefix, graph=TABLE_HIFI_GRAPHS, head=TABLE_HIFI_GRAPH_HEADS, N=TABLE_HIFI_Ns, m=TABLE_HIFI_ms, seq_technology=TABLE_HIFI_SEQ_TECHNOLOGY, errors=TABLE_HIFI_errors, seedlen=TABLE_HIFI_seedlen)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 
 rule refsize_illumina:
     input:
         refs = expand("graphs/"+graph_params+".fa", graph=REF_SIZE_ILLUMINA_GRAPHS, head=REF_SIZE_ILLUMINA_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=REF_SIZE_ILLUMINA_ALGOS, graph=REF_SIZE_ILLUMINA_GRAPHS, head=REF_SIZE_ILLUMINA_GRAPH_HEADS, N=REF_SIZE_ILLUMINA_Ns, m=REF_SIZE_ILLUMINA_ms, seq_technology=REF_SIZE_ILLUMINA_SEQ_TECHNOLOGY, errors=REF_SIZE_ILLUMINA_errors),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=REF_SIZE_ILLUMINA_ALGOS, graph=REF_SIZE_ILLUMINA_GRAPHS, head=REF_SIZE_ILLUMINA_GRAPH_HEADS, N=REF_SIZE_ILLUMINA_Ns, m=REF_SIZE_ILLUMINA_ms, seq_technology=REF_SIZE_ILLUMINA_SEQ_TECHNOLOGY, errors=REF_SIZE_ILLUMINA_errors),
+        reads = expand("reads/"+params+"/reads.fq", algo=REF_SIZE_ILLUMINA_ALGOS, graph=REF_SIZE_ILLUMINA_GRAPHS, head=REF_SIZE_ILLUMINA_GRAPH_HEADS, N=REF_SIZE_ILLUMINA_Ns, m=REF_SIZE_ILLUMINA_ms, seq_technology=REF_SIZE_ILLUMINA_SEQ_TECHNOLOGY, errors=REF_SIZE_ILLUMINA_errors, seedlen=REF_SIZE_ILLUMINA_seedlen),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=REF_SIZE_ILLUMINA_ALGOS, graph=REF_SIZE_ILLUMINA_GRAPHS, head=REF_SIZE_ILLUMINA_GRAPH_HEADS, N=REF_SIZE_ILLUMINA_Ns, m=REF_SIZE_ILLUMINA_ms, seq_technology=REF_SIZE_ILLUMINA_SEQ_TECHNOLOGY, errors=REF_SIZE_ILLUMINA_errors, seedlen=REF_SIZE_ILLUMINA_seedlen),
     output:
         "results/REF_SIZE_ILLUMINA_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=REF_SIZE_ILLUMINA_ALGOS, graph=REF_SIZE_ILLUMINA_GRAPHS, head=REF_SIZE_ILLUMINA_GRAPH_HEADS, N=REF_SIZE_ILLUMINA_Ns, m=REF_SIZE_ILLUMINA_ms, seq_technology=REF_SIZE_ILLUMINA_SEQ_TECHNOLOGY, errors=REF_SIZE_ILLUMINA_errors)
+        prefix = expand(prefix, algo=REF_SIZE_ILLUMINA_ALGOS, graph=REF_SIZE_ILLUMINA_GRAPHS, head=REF_SIZE_ILLUMINA_GRAPH_HEADS, N=REF_SIZE_ILLUMINA_Ns, m=REF_SIZE_ILLUMINA_ms, seq_technology=REF_SIZE_ILLUMINA_SEQ_TECHNOLOGY, errors=REF_SIZE_ILLUMINA_errors, seedlen=REF_SIZE_ILLUMINA_seedlen)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 #        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
@@ -175,12 +195,12 @@ rule refsize_illumina:
 rule refsize_hifi:
     input:
         refs = expand("graphs/"+graph_params+".fa", graph=REF_SIZE_HIFI_GRAPHS, head=REF_SIZE_HIFI_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=REF_SIZE_HIFI_ALGOS, graph=REF_SIZE_HIFI_GRAPHS, head=REF_SIZE_HIFI_GRAPH_HEADS, N=REF_SIZE_HIFI_Ns, m=REF_SIZE_HIFI_ms, seq_technology=REF_SIZE_HIFI_SEQ_TECHNOLOGY, errors=REF_SIZE_HIFI_errors),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=REF_SIZE_HIFI_ALGOS, graph=REF_SIZE_HIFI_GRAPHS, head=REF_SIZE_HIFI_GRAPH_HEADS, N=REF_SIZE_HIFI_Ns, m=REF_SIZE_HIFI_ms, seq_technology=REF_SIZE_HIFI_SEQ_TECHNOLOGY, errors=REF_SIZE_HIFI_errors),
+        reads = expand("reads/"+params+"/reads.fq", algo=REF_SIZE_HIFI_ALGOS, graph=REF_SIZE_HIFI_GRAPHS, head=REF_SIZE_HIFI_GRAPH_HEADS, N=REF_SIZE_HIFI_Ns, m=REF_SIZE_HIFI_ms, seq_technology=REF_SIZE_HIFI_SEQ_TECHNOLOGY, errors=REF_SIZE_HIFI_errors, seedlen=REF_SIZE_HIFI_seedlen),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=REF_SIZE_HIFI_ALGOS, graph=REF_SIZE_HIFI_GRAPHS, head=REF_SIZE_HIFI_GRAPH_HEADS, N=REF_SIZE_HIFI_Ns, m=REF_SIZE_HIFI_ms, seq_technology=REF_SIZE_HIFI_SEQ_TECHNOLOGY, errors=REF_SIZE_HIFI_errors, seedlen=REF_SIZE_HIFI_seedlen),
     output:
         "results/REF_SIZE_HIFI_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=REF_SIZE_HIFI_ALGOS, graph=REF_SIZE_HIFI_GRAPHS, head=REF_SIZE_HIFI_GRAPH_HEADS, N=REF_SIZE_HIFI_Ns, m=REF_SIZE_HIFI_ms, seq_technology=REF_SIZE_HIFI_SEQ_TECHNOLOGY, errors=REF_SIZE_HIFI_errors)
+        prefix = expand(prefix, algo=REF_SIZE_HIFI_ALGOS, graph=REF_SIZE_HIFI_GRAPHS, head=REF_SIZE_HIFI_GRAPH_HEADS, N=REF_SIZE_HIFI_Ns, m=REF_SIZE_HIFI_ms, seq_technology=REF_SIZE_HIFI_SEQ_TECHNOLOGY, errors=REF_SIZE_HIFI_errors, seedlen=REF_SIZE_HIFI_seedlen)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 #        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
@@ -188,40 +208,40 @@ rule refsize_hifi:
 rule readlen:
     input:
         refs = expand("graphs/"+graph_params+".gfa", graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors),
-#        file = [("results/{algo}/"+params+"/benchmark.txt").format(**locals()) for algo in READLEN_ALGOS for graph in READLEN_GRAPHS for head in READLEN_GRAPH_HEADS for N in READLEN_Ns for m in READLEN_ms for seq_technology in READLEN_SEQ_TECHNOLOGY for errors in READLEN_errors
-#            if not (algo == "graphaligner" and m >= 15000)]
+        reads = expand("reads/"+params+"/reads.fq", algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen),
     output:
         "results/READLEN_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors)
+        prefix = expand(prefix, algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 #        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
 
+ablation_zippedreads = [("reads/"+params1+"/reads.fq").format(algo=algo, N=N) for (algo, N) in zip(ABLATION_ALGOS, ABLATION_Ns)]
+ablation_zippedfile = [("results/{algo}/"+params1+"/benchmark.txt").format(algo=algo, N=N) for (algo, N) in zip(ABLATION_ALGOS, ABLATION_Ns)]
+ablation_zippedprefix = [prefix1.format(algo=algo, N=N) for (algo, N) in zip(ABLATION_ALGOS, ABLATION_Ns)]
 rule ablation:
     input:
         refs = expand("graphs/"+graph_params+".fa", graph=ABLATION_GRAPHS, head=ABLATION_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=ABLATION_ALGOS, graph=ABLATION_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ABLATION_ALGOS, graph=ABLATION_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors),
+        reads = expand(ablation_zippedreads, graph=ABLATION_GRAPHS, head=ABLATION_GRAPH_HEADS, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors, seedlen=ABLATION_seedlen),
+        file = expand(ablation_zippedfile, graph=ABLATION_GRAPHS, head=ABLATION_GRAPH_HEADS, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors, seedlen=ABLATION_seedlen),
     output:
         "results/ABLATION_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=ABLATION_ALGOS, graph=ABLATION_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors)
+        prefix = expand(ablation_zippedprefix, graph=ABLATION_GRAPHS, head=ABLATION_GRAPH_HEADS, N=ABLATION_Ns, m=ABLATION_ms, seq_technology=ABLATION_SEQ_TECHNOLOGY, errors=ABLATION_errors, seedlen=ABLATION_seedlen)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
-#        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
 
 rule errorrate:
     input:
         refs = expand("graphs/"+graph_params+".fa", graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors),
+        reads = expand("reads/"+params+"/reads.fq", algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors, seedlen=ERRORRATE_seedlen),
+        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors, seedlen=ERRORRATE_seedlen),
     output:
         "results/ERRORRATE_DONE"
     params:
-        prefix = expand("{algo}\t{graph}\t{head}\t{N}\t{m}\t{seq_technology}\t{errors}", algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors)
+        prefix = expand(prefix, algo=ERRORRATE_ALGOS, graph=ERRORRATE_GRAPHS, head=ERRORRATE_GRAPH_HEADS, N=ERRORRATE_Ns, m=ERRORRATE_ms, seq_technology=ERRORRATE_SEQ_TECHNOLOGY, errors=ERRORRATE_errors, seedlen=ERRORRATE_seedlen)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 #        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
@@ -524,7 +544,7 @@ rule fa2gfa_vg:
         else:
             shell("cp raw/{wildcards.graph}.gfa {output.gfa}")
         shell("{VG_BIN} view -Fv {output.gfa} >{output.vg}")
-		
+
 # art_illumina -ss MSv3 -i ecoli.fasta -l 20 -c 10000 -o tmp
 #    "reads/"+params+"/reads.fq"
 
