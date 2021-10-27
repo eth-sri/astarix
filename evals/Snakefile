@@ -18,13 +18,13 @@ TIMEOUTPRINT    = ") || ([ $? -eq 124 ] && echo -e \"timeout\" >{log}) || (echo 
 DIJKSTRA_CMD								= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a dijkstra     -D 14 -M 0 -S 1 -G 5                                                             -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 ASTARIX_PREFIX_ILLUMINA_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 14 -M 0 -S 1 -G 5 -d 5                                                        -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 ASTARIX_PREFIX_CMD							= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-prefix -D 14 -M 0 -S 1 -G 1 -d 5                                                        -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_ILLUMINA_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 5 --seeds_len {input.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-#ASTARIX_SEEDS_EXACT_SHORT_CMD 				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD		= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen} --seeds_match_pos_optimization 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen} --seeds_skip_near_crumbs 0       -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_APPROX_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen} --seeds_max_errors 1             -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
-ASTARIX_SEEDS_EXACT_WO_OPT_CMD				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {input.seedlen} --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_ILLUMINA_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 5 --seeds_len {wildcards.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+#ASTARIX_SEEDS_EXACT_SHORT_CMD 				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {wildcards.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_CMD 					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {wildcards.seedlen}                                  -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_MATCH_POS_CMD		= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {wildcards.seedlen} --seeds_match_pos_optimization 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_SKIP_NEAR_CRUMBS_CMD = "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {wildcards.seedlen} --seeds_skip_near_crumbs 0       -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_APPROX_CMD					= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {wildcards.seedlen} --seeds_max_errors 1             -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
+ASTARIX_SEEDS_EXACT_WO_OPT_CMD				= "{TIMELIMIT} {ASTARIX_BIN} align-optimal -a astar-seeds  -D 14 -M 0 -S 1 -G 1 --seeds_len {wildcards.seedlen} --seeds_match_pos_optimization 0 --seeds_skip_near_crumbs 0 -q {input.reads} -g $(echo {input.graph} | sed 's|_head100000000|_head0|g') -o $(dirname {output.align}) >{output.file} {TIMEOUTPRINT} >>{output.file}"
 
 GA_CMD = "{TIMELIMIT} {GA_BIN} --seeds-first-full-rows 64 -b 10000 -t 1 -a alignments.gaf -f {input.reads} -g {input.graph_vg} >{output.file} {TIMEOUTPRINT} >>{output.file}"
 PASGAL_CMD = "{TIMELIMIT} {PASGAL_BIN} -m vg -r {input.graph_vg} -q {input.reads} -t 1 -o {output.file} >{output.file} {TIMEOUTPRINT}"
@@ -95,18 +95,16 @@ ABLATION_errors         = [0.003]
 ABLATION_seedlen        = [50]
 
 # NOT USED
-ERRORRATE_ALGOS          = ["astarix-seeds"] #, "astarix-seeds_wo_match_pos"]
+ERRORRATE_ALGOS          = ["astarix-seeds-illumina"] #, "astarix-seeds_wo_match_pos"]
 ERRORRATE_GRAPHS         = ["MHC1"]
 ERRORRATE_GRAPH_HEADS    = [0]
-ERRORRATE_Ns             = [0.03]
-ERRORRATE_SEQ_TECHNOLOGY = ["hifi"] #"ccs", "illumina",
-ERRORRATE_ms             = [20000] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
-ERRORRATE_errors         = [0.003, 0.005, 0.01, 0.02, 0.03]
-ERRORRATE_seedlen        = [50]
+ERRORRATE_Ns             = [1000, 10000, 100000]
+ERRORRATE_SEQ_TECHNOLOGY = ["illumina"] #"ccs", "hifi",
+ERRORRATE_ms             = [200] # [100, 300, 700, 1000, 2000] #, 3000, 5000, 7000, 10000, 13000, 15000, 18000, 20000]
+ERRORRATE_errors         = [-1] # 0.005, 0.01, 0.02, 0.03
+ERRORRATE_seedlen        = [25]
 
-FIRST_ROW       = "algo\tgraph\thead\tN\tm\tsequencing_technology\terrorrate\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
-AGGREGATED_BENCHMARKS = "results/aggregated_benchmarks.csv"
-AGGREGATED_EXPERIMENTS = "results/aggregated_experiments.csv"
+FIRST_ROW       = "algo\tgraph\thead\tN\tm\tsequencing_technology\terrorrate\tseedlen\ts\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load"
 
 graph_params = "{graph}_head{head}"
 read_params  = "N{N}_m{m}_{seq_technology}_errors{errors}"

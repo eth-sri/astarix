@@ -124,7 +124,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
 		std::vector<pos_t> seed_starts = generate_seeds(r, args.seeds_retain_frac);
 		seeds_ = seed_starts.size();    //seeds_ = r->len / args.seed_len;  // TODO: not all seeds
-		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller
+		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller; TODO: ceiling
 		LOG_DEBUG << "max_indels: " << max_indels_;
 
 		generate_seeds_match_put_crumbs(seed_starts, r);

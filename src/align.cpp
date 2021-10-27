@@ -106,10 +106,10 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
     if (get_path(p, i_next, e.to).optimize(next)) {
         set_prev_edge(pe, i_next, e.to, e);
 
-        stats.t.astar.start();
+        //stats.t.astar.start();
         cost_t h = astar->h(next);
         cost_t f = g + h;
-        stats.t.astar.stop();
+        //stats.t.astar.stop();
 
         LOG_DEBUG << "From (" << curr.i << ", " << curr.v << ") "
             << "through edge (" << e.label << ", " << edgeType2str(e.type) << ") "
@@ -120,7 +120,7 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
 
 // Greedy fast-forward exact matching
 state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, const read_t &r) {
-    stats.t.ff.start();
+//    stats.t.ff.start();
 
     edge_t e; 
     while (G.numOutOrigEdges(curr.v, &e) == 1 && curr.i < r.len-1 && e.label == r.s[curr.i]) {
@@ -129,7 +129,7 @@ state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, cons
         if (get_path(p, next.i, next.v).optimize(next)) {
             set_prev_edge(pe, next.i, next.v, e);
         } else {
-            stats.t.ff.stop();
+//            stats.t.ff.stop();
             return curr;
         }
 
@@ -137,7 +137,7 @@ state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, cons
         stats.explored_states.inc();
     }
 
-    stats.t.ff.stop();
+//    stats.t.ff.stop();
     return curr;
 }
 
