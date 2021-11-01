@@ -17,10 +17,19 @@ memory_limit = 20000  # MB
 
 def read_benchmarks_aggregation(benchmarks_file):
     df = pd.read_csv(benchmarks_file, sep='\t', index_col=False)
-    #df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"])
+    df['algo'] = pd.Categorical(df['algo'], ["astarix-seeds-illumina", "astarix-seeds", "astarix-prefix-illumina", "astarix-prefix", "dijkstra", "vargas", "pasgal", "graphaligner"])
     #df['c'] = df['algo'].apply(algo2color)
     #df['marker'] = df['m'].apply(readlen2marker)
     df['head_Mbp'] = df['head'] / 10**6
+    if -1 == list(df['m'])[0]:
+        coverage = df['N'] * 5e6 / df['head']
+        df['bps'] = coverage * df['head'] / df['s']
+    else:
+        df['bps'] = df['N'] * df['m'] / df['s']
+    df['Gbps'] = df['bps'] * 1e-9
+    df['GB'] = df['max_rss'] * 1e-3
+    
+    df = df.sort_values(by='algo').reset_index(drop=True)
     return df
 
 def remove_tle_mle(df):
@@ -45,7 +54,7 @@ def read_astarix_performance(tsv_fn, algo=None):
     if algo:
         df['algo'] = algo
     else:
-        df['algo'] = pd.Categorical(df['algo'], ["graphaligner", "dijkstra", "astar-prefix", "astar-seeds", "pasgal"], ordered=True)
+        df['algo'] = pd.Categorical(df['algo'], ["astarix-seeds", "astar-seeds", "astarix-seeds-illumina", "graphaligner", "dijkstra", "astar-prefix", "pasgal"], ordered=True)
     #df['algo'] = df['algo'].cat.remove_unused_categories()
     #df['performance'] = df['len'] / df['t(map)'] / 1000000  # [MBp/sec]
     #if 'spell' in df:  # TODO: uncomment
@@ -53,19 +62,111 @@ def read_astarix_performance(tsv_fn, algo=None):
     #return df.set_index('readname', verify_integrity=True)
     return df.set_index('readname', verify_integrity=False)
 
+#green palette: #e1dd72, #a8c66c, #1b6535
+#blue palette: #408ec6, #7a2048, #1e2761
+#colorful: #cf1578, #e8d21d, #039fbe
+
+# adobe:
+# analogues blue: #DE4AFF, #625AFF, #4DC8FF
+# monochromatic: #FF8746, #805C49, #CC6B37
+# monochromatic violet: #F387FF, #AC68FF, #8C8CFF
+# mono orange: #FFC545, FF913D, FF6047
+# mono red: E8841A, FF6D29, EB2D12
+
 def algo2color(algo):
     palette = sns.color_palette("tab10", 10)
     d = {
-        'astarix-prefix': palette[5],
-        'astar-prefix': palette[5],
-        'astarix-prefix-illumina': palette[5],
-        'astarix-seeds': palette[3],
-        'astar-seeds': palette[3],
-        'astarix-seeds-illumina': palette[3],
-        'dijkstra': palette[4],
+        'astarix-prefix': '#FF6D29',
+        'astar-prefix': '#FF6D29',
+        'astarix-prefix-illumina': '#FF6D29',
+        'astarix-seeds': '#EB2D12',
+        'astar-seeds': '#EB2D12',
+        'astarix-seeds-illumina': '#EB2D12',
+        'dijkstra': '#FFC545',
+        'graphaligner': '#8C8CFF',
+        'pasgal': '#AC68FF',
+        'vargas': '#F387FF',
+        
+#        'astarix-prefix': '#1e2761',
+#        'astar-prefix': '#1e2761',
+#        'astarix-prefix-illumina': '#1e2761',
+#        'astarix-seeds': '#7a2048',
+#        'astar-seeds': '#7a2048',
+#        'astarix-seeds-illumina': '#7a2048',
+#        'dijkstra': '#408ec6',
+#        'graphaligner': '#a8c66c',
+#        'pasgal': '#e1dd72',
+#        'vargas': '#1b6535',
+        }
+    if algo in d:
+        return d[algo]
+    print(algo)
+    assert(False)
+    
+
+def algo2color_old(algo):
+    palette = sns.color_palette("tab10", 10)
+    d = {
+        'astarix-prefix': palette[3],
+        'astar-prefix': palette[3],
+        'astarix-prefix-illumina': palette[3],
+        'astarix-seeds': palette[1],
+        'astar-seeds': palette[1],
+        'astarix-seeds-illumina': palette[1],
+        'dijkstra': palette[5],
         'graphaligner': palette[0],
-        'pasgal': palette[1],
+        'pasgal': palette[4],
         'vargas': palette[2],
+        #'astarix': 'red', #'mediumseagreen', #' forestgreen',
+        #'astarix-seeds_wo_skip_near_crumbs_pos': 'yellow',  ## ablation
+        #'astarix-seeds_wo_match_pos': 'orange',   ## ablation
+        #'astarix-seeds_wo_opt': 'blue',
+        #'astar-seeds-intervals': 'red',
+        #'astarix-seeds-intervals': 'red',
+        #'vg': 'orange',
+        }
+    if algo in d:
+        return d[algo]
+    print(algo)
+    assert(False)
+    
+def algo2marker(algo):
+    d = {
+        'astarix-prefix': 'o',
+        'astar-prefix': 'o',
+        'astarix-prefix-illumina': 'o',
+        'astarix-seeds': 'o',
+        'astar-seeds': 'o',
+        'astarix-seeds-illumina': 'o',
+        'dijkstra': 'o',
+        'graphaligner': '^',
+        'pasgal': '<',
+        'vargas': '>',
+        #'astarix': 'red', #'mediumseagreen', #' forestgreen',
+        #'astarix-seeds_wo_skip_near_crumbs_pos': 'yellow',  ## ablation
+        #'astarix-seeds_wo_match_pos': 'orange',   ## ablation
+        #'astarix-seeds_wo_opt': 'blue',
+        #'astar-seeds-intervals': 'red',
+        #'astarix-seeds-intervals': 'red',
+        #'vg': 'orange',
+        }
+    if algo in d:
+        return d[algo]
+    print(algo)
+    assert(False)
+    
+def algo2marker_different(algo):
+    d = {
+        'astarix-prefix': '^',
+        'astar-prefix': '^',
+        'astarix-prefix-illumina': '^',
+        'astarix-seeds': '*',
+        'astar-seeds': '*',
+        'astarix-seeds-illumina': '*',
+        'dijkstra': '>',
+        'graphaligner': 'o',
+        'pasgal': 'P',
+        'vargas': 's',
         #'astarix': 'red', #'mediumseagreen', #' forestgreen',
         #'astarix-seeds_wo_skip_near_crumbs_pos': 'yellow',  ## ablation
         #'astarix-seeds_wo_match_pos': 'orange',   ## ablation
@@ -81,11 +182,11 @@ def algo2color(algo):
 
 def algo2beautiful(algo):
     d = {
-        'astar': 'A*',
+        #'astar': 'A*',
         'astarix': 'AStarix',
         'astarix-seeds': 'Seeds heuristic',
         'astar-seeds': 'Seeds heuristic',
-        'astarix-seeds-illumina': 'A*-seeds',
+        'astarix-seeds-illumina': 'AStarix-seeds',
         'astarix-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astar-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astarix-seeds_wo_skip_near_crumbs_pos': 'Seeds -near crumbs',  ## ablation
@@ -93,7 +194,7 @@ def algo2beautiful(algo):
         'astarix-seeds_wo_opt': 'Seeds -nearcrumbs -matchpos',
         'astarix-prefix': 'Prefix heuristic',
         'astar-prefix': 'Prefix heuristic',
-        'astarix-prefix-illumina': 'A*-prefix',
+        'astarix-prefix-illumina': 'AStarix-prefix',
         'dijkstra': 'Dijkstra',
         'graphaligner': 'GraphAligner',
         'pasgal': 'PaSGAL',
@@ -107,20 +208,21 @@ def algo2beautiful(algo):
     
 def col2name(col):
     d = {
-        'head':    'Reference length',
-        'head_Mbp':'Reference length',
-        's':       'Runtime',
+        'head':    'Reference size [bp]',
+        'head_Mbp':'Reference size [Mbp]',
+        's':       'Runtime [sec]',
         'N':       'Reads',
-        'm':       'Read length',
+        'm':       'Read length [bp]',
         'max_rss': 'Memory',
         'score':   'Alignment cost',
         'explored_states':  'Explored states',
         't(map)':  'Alignment time per read',  #  [sec/read]
-        't(map)_per_bp': 'Alignment time per bp',
-        'align_sec':  'Alignment time',
+        't(map)_per_bp': 'Alignment time per bp [sec]',
+        'align_sec':  'Alignment time [sec]',
         'cost':    'Alignment cost',
         'explored_per_bp': 'Explored states per bp',
         'error_rate': 'Error rate',
+        'bps':     'Alignment rate [bp/sec]',
         #'performance': 'MBp/sec'
         }
     if col in d:
@@ -136,6 +238,7 @@ def col2unit(col):
         'N':       '',
         'm':       'bp',
         'max_rss': 'MB',
+        'bps':     'bp/s',
         }
     if col in d:
         return d[col]

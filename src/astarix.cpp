@@ -85,6 +85,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
     aligner->astar_before_every_alignment(&r);      // prepare read
     final_states = aligner->readmap(r, algo, args.k_best_alignments);  // align
 	aligner->astar_after_every_alignment();         // return preparation to previous state
+	*global_stats += aligner->stats;
 
 	if ((int)final_states.size() >= args.k_best_alignments) {
 		LOG_DEBUG << r.s << " aligned >= " << args.k_best_alignments << " times.";
@@ -126,7 +127,6 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 			*popped_rate_max = max(*popped_rate_max, popped_rate);
 			*repeat_rate_max = max(*repeat_rate_max, repeat_rate);
 
-			*global_stats += aligner->stats;
             int crumbs = 0; //aligner->astar->states_with_crumbs.get();
 
 			char line[100000];
@@ -364,6 +364,14 @@ int exec_astarix(int argc, char **argv) {
     T.read_queries.stop();
     cout << "done in " << T.read_queries.t.get_sec() << "s." << endl << flush;
 
+// TODO: IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE 
+// TODO: IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE 
+// TODO: IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE 
+// TODO: IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE 
+//	int TT=10000;
+//	for (size_t i=TT; i<R.size(); i++)
+//		R[i] = R[i%TT];
+
     auto_params(G, R, &args);
 
     cout << "Contructing trie... " << flush;
@@ -588,7 +596,7 @@ int exec_astarix(int argc, char **argv) {
         out << " DONE" << endl;
         out << endl;
 
-        assert( global_stats.align_status.total() >= (int)R.size() );
+//        assert( global_stats.align_status.total() >= (int)R.size() );
     }
 
     extract_args_to_dict(args, &stats);

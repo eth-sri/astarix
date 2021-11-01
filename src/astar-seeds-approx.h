@@ -37,7 +37,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     struct Stats {
         Counter<> seeds;                    // number of seeds (depends only on the read)
         Counter<> seed_matches;             // places in the graph where seeds match well enough
-        Counter<> paths_considered;         // number of paths updated for all seeds (supersource --> match)
         Counter<> states_with_crumbs;       // the number of states with crumbs
         Counter<> repeated_states;          // number of times crumbs are put on a states that already has crumbs
         Counter<cost_t> root_heuristic;     // heuristic from the trie root
@@ -47,7 +46,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         void clear() {
             seeds.clear();
             seed_matches.clear();
-            paths_considered.clear();
             states_with_crumbs.clear();
             repeated_states.clear();
             root_heuristic.clear();
@@ -56,7 +54,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         Stats& operator+=(const Stats &b) {
             seeds += b.seeds;
             seed_matches += b.seed_matches;
-            paths_considered += b.paths_considered;
             states_with_crumbs += b.states_with_crumbs;
             repeated_states += b.repeated_states;
             root_heuristic += b.root_heuristic;
@@ -416,7 +413,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         out << "                            Seeds: " << global_cnt.seeds << " (" << 1.0*global_cnt.seeds.get()/reads << " per read)"                  << std::endl;
         out << "                     Seed matches: " << global_cnt.seed_matches << " (" << 1.0*global_cnt.seed_matches.get()/reads << " per read, " << 1.0*global_cnt.seed_matches.get()/global_cnt.seeds.get() << " per seed)" << std::endl;
 		out << "          Seeds retained fraction: " << args.seeds_retain_frac << std::endl;
-        out << "                 Paths considered: " << global_cnt.paths_considered << " (" << 1.0*global_cnt.paths_considered.get()/reads << " per read)"     << std::endl;
         out << "               States with crumbs: " << global_cnt.states_with_crumbs
             << " [+" << 100.0*global_cnt.repeated_states.get()/(global_cnt.states_with_crumbs.get()+global_cnt.repeated_states.get()) << "% repeated], (" << 1.0*global_cnt.states_with_crumbs.get()/reads << " per read)" << std::endl;
         out << "                  Heuristic (avg): " << 1.0*global_cnt.root_heuristic.get()/reads << " of potential " << 1.0*global_cnt.heuristic_potential.get()/reads << std::endl;
@@ -426,7 +422,6 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         LOG_INFO << r_->comment << " A* seeds stats: "
             << read_cnt.seeds.get() << " seeds " 
             << "matching at " << read_cnt.seed_matches << " graph positions "
-            << "and generating " << read_cnt.paths_considered << " paths "
             << "over " << read_cnt.states_with_crumbs << " states"
             << "(" << read_cnt.repeated_states << " repeated)"
             << "with best heuristic " << read_cnt.root_heuristic.get() << " "

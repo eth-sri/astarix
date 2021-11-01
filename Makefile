@@ -3,7 +3,7 @@ CPPFLAGS=-Wall -Wextra -std=c++2a -Iext/plog/include/ -Iext/GraphAligner/ -Iext/
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
-    CPPFLAGS += -DDEBUG -g -O0
+    CPPFLAGS += -DDEBUG -g -O0 -fno-inline
 	BINDIR=debug
 	RUNFLAGS += -v 2
 else
