@@ -397,7 +397,7 @@ int exec_astarix(int argc, char **argv) {
     std::ostream &out = cout;
     {
         out.setf(ios::fixed, ios::floatfield);
-        out.precision(2);
+        out.precision(5);
         out << endl;
         out << " == General parameters and optimizations == "                                     << endl;
         out << "             Alignment algo: " << args.algorithm                                        << endl;
@@ -542,8 +542,10 @@ int exec_astarix(int argc, char **argv) {
         double total_mem = MemoryMeasurer::get_mem_gb();
         double align_cpu_time = T.align.t.get_sec();
         out << " == Aligning statistics =="                                                     << endl;
-        out << "        Explored rate (avg): " << 1.0*global_stats.explored_states.get() / R.size() / R[0].len << " states/read_bp" << endl;
-		out << "          Unexplored states: " << 100.0 - 100.0*(astar->crumbs() + global_stats.explored_states.get()) / (size_sum(R) * G.orig_nodes) << "%" << endl;
+        out << "        Explored rate (avg): " << 1.0*global_stats.explored_states.get() / size_sum(R) << " states/read_bp" << endl;
+		out << "         States with crumbs: " << 100.0*astar->crumbs() / size_sum(R) / G.orig_nodes << "%" << endl;
+		out << "            Explored states: " << 100.0*global_stats.explored_states.get() / size_sum(R) / G.orig_nodes << "%" << endl;
+		out << "             Skipped states: " << 100.0 - 100.0*(astar->crumbs() + global_stats.explored_states.get()) / size_sum(R) / G.orig_nodes << "%" << endl;
         out << "     Pushed rate (avg, max): " << pushed_rate_sum/R.size() << ", " << pushed_rate_max/R.size() << "    [states/bp] (states normalized by query length)" << endl;
         out << "     Popped rate (avg, max): " << popped_rate_sum/R.size() << ", " << popped_rate_max/R.size() << endl;
         out << "             Average popped: " << 1.0 * popped_trie_total.load() / (R.size()/args.threads)
@@ -552,7 +554,7 @@ int exec_astarix(int argc, char **argv) {
         out << "Total cost of aligned reads: " << global_stats.align_status.cost.get() << ", " << 1.*global_stats.align_status.cost.get()/global_stats.align_status.aligned() << " per read, " 
             << 100.0*global_stats.align_status.cost.get()/size_sum(R) << "% per letter" << endl;
 #ifndef NDEBUG
-        out << "      Repeated states (avg): " << 1.0*global_stats.repeated_visits.get() / R.size() / R[0].len << " states/read_bp" << endl;
+        out << "      Repeated states (avg): " << 1.0*global_stats.repeated_visits.get() / size_sum(R) << " states/read_bp" << endl;
 #endif
         out << "                 Alignments: " 
                                                 << global_stats.align_status.unique.get()    << " unique ("    << 100.*global_stats.align_status.unique.get()/R.size()    << "%), "

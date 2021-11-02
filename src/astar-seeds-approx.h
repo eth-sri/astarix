@@ -67,6 +67,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		node_t v;  // can be in the trie or not
 		//node_t match_v;  // cannot be in the trie
 		seed_t s;  // 0 for the rightmost seed
+		crumb_t() {}
 		crumb_t(const node_t _v, const node_t _match_v, const seed_t _s)
 			: v(_v), /*match_v(_match_v), */s(_s) {}
 		bool operator<(const crumb_t &other) const {
@@ -111,6 +112,17 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		}
     }
 
+	int unique_crumbs() const {
+		size_t l, r;
+		for (l=0, r=0; r<C.size(); l++, r++) {
+			while (r+1<C.size() && !(C[r] < C[r+1]))
+				++r;
+			//C[l] = C[r];
+		}
+		return r;
+		//C.resize(r);
+	}
+
     // Cut r into chunks of length seed_len, starting from the end.
     void before_every_alignment(const read_t *r) {
 		assert(C.empty());
@@ -127,7 +139,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		generate_seeds_match_put_crumbs(seed_starts, r);
 		std::sort(C.begin(), C.end());
 
-		read_cnt.states_with_crumbs.set(C.size());
+		read_cnt.states_with_crumbs.set(unique_crumbs());
         read_cnt.seeds.set(seeds_);
         read_cnt.root_heuristic.set( h(state_t(0.0, 0, 0, -1, -1)) );
         read_cnt.heuristic_potential.set(seeds_);
@@ -238,7 +250,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			int i = pos[v];
 			add_crumb_to_node(p, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
-				if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= G.get_trie_depth() + max_indels_))  // +/-delta optimization; assuming trie_depth <= G.get_trie_depth()  // TODO: +max_indels is not needed; change to max_deletions; 
+				//if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= G.get_trie_depth() + max_indels_))  // +/-delta optimization; assuming trie_depth <= G.get_trie_depth()  // TODO: +max_indels is not needed; change to max_deletions; 
 					if (i > -max_indels_)
 						if (!pos.contains(it->to)) {
 							pos[it->to] = i-1;
@@ -372,7 +384,10 @@ class AStarSeedsWithErrors: public AStarHeuristic {
                     match_seed_put_crumbs(r, p, start, i+1, it->to);
             }
         } else {
-			add_crumbs_backwards(p, v, i, v);   // DEBUG: first go back to the starting of the match
+			if (args.skip_near_crumbs)
+				add_crumbs_backwards(p, v, i, v);   // DEBUG: first go back to the starting of the match
+			else
+				add_crumbs_backwards_bfs(p, v, i, v);
             ++read_cnt.seed_matches;  // debug info
         }
     }
