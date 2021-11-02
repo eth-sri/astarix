@@ -17,16 +17,29 @@ memory_limit = 20000  # MB
 
 def read_benchmarks_aggregation(benchmarks_file):
     df = pd.read_csv(benchmarks_file, sep='\t', index_col=False)
+    df = df.replace(['astarix-seeds-illumina'],'astarix-seeds')
+    df = df.replace(['astarix-prefix-illumina'],'astarix-prefix')
     df['algo'] = pd.Categorical(df['algo'], ["astarix-seeds-illumina", "astarix-seeds", "astarix-prefix-illumina", "astarix-prefix", "dijkstra", "vargas", "pasgal", "graphaligner"])
     #df['c'] = df['algo'].apply(algo2color)
     #df['marker'] = df['m'].apply(readlen2marker)
     df['head_Mbp'] = df['head'] / 10**6
-    if -1 == list(df['m'])[0]:
-        coverage = df['N'] * 5e6 / df['head']
+    tech = df['sequencing_technology'].iloc[0]
+    print(tech)
+    if 'hifi-natural' == tech:
+        head = df['head'].iloc[0] if df['head'].iloc[0] != 100000000 else 5e6 if df['graph'].iloc[0] == 'MHC1' else 1e6 
+        print(head)
+        coverage = df['N'] * 5e6 / head
+        df['bps'] = coverage * head / df['s']
+    elif 'illumina' == tech:
+        df['bps'] = df['N'] * df['m'] / df['s']
+        print(df.bps)
+    elif 'hifi' == tech:
+        coverage = df['N']
         df['bps'] = coverage * df['head'] / df['s']
     else:
-        df['bps'] = df['N'] * df['m'] / df['s']
-    df['Gbps'] = df['bps'] * 1e-9
+        assert(false)
+        
+    df['Kbps'] = df['bps'] * 1e-3
     df['GB'] = df['max_rss'] * 1e-3
     
     df = df.sort_values(by='algo').reset_index(drop=True)

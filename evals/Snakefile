@@ -76,9 +76,9 @@ REFSIZE_HIFI_errors         = [0.003]
 REFSIZE_HIFI_seedlen        = [50]
 
 READLEN_ALGOS           = ["astarix-seeds", "graphaligner", "pasgal", "vargas"]
+READLEN_Ns              = [1, 0.02, 0.02, 0.02]
 READLEN_GRAPHS          = ["MHC1"]  #["ecoli"]
 READLEN_GRAPH_HEADS     = [10000000]  # 0 stands for the .gfa graph version, not the linear .fa
-READLEN_Ns              = [0.03]
 READLEN_SEQ_TECHNOLOGY  = ["hifi"] #"ccs"
 READLEN_ms              = [2000, 7000, 15000, 25000]
 READLEN_errors          = [0.003]
@@ -208,18 +208,20 @@ rule refsize_hifi:
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
 
+readlen_zippedreads = [("reads/"+params1+"/reads.fq").format(algo=algo, N=N) for (algo, N) in zip(READLEN_ALGOS, READLEN_Ns)]
+readlen_zippedfile = [("results/{algo}/"+params1+"/benchmark.txt").format(algo=algo, N=N) for (algo, N) in zip(READLEN_ALGOS, READLEN_Ns)]
+readlen_zippedprefix = [prefix1.format(algo=algo, N=N) for (algo, N) in zip(READLEN_ALGOS, READLEN_Ns)]
 rule readlen:
     input:
-        refs = expand("graphs/"+graph_params+".gfa", graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS),
-        reads = expand("reads/"+params+"/reads.fq", algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen),
-        file = expand("results/{algo}/"+params+"/benchmark.txt", algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen),
+        refs = expand("graphs/"+graph_params+".fa", graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS),
+        reads = expand(readlen_zippedreads, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen),
+        file = expand(readlen_zippedfile, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen),
     output:
         "results/READLEN"
     params:
-        prefix = expand(prefix, algo=READLEN_ALGOS, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen)
+        prefix = expand(readlen_zippedprefix, graph=READLEN_GRAPHS, head=READLEN_GRAPH_HEADS, N=READLEN_Ns, m=READLEN_ms, seq_technology=READLEN_SEQ_TECHNOLOGY, errors=READLEN_errors, seedlen=READLEN_seedlen)
     shell:
         "paste <(echo \"{params.prefix}\" | tr ' ' '\n') <(tail -n 1 --silent {input.file}) | sed '1s/^/{FIRST_ROW}\\n/' > {output}"
-#        "jupyter nbconvert --to notebook --inplace --execute ref_size_scaling.ipynb >{output}"
 
 ablation_zippedreads = [("reads/"+params1+"/reads.fq").format(algo=algo, N=N) for (algo, N) in zip(ABLATION_ALGOS, ABLATION_Ns)]
 ablation_zippedfile = [("results/{algo}/"+params1+"/benchmark.txt").format(algo=algo, N=N) for (algo, N) in zip(ABLATION_ALGOS, ABLATION_Ns)]
