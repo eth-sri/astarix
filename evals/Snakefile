@@ -48,14 +48,14 @@ TABLE_ILLUMINA_ms             = [200]
 TABLE_ILLUMINA_errors         = [-1]
 TABLE_ILLUMINA_seedlen        = [25]
 
-TABLE_HIFI_ALGOS          = ["astarix-seeds", "graphaligner", "vargas", "pasgal", "astarix-prefix"] #"dijkstra", 
+TABLE_HIFI_ALGOS          = ["astarix-seeds", "graphaligner", "vargas", "pasgal"] #, "astarix-prefix"] #"dijkstra", 
 TABLE_HIFI_Ns             = [4, 0.1, 0.1, 0.1, 0.1] #, 0.1]  # coverage of reads
 TABLE_HIFI_GRAPHS         = ["MHC1", "ecoli"]
 TABLE_HIFI_GRAPH_HEADS    = [100000000]
 TABLE_HIFI_SEQ_TECHNOLOGY = ["hifi-natural"]
 TABLE_HIFI_ms             = [0]
 TABLE_HIFI_errors         = [0.003]
-TABLE_HIFI_seedlen        = [50]
+TABLE_HIFI_seedlen        = [150]
 
 REFSIZE_ILLUMINA_ALGOS          = ["astarix-seeds-illumina", "vargas", "graphaligner", "pasgal", "astarix-prefix-illumina"] #, "dijkstra"]
 REFSIZE_ILLUMINA_Ns             = [10000, 10000, 1000, 1000, 1000] #, 1000]  # number of reads
@@ -74,7 +74,7 @@ REFSIZE_HIFI_GRAPH_HEADS    = [150000, 500000, 1500000, 5000000]
 REFSIZE_HIFI_SEQ_TECHNOLOGY = ["hifi-natural"]
 REFSIZE_HIFI_ms             = ["-1"]
 REFSIZE_HIFI_errors         = [0.003]
-REFSIZE_HIFI_seedlen        = [50]
+REFSIZE_HIFI_seedlen        = [150]
 
 READLEN_ALGOS           = ["astarix-seeds", "graphaligner", "pasgal", "vargas"]
 READLEN_Ns              = [1, 0.02, 0.02, 0.02]

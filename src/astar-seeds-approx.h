@@ -116,16 +116,16 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     }
 
 	// TODO: remove
-	int unique_crumbs() const {
-		size_t l, r;
-		for (l=0, r=0; r<C.size(); l++, r++) {
-			while (r+1<C.size() && !(C[r] < C[r+1]))
-				++r;
-			//C[l] = C[r];
-		}
-		return r;
-		//C.resize(r);
-	}
+	//int unique_crumbs() const {
+	//	size_t l, r;
+	//	for (l=0, r=0; r<C.size(); l++, r++) {
+	//		while (r+1<C.size() && !(C[r] < C[r+1]))
+	//			++r;
+	//		//C[l] = C[r];
+	//	}
+	//	return r;
+	//	//C.resize(r);
+	//}
 
     // Cut r into chunks of length seed_len, starting from the end.
     void before_every_alignment(const read_t *r) {
@@ -137,13 +137,14 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 
 		std::vector<pos_t> seed_starts = generate_seeds(r, args.seeds_retain_frac);
 		seeds_ = seed_starts.size();    //seeds_ = r->len / args.seed_len;  // TODO: not all seeds
-		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller; TODO: ceiling
+		max_indels_ = std::ceil((r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del);
 		LOG_DEBUG << "max_indels: " << max_indels_;
 
 		match_all_seeds(seed_starts, r);
 		std::sort(C.begin(), C.end());
 
-		read_cnt.states_with_crumbs.set(unique_crumbs());
+		read_cnt.states_with_crumbs.set(C.size());
+		//read_cnt.states_with_crumbs.set(unique_crumbs());
         read_cnt.seeds.set(seeds_);
         read_cnt.root_heuristic.set( h(state_t(0.0, 0, 0, -1, -1)) );
         read_cnt.heuristic_potential.set(seeds_);
@@ -228,7 +229,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 																		assert(max_pos.contains(u));
 																		assert(!min_pos.contains(u));
 						min_pos[u] = min_pos[v] - 1;
-						if (max_pos[u] >= -max_indels_) {
+						// max_pos[u] = match_start_pos - mindist(u,v) =>
+						// dist(u,v) < i+n_del <=> max_pos[u] > -n_del
+						if (max_pos[u] > -max_indels_) {
 							Q.push(u);
 						}
 					}
