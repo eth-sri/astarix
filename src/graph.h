@@ -23,7 +23,7 @@ class state_t {
     node_t v, prev_v;    // vertex in the graph
 
     state_t() : cost(INF), i(-1), prev_i(-1), v(-1), prev_v(-1) {}
-    state_t(cost_t _cost, int _i, int _v, int _prev_i, int _prev_v) 
+    state_t(cost_t _cost, int _i, node_t _v, int _prev_i, node_t _prev_v) 
         : cost(_cost), i(_i), prev_i(_prev_i), v(_v), prev_v(_prev_v) {}
 
     bool undef() {
@@ -54,6 +54,13 @@ typedef std::vector<state_t> path_t;
 typedef std::vector<edge_t> edge_path_t;
 
 struct graph_t {
+ // node index
+ // [0]                      				-- trie root
+ // [1..reverse_first_node)  				-- streight graph
+ // [reverse_first_node]                    -- mirrored trie root
+ // [reverse_first_node+1; trie_first_node) -- reverse graph
+ // >= trie_first_node; 					-- trie (except root)
+
   //private:
     //mutable cost_t _min_edge_cost;
     //mutable cost_t _min_edit_cost;
@@ -70,8 +77,9 @@ struct graph_t {
     int orig_nodes, orig_edges;
 
     const char *EdgeTypeStr[5];
-	int reverse_first_node;
-    int trie_first_node, trie_depth, trie_nodes, trie_edges;
+	node_t reverse_first_node;
+    node_t trie_first_node;
+	int trie_depth, trie_nodes, trie_edges;
     bool fixed_trie_depth;
 
     graph_t(bool _with_reverse_edges=0)
@@ -90,17 +98,26 @@ struct graph_t {
         EdgeTypeStr[JUMP] = "jump";
     }
 
-    bool node_in_trie(int v) const {
+	node_t trie_root() const {
+		return 0;
+	}
+
+    bool node_in_trie(node_t v) const {
         return v >= trie_first_node || v == 0;
     }
 
-    bool node_in_reverse(int v) const {
+    bool node_in_reverse(node_t v) const {
         return v >= reverse_first_node && v < trie_first_node;
     }
 
-	int reverse2streight(int v) const {
+	node_t reverse2streight(node_t v) const {
 		assert(node_in_reverse(v));
 		return v - reverse_first_node;
+	}
+
+	node_t node2revcompl(node_t v) const {
+		assert(v >= 1 && v<trie_first_node);
+		return v < reverse_first_node ? v + reverse_first_node : v - reverse_first_node;
 	}
 
     int get_trie_depth() const {
@@ -145,22 +162,22 @@ struct graph_t {
     }
 
     // TODO: remove
-    bool has_node(int u) const {
+    bool has_node(node_t u) const {
         return V[u] != -1;
     }
 
-    int add_node() {
+    node_t add_node() {
         V.push_back(-1);
         V_rev.push_back(-1);
         return V.size()-1;
     }
 
-    //void add_edge(int from, edge_t e) {
+    //void add_edge(node_t from, edge_t e) {
     //    E.push_back(e);
     //    V[from] = (int)E.size()-1;
     //}
 
-    void add_edge(int a, int b, char label, EdgeType type, int node_id=-1, int offset=-1) {
+    void add_edge(node_t a, node_t b, char label, EdgeType type, int node_id=-1, int offset=-1) {
         LOG_FATAL_IF(!(a >= 0 && a < nodes())) << "edge with a=" << a << ", b=" << b << ", nodes=" << nodes();
         assert(a >= 0 && a < nodes());
         assert(b >= 0 && b < nodes());
@@ -177,16 +194,16 @@ struct graph_t {
         V_rev[b] = (int)E_rev.size()-1;
     }
 
-    void add_seq(int from, const std::string &seq, int to) {
-        int prev=from;
+    void add_seq(node_t from, const std::string &seq, node_t to) {
+        node_t prev=from;
 
         assert(seq.length() > 0);
-        int curr = add_node();
+        node_t curr = add_node();
         add_edge(prev, curr, seq[0], ORIG);
         prev = curr;
 
         for (std::string::size_type i=1; i<seq.size(); i++) {
-            int curr = i<seq.size()-1 ? add_node() : to;
+            node_t curr = i<seq.size()-1 ? add_node() : to;
             if (is_nucl(seq[i])) {
                 add_edge(prev, curr, seq[i], ORIG);
             } else {
@@ -209,8 +226,8 @@ struct graph_t {
 
         // prepare the new nodes and edges
         int half_nodes = V.size();
-        std::vector< std::pair<std::pair<int,int>, label_t> > new_edges;
-        for (int from=0; from<(int)nodes(); from++) {
+        std::vector< std::pair<std::pair<node_t, node_t>, label_t> > new_edges;
+        for (node_t from=0; from<(int)nodes(); from++) {
             for (int idx=V[from]; idx!=-1; idx=E[idx].next) {
                 edge_t e = E[idx];
                 new_edges.push_back(std::make_pair(std::make_pair(half_nodes + e.to, half_nodes + from), compl_nucl(e.label)));
@@ -242,7 +259,7 @@ struct graph_t {
         }
     }
 
-    bool hasOutgoingEdges(int u) const {
+    bool hasOutgoingEdges(node_t u) const {
         for (int idx=V[u]; idx!=-1; idx=E[idx].next) {
             if (E[idx].to != u)
                 return true;
@@ -250,14 +267,14 @@ struct graph_t {
         return false;
     }
 
-    bool hasIncomingEdges(int u) const {
+    bool hasIncomingEdges(node_t u) const {
         for (int idx=V_rev[u]; idx!=-1; idx=E_rev[idx].next)
             if (E_rev[idx].type == ORIG)
 				return true;
         return false;
     }
 
-    edge_t getOrigEdge(int u, int v) const {
+    edge_t getOrigEdge(node_t u, node_t v) const {
         edge_t res;
         for (auto it=begin_orig_edges(u); it!=end_orig_edges(); ++it)
             if (it->to == v)
@@ -265,7 +282,7 @@ struct graph_t {
         return res;
     }
 
-    int numInOrigEdges(int u, edge_t *e) const {
+    int numInOrigEdges(node_t u, edge_t *e) const {
         int cnt=0;
         for (int idx=V_rev[u]; idx!=-1; idx=E_rev[idx].next)
             if (E_rev[idx].type == ORIG) {
@@ -275,7 +292,7 @@ struct graph_t {
         return cnt;
     }
 
-    int numOutOrigEdges(int u, edge_t *e) const {
+    int numOutOrigEdges(node_t u, edge_t *e) const {
         int cnt=0;
         for (int idx=V[u]; idx!=-1; idx=E[idx].next)
             if (E[idx].type == ORIG) {
@@ -287,7 +304,7 @@ struct graph_t {
 
     //// ORIG EDGES ITERATOR (excl. edit edges)
     class orig_edge_iterator;
-    orig_edge_iterator begin_orig_edges(int v) const { return orig_edge_iterator(this, v); }
+    orig_edge_iterator begin_orig_edges(node_t v) const { return orig_edge_iterator(this, v); }
     orig_edge_iterator end_orig_edges() const { return orig_edge_iterator(this, -1); }
 
     // Iterator of the original outgoing edges in the graph (excluding edit-edges).
@@ -302,7 +319,7 @@ struct graph_t {
         using pointer = edge_t*;
         using difference_type = void;
 
-        orig_edge_iterator(const graph_t *G, int _v)
+        orig_edge_iterator(const graph_t *G, node_t _v)
             : g(G), curr_edge_idx(_v != -1 ? G->V[_v] : -1) {
         }
 
@@ -331,7 +348,7 @@ struct graph_t {
     
     // Iterator over reverse edges.
     class orig_rev_edge_iterator;
-    orig_rev_edge_iterator begin_orig_rev_edges(int v) const { return orig_rev_edge_iterator(this, v); }
+    orig_rev_edge_iterator begin_orig_rev_edges(node_t v) const { return orig_rev_edge_iterator(this, v); }
     orig_rev_edge_iterator end_orig_rev_edges() const { return orig_rev_edge_iterator(this, -1); }
 
     // Iterator of the original outgoing edges in the graph (excluding edit-edges).
@@ -346,7 +363,7 @@ struct graph_t {
         using pointer = edge_t*;
         using difference_type = void;
 
-        orig_rev_edge_iterator(const graph_t *G, int _v)
+        orig_rev_edge_iterator(const graph_t *G, node_t _v)
             : g(G), curr_edge_idx(_v != -1 ? G->V_rev[_v] : -1) {
         }
 
@@ -375,10 +392,10 @@ struct graph_t {
 
     class all_matching_edge_iterator;
 
-    all_matching_edge_iterator begin_all_edges(int v) const { return all_matching_edge_iterator(this, v, '!'); }
+    all_matching_edge_iterator begin_all_edges(node_t v) const { return all_matching_edge_iterator(this, v, '!'); }
     all_matching_edge_iterator end_all_edges() const { return all_matching_edge_iterator(this, -1, '!'); }
 
-    all_matching_edge_iterator begin_all_matching_edges(int v, label_t l) const { return all_matching_edge_iterator(this, v, l); }
+    all_matching_edge_iterator begin_all_matching_edges(node_t v, label_t l) const { return all_matching_edge_iterator(this, v, l); }
     all_matching_edge_iterator end_all_matching_edges() const { return all_matching_edge_iterator(this, -1, '!'); }
 
     // Iterator of all outgoing edges in the graph (incl. edit-edges).
@@ -393,7 +410,7 @@ struct graph_t {
         using pointer = edge_t*;
         using difference_type = void;
 
-        all_matching_edge_iterator(const graph_t *G, int v, label_t l) {
+        all_matching_edge_iterator(const graph_t *G, node_t v, label_t l) {
             if (l != '!') {
                 edit_edges.reserve(10);
                 for (int idx=G->V[v]; idx!=-1; idx=G->E[idx].next) {

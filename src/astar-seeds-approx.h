@@ -65,16 +65,15 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 	
 	struct crumb_t {
 		node_t v;  // can be in the trie or not
-		//node_t match_v;  // cannot be in the trie
 		seed_t s;  // 0 for the rightmost seed
+
 		crumb_t() {}
-		crumb_t(const node_t _v, const node_t _match_v, const seed_t _s)
-			: v(_v), /*match_v(_match_v), */s(_s) {}
+		crumb_t(const node_t _v, const seed_t _s)
+			: v(_v), s(_s) {}
+
 		bool operator<(const crumb_t &other) const {
 			if (v != other.v)
 				return v < other.v;
-			//if (match_v != other.match_v)
-			//	return match_v < other.match_v;
 			return s < other.s;
 		}
 	};
@@ -91,27 +90,32 @@ class AStarSeedsWithErrors: public AStarHeuristic {
     //std::unordered_map< node_t, std::vector<std::pair<node_t, seed_t> > > C;                        // node -> { match_position -> seed } }
 	std::vector<crumb_t> C;   // all crumbs sorted by node, then by matching node, then by seed
 
-	//static constexpr double learning_rate_ = 0.1;
-
 	// Stats
     Stats read_cnt, global_cnt;
+
+  private:
+	// Skip v (which is in the reference) and add crumbs only to the trie
+    void update_crumbs_up_the_trie(const seed_t s, const node_t match_v, node_t v) {
+		if (v != 0)
+			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
+				if (G.node_in_trie(it->to)) {
+					add_crumb_to_node(s, match_v, it->to);
+					update_crumbs_up_the_trie(s, match_v, it->to);
+				}
+    }
+
+    inline void add_crumb_to_node(const seed_t s, const node_t match_v, const node_t curr_v) {
+		C.push_back(crumb_t(curr_v,s));  // turned off match position optimization
+    }
 
   public:
     AStarSeedsWithErrors(const graph_t &_G, const EditCosts &_costs, const Args &_args)
         : G(_G), costs(_costs), args(_args) {
-		if (args.seed_len == -1) {
-			// seeds = m / seedlen
-			// errors = m * errorrate
-			// maxerrors = 2 * errors = 2*m*errorrate
-			// seeds > 2*maxerrors = 4*m*errorrate
-			//   m/seedlen > 4*m*errorrate
-			//   1/seedlen > 4*errorrate
-			//   seedlen < 1 / (4*errorrate)
-			//args->astar_seeds.seed_len = 1 / errorrate;
+		if (args.seed_len == -1)
 			throw "seed len not set.";
-		}
     }
 
+	// TODO: remove
 	int unique_crumbs() const {
 		size_t l, r;
 		for (l=0, r=0; r<C.size(); l++, r++) {
@@ -136,7 +140,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		max_indels_ = (r->len * costs.match + seeds_ * costs.get_delta_min_special()) / costs.del;  // fuller; TODO: ceiling
 		LOG_DEBUG << "max_indels: " << max_indels_;
 
-		generate_seeds_match_put_crumbs(seed_starts, r);
+		match_all_seeds(seed_starts, r);
 		std::sort(C.begin(), C.end());
 
 		read_cnt.states_with_crumbs.set(unique_crumbs());
@@ -148,146 +152,46 @@ class AStarSeedsWithErrors: public AStarHeuristic {
         global_cnt += read_cnt;
     }
 
-	cost_t h(const state_t &st) const {
-		int seeds_to_end = std::min((r_->len - st.i - 1) / args.seed_len, seeds_);  // TODO: not all seeds
-		int missing = seeds_to_end;  // the maximum number of errors
-
-		const auto from = std::lower_bound(C.begin(), C.end(), crumb_t(st.v, 0, 0));
-		const auto to = std::lower_bound(C.begin(), C.end(), crumb_t(st.v+1, 0, 0));
-
-		std::vector<int> cnt(seeds_to_end);
-		int m = missing;  // m is the current number of different seeds inside of [it1, it2]
-
-		for (auto it1=from, it2=from; it1 != to && it2 != to; ++it1) {  // left iterator
-			for (; it2 != to; ++it2) // TODO: uncomment for match_v: && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)  // right itarator
-			//for (; it2 != to && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)  // right itarator
-				if (it2->s < seeds_to_end)
-					if (cnt[it2->s]++ == 0)
-						missing = std::min(missing, --m);
-			if (it1->s < seeds_to_end)
-				if (--cnt[it1->s] == 0)
-					++m;
+    // Split r into seeds of length seed_len. Return a vector of starting points of the seeds from last to first;
+	std::vector<pos_t> generate_seeds(const read_t *r, double seeds_retain_frac) {
+		int max_seeds = (r->len + args.seed_len - 1) / args.seed_len;  // ceil of r->len/seed_len
+		std::vector<pos_t> seed_starts;
+        for (int i=r->len-args.seed_len; i>=0; i-=args.seed_len) {
+			seed_starts.push_back(i);
+			if ((int)seed_starts.size() == int(seeds_retain_frac * max_seeds))
+				break;
 		}
-
-		//for (auto it1 = from; it1 != to; ++it1) {
-		//	std::unordered_set<seed_t> S;
-		//	for (auto it2 = it1; it2 != to; ++it2) {
-		//		assert(it2->match_v >= it1->match_v);
-		//		if (it2->match_v - it1->match_v > max_indels_ + r_->len)
-		//			break;
-		//		if (it2->s < seeds_to_end)
-		//			S.insert(it2->s);
-		//	}
-		//	missing = std::min(missing, seeds_to_end - (int)S.size());
-		//}
-
-		//const auto crumbs_it = C.find(st.v);
-		//if (crumbs_it != C.end()) {
-		//	auto crumbs = std::map(crumbs_it->second.begin(), crumbs_it->second.end());  // convert vector<pair> to map
-		//	for (auto it1 = crumbs.begin(); it1 != crumbs.end(); ++it1) {  // *it1 == [match_v, seed]: 
-		//		std::unordered_set<seed_t> S;
-		//		for (auto it2 = it1; it2 != crumbs.end(); ++it2) {
-		//			assert(it2->first >= it1->first);
-		//			if (it2->first - it1->first > max_indels_ + r_->len) // + BINNING)
-		//				break;
-		//			if (it2->second < seeds_to_end)
-		//				S.insert(it2->second);
-		//		}
-		//		missing = std::min(missing, seeds_to_end - (int)S.size());
-		//	}
-		//}
-   
-		return (r_->len - st.i)*costs.match + missing*costs.get_delta_min_special(); // fuller
+		return seed_starts;
 	}
-
-	inline int sign(double x) { return x < 0.0 ? -1 : +1; }
-
-    void after_every_alignment(const AlignerTimers &t) {
-        C.clear();  // clean up all crumbs for the next alignment
-
-		// modify the retain_frac to keep the precomputation+A*query to take 50% of the time
-		//double astar_frac_time = (t.astar_prepare_reads.get_sec() + t.astar.get_sec()) / t.total.get_sec();
-		//double astar_frac_time = t.astar_prepare_reads.get_sec() / t.total.get_sec();
-		//retain_frac_ += 0.3*retain_frac_*sign(0.5-astar_frac_time);    // update the number of seeds
-		//if (retain_frac_ > 1.0) retain_frac_ = 1.0;
-		//else if (retain_frac_ < 0.0) retain_frac_ = 0.0;
-
-		//LOG_DEBUG << "astar_frac_time: " << astar_frac_time << ", retain_frac_: " << retain_frac_;
-    }
-
-  private:
-    inline void add_crumb_to_node(const seed_t p, const node_t match_v, const node_t curr_v) {
-		if (args.match_pos_optimization)
-			C.push_back(crumb_t(curr_v,match_v,p));
-		else
-			C.push_back(crumb_t(curr_v,0,p));  // turned off match position optimization
-
-		//auto crumbs_it = C.find(curr_v);
-		//node_t end_v = match_v;  // + p*args.seed_len;
-		//if (crumbs_it == C.end()) {
-		//	++read_cnt.states_with_crumbs;
-		//	C[curr_v] = std::vector< std::pair<node_t, seed_t> >{ {end_v, p} };
-		//}
-		//else {
-		//	auto &seeds = crumbs_it->second;
-		//	//if (seeds.contains(end_v)) {
-		//	//	++read_cnt.repeated_states;    
-		//	//} else {
-		//		seeds.push_back(std::make_pair(end_v, p));
-		//		++read_cnt.states_with_crumbs;
-		//	//}
-		//}
-		////assert(C.contains(curr_v) && C[curr_v].contains(end_v));
-    }
-
-	// NOT USED. BFS solution
-    void add_crumbs_backwards_bfs(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
-		std::queue<node_t> Q({curr_v});
-		std::unordered_map<node_t, int> pos = { {curr_v, i} };  // from curr_v
-
-		while (!Q.empty()) {
-			node_t v = Q.front(); Q.pop();
-			int i = pos[v];
-			add_crumb_to_node(p, match_v, v);
-			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
-				//if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= G.get_trie_depth() + max_indels_))  // +/-delta optimization; assuming trie_depth <= G.get_trie_depth()  // TODO: +max_indels is not needed; change to max_deletions; 
-					if (i > -max_indels_)
-						if (!pos.contains(it->to)) {
-							pos[it->to] = i-1;
-							Q.push(it->to);
-						}
-			}
+	
+    // For each exact occurence of a seed (i,v) in the graph,
+    //   add 1 to C[u] for all nodes u on the path of match-length exactly `i` from supersource `0` to `v`
+    void match_all_seeds(const std::vector<pos_t> &seed_starts, const read_t *r) {
+		for (int s=0; s<(int)seed_starts.size(); s++) {
+			pos_t start_pos = seed_starts[s];
+            //match_seed(r, s, start_pos, start_pos, G.trie_root());  // seed from [st, st+seed_len)
+            match_reverse_complement_seed(r, s, start_pos, start_pos+args.seed_len-1, G.trie_root());  // seed from [st, st+seed_len)
 		}
-	}
-
-	// NOT USED
-	void add_crumbs_backwards_anothersolution() {
-		// solution 1
-		//int curr_arr=0;
-		//std::unordered_set<node_t> S[2];
-		//S[curr_arr].insert(curr_v);
-		//for (; i > -max_indels_; --i, curr_arr^=1) {
-		//	S[curr_arr^1].clear();
-		//	for (const node_t v: S[curr_arr])
-		//		for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
-		//			S[curr_arr^1].insert(it->to);
-		//}
-		//for (const node_t v: S[curr_arr])
-		//	add_crumb_to_node(p, match_v, v);
-	}
-
-	// Skip v (which is in the reference) and add crumbs only to the trie
-    void update_crumbs_up_the_trie(const seed_t p, const node_t match_v, node_t v) {
-		if (v != 0)
-			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
-				if (G.node_in_trie(it->to)) {
-					add_crumb_to_node(p, match_v, it->to);
-					update_crumbs_up_the_trie(p, match_v, it->to);
-				}
+    }
+	
+    // Assumes that seed_len >= D so the match is outside of the trie.
+    void match_reverse_complement_seed(const read_t *r, const seed_t s, const int start, const int i, const node_t v) {
+        if (i >= start) {
+            // Match exactly down the trie and then through the original graph.
+			label_t c = compl_nucl(r->s[i]);
+            for (auto it=G.begin_all_matching_edges(v, c); it!=G.end_all_edges(); ++it)
+                if (it->type == ORIG || it->type == JUMP)  // ORIG in the graph, JUMP in the trie
+                    match_reverse_complement_seed(r, s, start, i-1, it->to);
+        } else {
+			// All the seed is aligned now.
+			node_t u = G.node2revcompl(v);
+			put_crumbs_backwards(s, u, i);
+            ++read_cnt.seed_matches;
+        }
     }
 
 	// TopSort from match_v on backwards edges with max distance i+max_indels_
-    void add_crumbs_backwards(const seed_t p, const node_t match_v, int i, const node_t curr_v_IGNORED) {
+    void put_crumbs_backwards(const seed_t s, const node_t match_v, int i) {
 		std::unordered_map<node_t, int> min_pos;                        // _minimal_ read index where an _expanded_ node can be aligned without indels so that r[i] aligns at match_v
 		std::unordered_map<node_t, int> max_pos;                        // _maximal_ read index where an _explored_ node --||--
 		std::unordered_map<node_t, int> outgoing;                       // Number of explored outgoing edges of a node
@@ -303,9 +207,9 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 			node_t v = Q.front(); Q.pop();
 																		assert(min_pos.contains(v));
 																		assert(max_pos.contains(v));
-			add_crumb_to_node(p, match_v, v);
+			add_crumb_to_node(s, match_v, v);
 			if (!args.skip_near_crumbs || min_pos[v] <= G.get_trie_depth() + max_indels_)   		// Trie crumbs only around the beginning.
-				update_crumbs_up_the_trie(p, match_v, v);
+				update_crumbs_up_the_trie(s, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
 				if (!G.node_in_trie(u)) {
@@ -348,7 +252,7 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		// BFS on both reference graph and trie: add a crumb to all nodes before position -max_indels_.
 		while (!Q.empty()) {
 			node_t v = Q.front(); Q.pop();
-			add_crumb_to_node(p, match_v, v);
+			add_crumb_to_node(s, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
 				if (!max_pos.contains(u))
@@ -360,61 +264,35 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 		}
 	}
 
-	// For linear case only
-    // `C[u]++` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
-    // Fully ignores labels.
-    // Returns if the the supersource was reached at least once.
-	// TODO: match back the seed letters (make sure it is not exponential: maybe reimplement with sets as in the paper)
-    void add_crumbs_backwards_linear(const seed_t p, const node_t match_v, int i, const node_t curr_v) {
-		// solution 0: fastest
-		add_crumb_to_node(p, match_v, curr_v);
-		if (i > -max_indels_)
-			for (auto it=G.begin_orig_rev_edges(curr_v); it!=G.end_orig_rev_edges(); ++it)
-				if (!args.skip_near_crumbs || !G.node_in_trie(it->to) || i-1 <= G.get_trie_depth())  // +/-delta optimization
-					add_crumbs_backwards(p, match_v, i-1, it->to);
-    }
+	// Seed heuristic query called during A* alignment.
+	cost_t h(const state_t &st) const {
+		int seeds_to_end = std::min((r_->len - st.i - 1) / args.seed_len, seeds_);  // TODO: not all seeds
+		int missing = seeds_to_end;  // the maximum number of errors
 
-    // Assumes that seed_len <= D so there are no duplicating outgoing labels.
-	// Aligns a seed to the trie and stops when it goes to the reference
-    void match_seed_put_crumbs(const read_t *r, const seed_t p, const int start, const int i, const node_t v) {
-        if (i < start + args.seed_len) {
-            // Match exactly down the trie and then through the original graph.
-            for (auto it=G.begin_all_matching_edges(v, r->s[i]); it!=G.end_all_edges(); ++it) {
-                if (it->type == ORIG || it->type == JUMP)  // ORIG in the graph, JUMP in the trie
-                    match_seed_put_crumbs(r, p, start, i+1, it->to);
-            }
-        } else {
-			if (args.skip_near_crumbs)
-				add_crumbs_backwards(p, v, i, v);   // DEBUG: first go back to the starting of the match
-			else
-				add_crumbs_backwards_bfs(p, v, i, v);
-            ++read_cnt.seed_matches;  // debug info
-        }
-    }
+		const auto from = std::lower_bound(C.begin(), C.end(), crumb_t(st.v, 0));
+		const auto to = std::lower_bound(C.begin(), C.end(), crumb_t(st.v+1, 0));
 
-    // Split r into seeds of length seed_len. Return a vector of starting points of the seeds from last to first;
-	std::vector<pos_t> generate_seeds(const read_t *r, double seeds_retain_frac) {
-		int max_seeds = (r->len + args.seed_len - 1) / args.seed_len;  // ceil of r->len/seed_len
-		std::vector<pos_t> seed_starts;
-        for (int i=r->len-args.seed_len; i>=0; i-=args.seed_len) {
-			seed_starts.push_back(i);
-			if ((int)seed_starts.size() == int(seeds_retain_frac * max_seeds))
-				break;
+		std::vector<int> cnt(seeds_to_end);
+		int m = missing;  // m is the current number of different seeds inside of [it1, it2]
+
+		for (auto it1=from, it2=from; it1 != to && it2 != to; ++it1) {  // left iterator
+			for (; it2 != to; ++it2) // TODO: uncomment for match_v: && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)  // right itarator
+			//for (; it2 != to && it2->match_v - it1->match_v <= max_indels_ + r_->len; ++it2)  // right itarator
+				if (it2->s < seeds_to_end)
+					if (cnt[it2->s]++ == 0)
+						missing = std::min(missing, --m);
+			if (it1->s < seeds_to_end)
+				if (--cnt[it1->s] == 0)
+					++m;
 		}
-		return seed_starts;
+   
+		return (r_->len - st.i)*costs.match + missing*costs.get_delta_min_special(); // fuller
 	}
 
-	
-    // For each exact occurence of a seed (i,v) in the graph,
-    //   add 1 to C[u] for all nodes u on the path of match-length exactly `i` from supersource `0` to `v`
-    void generate_seeds_match_put_crumbs(const std::vector<pos_t> &seed_starts, const read_t *r) {
-		for (int i=0; i<(int)seed_starts.size(); i++) {
-			pos_t st = seed_starts[i];
-            match_seed_put_crumbs(r, i, st, st, 0);  // seed from [st, st+seed_len)
-		}
+    void after_every_alignment(const AlignerTimers &t) {
+        C.clear();  // clean up all crumbs for the next alignment
     }
 
-  public:
     void print_params(std::ostream &out) const {
         out << "          seed length: " << args.seed_len << " bp"         << std::endl;
         out << "     skip near crumbs: " << args.skip_near_crumbs          << std::endl;
@@ -446,6 +324,141 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 	int crumbs() const {
 		return global_cnt.states_with_crumbs.get();
 	}
+
+    //inline void add_crumb_to_node(const seed_t s, const node_t match_v, const node_t curr_v) {
+		//auto crumbs_it = C.find(curr_v);
+		//node_t end_v = match_v;  // + s*args.seed_len;
+		//if (crumbs_it == C.end()) {
+		//	++read_cnt.states_with_crumbs;
+		//	C[curr_v] = std::vector< std::pair<node_t, seed_t> >{ {end_v, s} };
+		//}
+		//else {
+		//	auto &seeds = crumbs_it->second;
+		//	//if (seeds.contains(end_v)) {
+		//	//	++read_cnt.repeated_states;    
+		//	//} else {
+		//		seeds.push_back(std::make_pair(end_v, s));
+		//		++read_cnt.states_with_crumbs;
+		//	//}
+		//}
+		////assert(C.contains(curr_v) && C[curr_v].contains(end_v));
+	//}
+
+	
+	//cost_t h(const state_t &st) const {
+		//for (auto it1 = from; it1 != to; ++it1) {
+		//	std::unordered_set<seed_t> S;
+		//	for (auto it2 = it1; it2 != to; ++it2) {
+		//		assert(it2->match_v >= it1->match_v);
+		//		if (it2->match_v - it1->match_v > max_indels_ + r_->len)
+		//			break;
+		//		if (it2->s < seeds_to_end)
+		//			S.insert(it2->s);
+		//	}
+		//	missing = std::min(missing, seeds_to_end - (int)S.size());
+		//}
+
+		//const auto crumbs_it = C.find(st.v);
+		//if (crumbs_it != C.end()) {
+		//	auto crumbs = std::map(crumbs_it->second.begin(), crumbs_it->second.end());  // convert vector<pair> to map
+		//	for (auto it1 = crumbs.begin(); it1 != crumbs.end(); ++it1) {  // *it1 == [match_v, seed]: 
+		//		std::unordered_set<seed_t> S;
+		//		for (auto it2 = it1; it2 != crumbs.end(); ++it2) {
+		//			assert(it2->first >= it1->first);
+		//			if (it2->first - it1->first > max_indels_ + r_->len) // + BINNING)
+		//				break;
+		//			if (it2->second < seeds_to_end)
+		//				S.insert(it2->second);
+		//		}
+		//		missing = std::min(missing, seeds_to_end - (int)S.size());
+		//	}
+		//}
+	//}	
+	//
+	//inline int sign(double x) { return x < 0.0 ? -1 : +1; }
+
+	// NOT USED. BFS solution
+    //void add_crumbs_backwards_bfs(const seed_t s, const node_t match_v, int i, const node_t curr_v) {
+	//	std::queue<node_t> Q({curr_v});
+	//	std::unordered_map<node_t, int> pos = { {curr_v, i} };  // from curr_v
+
+	//	while (!Q.empty()) {
+	//		node_t v = Q.front(); Q.pop();
+	//		int i = pos[v];
+	//		add_crumb_to_node(s, match_v, v);
+	//		for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
+	//			//if (!args.skip_near_crumbs || (!G.node_in_trie(it->to) || i-1 <= G.get_trie_depth() + max_indels_))  // +/-delta optimization; assuming trie_depth <= G.get_trie_depth()  // TODO: +max_indels is not needed; change to max_deletions; 
+	//				if (i > -max_indels_)
+	//					if (!pos.contains(it->to)) {
+	//						pos[it->to] = i-1;
+	//						Q.push(it->to);
+	//					}
+	//		}
+	//	}
+	//}
+
+	// NOT USED
+	//void add_crumbs_backwards_anothersolution() {
+		// solution 1
+		//int curr_arr=0;
+		//std::unordered_set<node_t> S[2];
+		//S[curr_arr].insert(curr_v);
+		//for (; i > -max_indels_; --i, curr_arr^=1) {
+		//	S[curr_arr^1].clear();
+		//	for (const node_t v: S[curr_arr])
+		//		for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it)
+		//			S[curr_arr^1].insert(it->to);
+		//}
+		//for (const node_t v: S[curr_arr])
+		//	add_crumb_to_node(s, match_v, v);
+	//}
+
+	// For linear case only
+    // `C[u]++` for all nodes (incl. `v`) that lead from `0` to `v` with a path of length `i`
+    // Fully ignores labels.
+    // Returns if the the supersource was reached at least once.
+	// TODO: match back the seed letters (make sure it is not exponential: maybe reimplement with sets as in the paper)
+    //void add_crumbs_backwards_linear(const seed_t s, const node_t match_v, int i, const node_t curr_v) {
+	//	// solution 0: fastest
+	//	add_crumb_to_node(s, match_v, curr_v);
+	//	if (i > -max_indels_)
+	//		for (auto it=G.begin_orig_rev_edges(curr_v); it!=G.end_orig_rev_edges(); ++it)
+	//			if (!args.skip_near_crumbs || !G.node_in_trie(it->to) || i-1 <= G.get_trie_depth())  // +/-delta optimization
+	//				put_crumbs_backwards(s, match_v, i-1, it->to);
+    //}
+
+    //void after_every_alignment(const AlignerTimers &t) {
+        //C.clear();  // clean up all crumbs for the next alignment
+
+		// modify the retain_frac to keep the precomputation+A*query to take 50% of the time
+		//double astar_frac_time = (t.astar_prepare_reads.get_sec() + t.astar.get_sec()) / t.total.get_sec();
+		//double astar_frac_time = t.astar_prepare_reads.get_sec() / t.total.get_sec();
+		//retain_frac_ += 0.3*retain_frac_*sign(0.5-astar_frac_time);    // update the number of seeds
+		//if (retain_frac_ > 1.0) retain_frac_ = 1.0;
+		//else if (retain_frac_ < 0.0) retain_frac_ = 0.0;
+
+		//LOG_DEBUG << "astar_frac_time: " << astar_frac_time << ", retain_frac_: " << retain_frac_;
+    //}
+	
+	// TODO: remove (not used)
+    // Assumes that seed_len >= D so the match is outside of the trie.
+    //void match_seed(const read_t *r, const seed_t s, const int start, const int i, const node_t v) {
+    //    if (i < start + args.seed_len) {
+    //        // Match exactly down the trie and then through the original graph.
+    //        for (auto it=G.begin_all_matching_edges(v, r->s[i]); it!=G.end_all_edges(); ++it) {
+    //            if (it->type == ORIG || it->type == JUMP)  // ORIG in the graph, JUMP in the trie
+    //                match_seed(r, s, start, i+1, it->to);
+    //        }
+    //    } else {
+	//		put_crumbs_backwards(s, v, i);
+
+	//		//if (args.skip_near_crumbs)
+	//		//	put_crumbs_backwards(s, v, i);   // DEBUG: first go back to the starting of the match
+	//		//else
+	//		//	add_crumbs_backwards_bfs(s, v, i, v);
+    //        ++read_cnt.seed_matches;  // debug info
+    //    }
+    //}
 };
 
 }
