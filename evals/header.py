@@ -24,22 +24,20 @@ def read_benchmarks_aggregation(benchmarks_file):
     #df['marker'] = df['m'].apply(readlen2marker)
     df['head_Mbp'] = df['head'] / 10**6
     tech = df['sequencing_technology'].iloc[0]
-    print(tech)
     if 'hifi-natural' == tech:
         head = df['head'].iloc[0] if df['head'].iloc[0] != 100000000 else 5e6 if df['graph'].iloc[0] == 'MHC1' else 1e6 
-        print(head)
         coverage = df['N'] * 5e6 / head
         df['bps'] = coverage * head / df['s']
     elif 'illumina' == tech:
         df['bps'] = df['N'] * df['m'] / df['s']
-        print(df.bps)
     elif 'hifi' == tech:
         coverage = df['N']
         df['bps'] = coverage * df['head'] / df['s']
     else:
         assert(false)
         
-    df['Kbps'] = df['bps'] * 1e-3
+    df['spkb'] = 1e3 / df['bps']
+    df['kbps'] = df['bps'] * 1e-3
     df['GB'] = df['max_rss'] * 1e-3
     
     df = df.sort_values(by='algo').reset_index(drop=True)
@@ -236,6 +234,7 @@ def col2name(col):
         'explored_per_bp': 'Explored states per bp',
         'error_rate': 'Error rate',
         'bps':     'Alignment rate [bp/sec]',
+        'spkb':    'Alignment time [sec/kbp]',
         #'performance': 'MBp/sec'
         }
     if col in d:
@@ -252,6 +251,16 @@ def col2unit(col):
         'm':       'bp',
         'max_rss': 'MB',
         'bps':     'bp/s',
+        }
+    if col in d:
+        return d[col]
+    print(col)
+    return col
+
+def col2var(col):
+    d = {
+        'head':    'N',
+        'm':       'm',
         }
     if col in d:
         return d[col]
