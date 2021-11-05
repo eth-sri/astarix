@@ -61,8 +61,8 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
 		throw "Exact not up to date.";
         astar = make_unique<AStarSeedsExact>(G, args.costs, args.astar_seeds.seed_len, -1);
     } else if (algo == "astar-seeds") {
-        //if (!args.fixed_trie_depth)
-        //    throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
+        if (!args.fixed_trie_depth)
+            throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
 
         astar = make_unique<AStarSeedsWithErrors>(G, args.costs, args.astar_seeds);
     } else if (algo == "dijkstra") { 
@@ -114,9 +114,6 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 				strand = '+';
 			}
 
-	//		if (start > (int)aligner->graph().orig_nodes)
-	//			start = -10000;
-
 			double pushed_rate = (double)aligner->stats.pushed.get() / L;
 			double popped_rate = (double)aligner->stats.popped.get() / L;
 			double repeat_rate = (double)aligner->stats.repeated_visits.get() / aligner->stats.pushed.get();
@@ -127,7 +124,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 			*popped_rate_max = max(*popped_rate_max, popped_rate);
 			*repeat_rate_max = max(*repeat_rate_max, repeat_rate);
 
-            int crumbs = 0; //aligner->astar->states_with_crumbs.get();
+            int crumbs = 0;  // aligner->astar->states_with_crumbs.get();
 
 			char line[100000];
 			line[0] = 0;
@@ -206,34 +203,6 @@ void print_tsv(map<string, string> dict, ostream &out) {
     }
     out << endl;
 }
-
-//void print_hist(Aligner aligner, string hist_file) {
-//    ofstream out(hist_file);
-//    auto &all_counters = aligner.all_stats_;
-//
-//    int max_size = 0;
-//    for (auto const &counters: all_counters) 
-//        max_size = max(max_size, (int)counters.second.pushed_hist.size());
-//
-//    out << "read";
-//    for (int i=0; i<max_size; i++)
-//        out << "\t" << i;
-//    out << "\n";
-//
-//    for (auto const &counters: all_counters) {
-//        out << counters.first;
-//        int i=0;
-//        for (auto const &x: counters.second.pushed_hist) {
-//            out << "\t" << x.get();
-//            ++i;
-//        }
-//        for (; i<max_size; i++)
-//            out << "\t" << 0;
-//        out << "\n";
-//    }
-//    out << endl;
-//    out.close();
-//}
 
 typedef map<string, string> dict_t;
 
@@ -318,7 +287,7 @@ int exec_astarix(int argc, char **argv) {
         info_log_file = output_dir + "/info.log";
         stats_file = output_dir + "/stats.log";
         hist_file = output_dir + "/hist.log";
-    //if (!output_dir.empty())
+		//if (!output_dir.empty())
         init_logger(info_log_file.c_str(), args.verbose);
     }
 
@@ -364,14 +333,6 @@ int exec_astarix(int argc, char **argv) {
     T.read_queries.stop();
     cout << "done in " << T.read_queries.t.get_sec() << "s." << endl << flush;
 
-// TODO: IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE 
-// TODO: IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE 
-// TODO: IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE 
-// TODO: IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE : IMPORTANT REMOVE 
-//	int TT=10000;
-//	for (size_t i=TT; i<R.size(); i++)
-//		R[i] = R[i%TT];
-
     auto_params(G, R, &args);
 
     cout << "Contructing trie... " << flush;
@@ -382,7 +343,7 @@ int exec_astarix(int argc, char **argv) {
 
     cout << "Initializing A* heuristic... " << flush;
     T.precompute.start();
-    unique_ptr<AStarHeuristic> astar = AStarHeuristicFactory(G, args);  // TODO: resolve races
+    unique_ptr<AStarHeuristic> astar = AStarHeuristicFactory(G, args);
     T.precompute.stop();
     cout << "done in " << T.precompute.t.get_sec() << "s." << endl << flush;
 

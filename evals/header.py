@@ -19,7 +19,7 @@ def read_benchmarks_aggregation(benchmarks_file):
     df = pd.read_csv(benchmarks_file, sep='\t', index_col=False)
     df = df.replace(['astarix-seeds-illumina'],'astarix-seeds')
     df = df.replace(['astarix-prefix-illumina'],'astarix-prefix')
-    df['algo'] = pd.Categorical(df['algo'], ["astarix-seeds-illumina", "astarix-seeds", "astarix-prefix-illumina", "astarix-prefix", "dijkstra", "vargas", "pasgal", "graphaligner"])
+    df['algo'] = pd.Categorical(df['algo'], ["astarix-seeds-illumina", "astarix-seeds", "astarix-prefix-illumina", "astarix-prefix", "dijkstra", "graphaligner", "vargas", "pasgal"])
     #df['c'] = df['algo'].apply(algo2color)
     #df['marker'] = df['m'].apply(readlen2marker)
     df['head_Mbp'] = df['head'] / 10**6
@@ -143,9 +143,9 @@ def algo2color_old(algo):
     
 def algo2marker(algo):
     d = {
-        'astarix-prefix': 'o',
-        'astar-prefix': 'o',
-        'astarix-prefix-illumina': 'o',
+        'astarix-prefix': 's',
+        'astar-prefix': 's',
+        'astarix-prefix-illumina': 's',
         'astarix-seeds': 'o',
         'astar-seeds': 'o',
         'astarix-seeds-illumina': 'o',
@@ -195,8 +195,8 @@ def algo2beautiful(algo):
     d = {
         #'astar': 'A*',
         'astarix': 'AStarix',
-        'astarix-seeds': 'Seeds heuristic',
-        'astar-seeds': 'Seeds heuristic',
+        'astarix-seeds': 'Seed heuristic',
+        'astar-seeds': 'Seed heuristic',
         'astarix-seeds-illumina': 'AStarix-seeds',
         'astarix-seeds-intervals': 'Seeds heuristic (+intervals)',
         'astar-seeds-intervals': 'Seeds heuristic (+intervals)',
@@ -221,21 +221,21 @@ def col2name(col):
     d = {
         'head':    'Reference size [bp]',
         'head_Mbp':'Reference size [Mbp]',
-        's':       'Runtime [sec]',
+        's':       'Runtime [s]',
         'N':       'Reads',
         'm':       'Read length [bp]',
         'max_rss': 'Memory',
         'score':   'Alignment cost',
         'explored_states':  'Explored states',
-        't(map)':  'Alignment time per read',  #  [sec/read]
-        't(map)_per_bp': 'Alignment time per bp [sec]',
-        'align_sec':  'Alignment time [sec]',
+        't(map)':  'Alignment time per read',  #  [s/read]
+        't(map)_per_bp': 'Alignment time per bp [s]',
+        'align_sec':  'Alignment time [s]',
         'cost':    'Alignment cost',
         'explored_per_bp': 'Explored states per bp',
         'error_rate': 'Error rate',
-        'bps':     'Alignment rate [bp/sec]',
-        'spkb':    'Alignment time [sec/kbp]',
-        #'performance': 'MBp/sec'
+        'bps':     'Alignment rate [bp/s]',
+        'spkb':    'Alignment time [s/kbp]',
+        #'performance': 'MBp/s'
         }
     if col in d:
         return d[col]

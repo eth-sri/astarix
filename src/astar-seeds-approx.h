@@ -209,7 +209,8 @@ class AStarSeedsWithErrors: public AStarHeuristic {
 																		assert(min_pos.contains(v));
 																		assert(max_pos.contains(v));
 			add_crumb_to_node(s, match_v, v);
-			if (!args.skip_near_crumbs || min_pos[v] <= G.get_trie_depth() + max_indels_)   		// Trie crumbs only around the beginning.
+			if (!args.skip_near_crumbs || min_pos[v] <= G.get_trie_depth() + max_indels_)   		// TODO: remove get_trie_depth() in order to use the trie compression optimization correctly;  Trie crumbs only around the beginning.
+			//if (!args.skip_near_crumbs || min_pos[v] < max_indels_)   		// TODO: remove get_trie_depth() in order to use the trie compression optimization correctly;  Trie crumbs only around the beginning.
 				update_crumbs_up_the_trie(s, match_v, v);
 			for (auto it=G.begin_orig_rev_edges(v); it!=G.end_orig_rev_edges(); ++it) {
 				node_t u = it->to;
