@@ -7,8 +7,8 @@ std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max
 
 	assert(max_best_alignments >= 1);
 
-    std::vector<state_t> final_states;    // the best final state; computed in map()
-    queue_t Q;              // edge_t(i, u) in Q <=> read[1..i] has been matched with a path ending at u; the prev_state is not used
+    std::vector<state_t> final_states;  // the best final state; computed in map()
+    queue_t Q;              			// edge_t(i, u) in Q <=> read[1..i] has been matched with a path ending at u; the prev_state is not used
 
     assert(G.has_supersource());
 
@@ -23,33 +23,28 @@ std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max
         set_prev_edge(pe, i, v, edge_t());      // for edge_path reconstruction
     }
 
-    //cost_t prev_cost = 0.0;
     for (int steps=0; !Q.empty(); steps++) {
         LOG_DEBUG << r.comment <<  ": step " << steps << " with best curr sort-cost of " << (double)Q.top().first << ", state=" << Q.top().second;
         
-        //prev_cost = Q.top().second.cost;
         auto [curr_score, curr_st] = pop(Q);
 
-        //LOG_INFO << "node in tree: " << G.node_in_trie(curr_st.v);
         if (G.node_in_trie(curr_st.v)) stats.popped_trie.inc();
         else stats.popped_ref.inc();
 
-        // state (curr_st.i, curr_st.v) denotes that the first curr_st.i-1 characters of the read were already aligned before coming to curr_st.v. Next to align is curr_st.i
+        // State <curr_st.i, curr_st.v> denotes that the first curr_st.i-1 characters of the read were already aligned before coming to curr_st.v. Next to align is curr_st.i
 
-//#ifndef NDEBUG
-        // this check is not needed if the heuristic is consistent
-        if (visited(vis, curr_st.i, curr_st.v)) {  // not correct if a new seed is used
+        if (visited(vis, curr_st.i, curr_st.v)) {
+			// Never gets here if the heuristic is consistent.
             stats.repeated_visits.inc();
             continue;
         }
         //visited(vis, curr_st.i, curr_st.v) = true;
-//#endif
 
-//        if (curr_score > params.max_align_cost) {  // too high cost
-//            stats.align_status.ambiguous.inc();
-//            stats.align_status.cost.set( cost_t(0) );
-//            break;
-//        }
+        if (curr_score > params.max_align_cost) {  // Drop if the cost gets too high.
+            stats.align_status.ambiguous.inc();
+            stats.align_status.cost.set( cost_t(0) );
+            break;
+        }
 
         assert(curr_st.i <= r.len);
         if (!final_states.empty() && !EQ(final_states.front().cost, curr_st.cost))
@@ -57,7 +52,6 @@ std::vector<state_t> Aligner::readmap(const read_t &r, std::string algo, int max
         if (curr_st.i == r.len) {
             state_t final_state = get_const_path(p, curr_st.i, curr_st.v);
             LOG_DEBUG << "Target reached at state <" << curr_st.v << ", " << curr_st.i << "> with cost " << final_state.cost;
-            //assert(EQ(final_state.cost, curr_st.cost));
             final_states.push_back(final_state);
             stats.align_status.cost.set( final_state.cost );
             if ((int)final_states.size() >= max_best_alignments)
@@ -95,7 +89,7 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
     if (e.label != EPS && e.label != r.s[curr.i])
         return;
     
-    pos_t i_next = (e.label != EPS) ? curr.i+1 : curr.i;      // maybe move one position in the read
+    pos_t i_next = (e.label != EPS) ? curr.i+1 : curr.i;      // Move zero or one positions in the read.
     cost_t g = get_const_path(p, curr.i, curr.v).cost + edge_cost;
 
     assert(get_const_path(p, curr.i, curr.v).cost < INF);
@@ -106,10 +100,11 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
     if (get_path(p, i_next, e.to).optimize(next)) {
         set_prev_edge(pe, i_next, e.to, e);
 
-        //stats.t.astar.start();
+        stats.t.astar.start();
         cost_t h = astar->h(next);
+        stats.t.astar.stop();
+
         cost_t f = g + h;
-        //stats.t.astar.stop();
 
         LOG_DEBUG << "From (" << curr.i << ", " << curr.v << ") "
             << "through edge (" << e.label << ", " << edgeType2str(e.type) << ") "
@@ -120,7 +115,7 @@ void Aligner::try_edge(const read_t &r, const state_t &curr, path_t &p, prev_edg
 
 // Greedy fast-forward exact matching
 state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, const read_t &r) {
-//    stats.t.ff.start();
+    stats.t.ff.start();
 
     edge_t e; 
     while (G.numOutOrigEdges(curr.v, &e) == 1 && curr.i < r.len-1 && e.label == r.s[curr.i]) {
@@ -129,7 +124,7 @@ state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, cons
         if (get_path(p, next.i, next.v).optimize(next)) {
             set_prev_edge(pe, next.i, next.v, e);
         } else {
-//            stats.t.ff.stop();
+            stats.t.ff.stop();
             return curr;
         }
 
@@ -137,7 +132,7 @@ state_t Aligner::proceed_identity(path_t &p, prev_edge_t &pe, state_t curr, cons
         stats.explored_states.inc();
     }
 
-//    stats.t.ff.stop();
+    stats.t.ff.stop();
     return curr;
 }
 

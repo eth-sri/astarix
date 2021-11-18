@@ -548,18 +548,16 @@ int exec_astarix(int argc, char **argv) {
                                             << size_sum(R) / 1000.0 / align_cpu_time << " Kbp/s"    << endl; 
         out << "     |          Preprocessing: " << 100.0 * global_stats.t.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
         out << "     |               A* query: " << 100.0 * global_stats.t.astar.get_sec() / align_cpu_time << "%"   << endl;
-        out << "     |                  queue: " << 100.0 * global_stats.t.queue.get_sec() / align_cpu_time << "%" << endl;
-        out << "     |                  dicts: " << 100.0 * global_stats.t.dicts.get_sec() / align_cpu_time << "%" << endl;
+//        out << "     |                  queue: " << 100.0 * global_stats.t.queue.get_sec() / align_cpu_time << "%" << endl;
+//        out << "     |                  dicts: " << 100.0 * global_stats.t.dicts.get_sec() / align_cpu_time << "%" << endl;
         out << "     |           greedy_match: " << 100.0 * global_stats.t.ff.get_sec() / align_cpu_time << "%" << endl;
         out << "     |                  other: " << 100.0 - 100.0 * (global_stats.t.astar_prepare_reads.get_sec()
                                                                 + global_stats.t.astar.get_sec()
-                                                                + global_stats.t.queue.get_sec()
-                                                                + global_stats.t.dicts.get_sec()
+//                                                                + global_stats.t.queue.get_sec()
+//                                                                + global_stats.t.dicts.get_sec()
                                                                 + global_stats.t.ff.get_sec()) / align_cpu_time << "%" << endl;
         out << " DONE" << endl;
         out << endl;
-
-//        assert( global_stats.align_status.total() >= (int)R.size() );
     }
 
     extract_args_to_dict(args, &stats);

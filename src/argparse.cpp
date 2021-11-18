@@ -14,16 +14,8 @@ struct argp_option options[] = {
     { "prefix_cost_cap", 'c', "A*_COST_CAP",   0,  "The maximum prefix cost for the A* heuristic" },
     { "prefix_equivalence_classes",
                         'e', "A*_EQ_CLASSES", 0, "Whether to partition all nodes to equivalence classes in order not to reuse the heuristic" },
-//    { "astar_lazy",       'L', "A*_LAZY",       0,  "Compute A* costs lazily during mapping" },
     { "seeds_len",  					2001, "A*_SEED_LEN", 0,  "The length of the A* seeds." },
-    { "seeds_max_errors",  				2002, "A*_SEEDS_MAX_ERRORS", 0,  "The maximum number of errors to a seed that a match can have" },
-    //{ "seeds_max_indels",  			2003, "A*_SEEDS_MAX_INDELS", 0,  "The maximum number of indels. Any read with higher score with be reported as unaligned" },
-    { "seeds_backwards_algo",  			2004, "{dfs_for_linear, bfs, complex, topsort}", 0,  "Backwards algo for each seed match" },
-    { "seeds_interval_intersection",	2005, "{0,1}", 0,  "Counting only crumbs with intersecting intervals" },
-    { "seeds_linear_reference",  		2006, "{0,1}", 0,  "" },
-    { "seeds_match_pos_optimization",	2007, "{0,1}", 0,  "" },
     { "seeds_skip_near_crumbs",  		2008, "{0,1}", 0,  "" },
-    { "seeds_retain_frac",      		2009, "[0;1]", 0,  "Fraction of the seeds to retain" },
     { "match",          'M', "MATCH_COST",   0,  "Match penalty [0]" },
     { "subst",          'S', "SUBST_COST",   0,  "Substitution penalty [1]" },
     { "gap",            'G', "GAP_COST",     0,  "Gap (Insertion or Deletion) penalty [5]" },
@@ -68,23 +60,12 @@ arguments read_args(int argc, char **argv) {
     args.AStarNodeEqivClasses  = true;
 
     args.astar_seeds.seed_len              	= -1;
-	args.astar_seeds.linear_reference		= false;
-	args.astar_seeds.match_pos_optimization	= true;
 	args.astar_seeds.skip_near_crumbs		= true;
-	args.astar_seeds.seeds_retain_frac		= 1.0;
-
-    //args.astar_seeds.max_indels            = -1;
-    args.astar_seeds.max_seed_errors       = 0;
-    args.astar_seeds.backwards_algo        = astarix::AStarSeedsWithErrors::Args::backwards_algo_t::DFS_FOR_LINEAR;
-	args.astar_seeds.interval_intersection = false; //true;
 
     args.verbose               = 0;
     args.command               = (char *)"align-optimal";
     
-    // Unsound optimizations turned OFF by default.
-    // None.
-
-
+	
     /// ---- end of default values --------
 
     argp_parse(&argp, argc, argv, 0, 0, &args);
@@ -152,36 +133,8 @@ error_t parse_opt (int key, char *arg, struct argp_state *state) {
             if (!(std::stoi(arg) >= 5)) throw "AStarSeedLen should be at least 5.";
             arguments->astar_seeds.seed_len = std::stod(arg);
             break;
-        case 2002:
-            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "MaxSeedErrors only for astar-seeds.";
-            if (!(std::stoi(arg) >= 0)) throw "MaxSeedErrors should be non-negative.";
-            arguments->astar_seeds.max_seed_errors = std::stod(arg);
-            break;
-        //case 2003:
-        //    if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "MaxIndels only for astar-seeds.";
-        //    if (!(std::stoi(arg) >= 0)) throw "MaxIndels should be non-negative.";
-        //    arguments->astar_seeds.max_indels = std::stod(arg);
-        //    break;
-        case 2004:
-            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "SeedsWithErrors only for astar-seeds.";
-            //arguments->astar_seeds.backwards_algo = astarix::AStarSeedsWithErrors::Args::name2backwards_algo(arg);
-            break;
-        case 2005:
-            if (std::strcmp(arguments->algorithm, "astar-seeds") != 0) throw "IntervalIntersection only for astar-seeds.";
-            if (!(std::stoi(arg) >= 0 && std::stoi(arg) <= 1)) throw "IntervalIntersection should be 0 or 1.";
-            arguments->astar_seeds.interval_intersection = std::stod(arg);
-            break;
-        case 2006:
-            arguments->astar_seeds.linear_reference = (bool)std::stod(arg);
-            break;
-        case 2007:
-            arguments->astar_seeds.match_pos_optimization = (bool)std::stod(arg);
-            break;
         case 2008:
             arguments->astar_seeds.skip_near_crumbs = (bool)std::stod(arg);
-            break;
-        case 2009:
-            arguments->astar_seeds.seeds_retain_frac = std::stod(arg);
             break;
         case 'o':
             arguments->output_dir = arg;

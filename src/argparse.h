@@ -21,7 +21,7 @@ struct arguments {
     // Input
     char *graph_file;
     char *query_file;
-    char *output_dir;
+	std::string output_dir;
 
 	// Alignment parameters
     astarix::EditCosts costs;

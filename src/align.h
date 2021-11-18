@@ -180,53 +180,39 @@ class Aligner {
         stats.pushed.inc();
         stats.explored_states.inc();
         //stats.pushed_hist[st.i].inc();
-        //stats.t.queue.start();
-            Q.push(score_state_t(sort_cost, st));
-        //stats.t.queue.stop();
+		Q.push(score_state_t(sort_cost, st));
     }
 
     inline score_state_t pop(queue_t &Q) {
         stats.popped.inc();
-        //stats.t.queue.start();
         score_state_t el = Q.top();
-            Q.pop();
-        //stats.t.queue.stop();
+		Q.pop();
         return el;
     }
 
     inline const state_t& get_const_path(const path_t &p, pos_t i, node_t v) const {
-        //stats.t.dicts.start();
         auto it = p.find(std::make_pair(i, v));
-        //stats.t.dicts.stop();
         assert(it != p.end());
         return it->second;
     }
 
     inline state_t& get_path(path_t &p, pos_t i, node_t v) {
-        //stats.t.dicts.start();
         auto &ret = p[std::make_pair(i, v)];
-        //stats.t.dicts.stop();
         return ret;
     }
 
     inline const edge_t& get_prev_edge(const prev_edge_t &pe, pos_t i, node_t v) const {
-        //stats.t.dicts.start();
         auto it = pe.find(std::make_pair(i, v));
-        //stats.t.dicts.stop();
         assert(it != pe.end());
         return it->second;
     }
 
     inline void set_prev_edge(prev_edge_t &pe, pos_t i, node_t v, const edge_t &e) {
-        //stats.t.dicts.start();
         pe[std::make_pair(i, v)] = e;
-        //stats.t.dicts.stop();
     }
 
     inline bool& visited(visited_t &vis, pos_t i, node_t v) {
-        //stats.t.dicts.start();
         auto &ret = vis[std::make_pair(i, v)];
-        //stats.t.dicts.stop();
         return ret;
     }
 
