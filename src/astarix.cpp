@@ -24,8 +24,7 @@
 // A* heuristics
 #include "dijkstra.h"
 #include "astar-prefix.h"
-#include "astar-seeds-approx.h"
-#include "astar-seeds-exact.h"
+#include "astar-seeds.h"
 
 using namespace std;
 using namespace astarix;
@@ -53,13 +52,6 @@ unique_ptr<AStarHeuristic> AStarHeuristicFactory(const graph_t &G, const argumen
 
     if (algo == "astar-prefix") {
         astar = make_unique<AStarPrefix>(G, args.costs, args.AStarLengthCap, args.AStarCostCap, args.AStarNodeEqivClasses);
-    } else if (algo == "astar-seeds-exact") {
-        //if (!args.fixed_trie_depth)
-        //    throw invalid_argument("astar-seeds-exact algorithm can only be used with fixed_trie_depth flag on.");
-        //if (args.astar_seeds_max_errors != 0) 
-        //    throw invalid_argument("astar-seeds-exact needs astar_seeds_max_errors flag set to 0.");
-		throw "Exact not up to date.";
-        astar = make_unique<AStarSeedsExact>(G, args.costs, args.astar_seeds.seed_len, -1);
     } else if (algo == "astar-seeds") {
         if (!args.fixed_trie_depth)
             throw invalid_argument("astar-seeds algorithm can only be used with fixed_trie_depth flag on.");
@@ -136,7 +128,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 					"%6lf\t%4lf\t%8lf\t"
 					"%8lf\t%d\t%d\t"
                     "%d\n",
-					args.graph_file, (int)aligner->graph().nodes(), algo.c_str(),
+					args.graph_file.c_str(), (int)aligner->graph().nodes(), algo.c_str(),
 					precomp_str.c_str(), r.comment.c_str(), 0.0,
 					L, r.s.c_str(), spell(*best_path).c_str(),
 					int(aligner->stats.align_status.cost.get()), start, strand, pushed_rate,
@@ -149,7 +141,7 @@ void wrap_readmap(const read_t& r, string algo, string performance_file, Aligner
 	}
 }
 
-void read_queries(const char *query_file, vector<read_t> *R) {
+void read_queries(std::string query_file, vector<read_t> *R) {
     read_t r;
     ifstream query_in(query_file);
 
@@ -378,7 +370,7 @@ int exec_astarix(int argc, char **argv) {
         out << "  Reference+ReverseRef+Trie: " << G.nodes() << " nodes, " << G.edges() << " edges, "
                                                 << "density: " << (G.edges() / 2) / (G.nodes() / 2 * G.nodes() / 2) << endl;
         out << "                      Reads: " << R.size() << " x " << size_sum(R)/R.size() << "bp, "
-                "coverage: " << 1.0 * size_sum(R) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl; // the graph also includes reverse edges
+                "coverage: " << 1.0 * size_sum(R) / ((G.edges() - G.trie_edges) / 2)<< "x" << endl;  // The graph also includes reverse edges.
         out << "            Avg phred value: " << 100.0*avg_error_rate(R) << "%" << endl;
         out << endl;
 
@@ -399,12 +391,9 @@ int exec_astarix(int argc, char **argv) {
 
     std::mutex timer_m;
     atomic_int popped_trie_total(0), popped_ref_total(0);
-    Stats global_stats;  // TODO: take care of races
+    Stats global_stats;
 
-    assert(G.E.size() == G.E_rev.size());  // TODO: remove
-    assert(G.V.size() == G.V_rev.size());  // TODO: remove
-
-    started_aligning = true;  // used for interruptions
+    started_aligning = true;  // Used for interruptions.
 
     //cout << "Aligning..." << flush;
     bool calc_mapping_cost = false;
@@ -417,87 +406,65 @@ int exec_astarix(int argc, char **argv) {
 
             wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
                     &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, fout, &global_stats);
-            //global_stats.t += aligner.read_timers;
 
             popped_trie_total.fetch_add( aligner.stats.popped_trie.get() );  
             popped_ref_total.fetch_add( aligner.stats.popped_ref.get() );
-
-            //if (i % (R.size() / 10) == 0) {
-            //  cout << "A*-memoization at " << 100.0 * i / R.size() << "% of the reads aligned"
-            //  << ", entries: " << astar.entries() << ", "
-            //  << 100.0*b2gb(astar.table_mem_bytes_lower()) / MemoryMeasurer::get_mem_gb() << "%-"
-            //  << 100.0*b2gb(astar.table_mem_bytes_upper()) / MemoryMeasurer::get_mem_gb() << "%" << endl;
-            //}
         }
         fclose(fout);
+	} else {
+		// TODO: test multi-threading
+        throw "Only 1 thread is currently supported.";
 
-        //print_hist(aligner, hist_file);
-    } else {
-        // TODO: handle interruptions using `interrupted` variable
-        throw "Only 1 thread is currently supported.";  // TODO
-
-        moodycamel::ConcurrentQueue<string> profileQueue { 50, (size_t)args.threads, (size_t)args.threads };
-        std::vector<thread> threads(args.threads);
-        std::atomic<bool> allThreadsDone { false };
-
-        int bucket_sz = R.size() / args.threads;
-        for (int t = 0; t < args.threads; ++t) {
-            threads[t] = thread([&, t]() {
-                int from = t*bucket_sz;
-                int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
-                unique_ptr<AStarHeuristic> astar_local = AStarHeuristicFactory(G, args);
-                Aligner aligner(G, align_params, astar_local.get());
-                LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
-                for (int i=from; i<to; i++) {
-                    wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
-                            &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, NULL, &global_stats);
-                    //profileQueue.enqueue(string(line));
-                    //{
-                    //    // TODO: merge the astar_local to astar stats
-                    //    timer_m.lock();
-            
-                    //    timer_m.unlock();
-                    //    if (t == 0) {
-                    //        popped_trie_total.fetch_add( aligner.stats.popped_trie.get() );  
-                    //        popped_ref_total.fetch_add( aligner.stats.popped_ref.get() );
-                    //    }
-                    //}
-                }
-            });
-        }
-
-        FILE *fout = fopen(performance_file.c_str(), "a");
-
-        thread profileWriter([&]() {
-            string line;
-            while (true) {
-                int elems = profileQueue.try_dequeue(line);
-                if (!elems) {
-                    if (allThreadsDone)
-                        break;
-                    else
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                } else {
-                    fprintf(fout, "%s", line.c_str());
-                }
-            }
-        });
-
-        for (int t = 0; t != args.threads; ++t) {
-            threads[t].join();
-        }
-
-        allThreadsDone = true;
-
-        profileWriter.join();
-        fclose(fout);
+//        moodycamel::ConcurrentQueue<string> profileQueue { 50, (size_t)args.threads, (size_t)args.threads };
+//        std::vector<thread> threads(args.threads);
+//        std::atomic<bool> allThreadsDone { false };
+//
+//        int bucket_sz = R.size() / args.threads;
+//        for (int t = 0; t < args.threads; ++t) {
+//            threads[t] = thread([&, t]() {
+//                int from = t*bucket_sz;
+//                int to = (t < args.threads-1) ? (t+1)*bucket_sz : R.size();
+//                unique_ptr<AStarHeuristic> astar_local = AStarHeuristicFactory(G, args);
+//                Aligner aligner(G, align_params, astar_local.get());
+//                LOG_INFO << "thread " << t << " for reads [" << from << ", " << to << ")";
+//                for (int i=from; i<to; i++) {
+//                    wrap_readmap(R[i], algo, performance_file, &aligner, calc_mapping_cost,
+//                            &R[i].edge_path, &pushed_rate_sum, &popped_rate_sum, &repeat_rate_sum, &pushed_rate_max, &popped_rate_max, &repeat_rate_max, NULL, &global_stats);
+//                }
+//            });
+//        }
+//
+//        FILE *fout = fopen(performance_file.c_str(), "a");
+//
+//        thread profileWriter([&]() {
+//            string line;
+//            while (true) {
+//                int elems = profileQueue.try_dequeue(line);
+//                if (!elems) {
+//                    if (allThreadsDone)
+//                        break;
+//                    else
+//                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//                } else {
+//                    fprintf(fout, "%s", line.c_str());
+//                }
+//            }
+//        });
+//
+//        for (int t = 0; t != args.threads; ++t) {
+//            threads[t].join();
+//        }
+//
+//        allThreadsDone = true;
+//
+//        profileWriter.join();
+//        fclose(fout);
     }
     T.align.stop();
     T.total.stop();
     auto end_align_wt = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> align_wt = end_align_wt - start_align_wt;
     std::chrono::duration<double> total_wt = end_align_wt - start_wt;
-    //cout << "done in " << T.align.t.get_sec() << "s." << endl << flush;
 
     {
         double total_mem = MemoryMeasurer::get_mem_gb();
@@ -548,14 +515,8 @@ int exec_astarix(int argc, char **argv) {
                                             << size_sum(R) / 1000.0 / align_cpu_time << " Kbp/s"    << endl; 
         out << "     |          Preprocessing: " << 100.0 * global_stats.t.astar_prepare_reads.get_sec() / align_cpu_time << "%" << endl;
         out << "     |               A* query: " << 100.0 * global_stats.t.astar.get_sec() / align_cpu_time << "%"   << endl;
-//        out << "     |                  queue: " << 100.0 * global_stats.t.queue.get_sec() / align_cpu_time << "%" << endl;
-//        out << "     |                  dicts: " << 100.0 * global_stats.t.dicts.get_sec() / align_cpu_time << "%" << endl;
         out << "     |           greedy_match: " << 100.0 * global_stats.t.ff.get_sec() / align_cpu_time << "%" << endl;
-        out << "     |                  other: " << 100.0 - 100.0 * (global_stats.t.astar_prepare_reads.get_sec()
-                                                                + global_stats.t.astar.get_sec()
-//                                                                + global_stats.t.queue.get_sec()
-//                                                                + global_stats.t.dicts.get_sec()
-                                                                + global_stats.t.ff.get_sec()) / align_cpu_time << "%" << endl;
+        out << "     |                  other: " << 100.0 - 100.0 * (global_stats.t.astar_prepare_reads.get_sec() + global_stats.t.astar.get_sec() + global_stats.t.ff.get_sec()) / align_cpu_time << "%" << endl;
         out << " DONE" << endl;
         out << endl;
     }

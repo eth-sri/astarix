@@ -39,8 +39,8 @@ arguments read_args(int argc, char **argv) {
     struct arguments args;
 
     // IO
-    args.graph_file            = NULL;
-    args.query_file            = NULL;
+    args.graph_file            = "";
+    args.query_file            = "";
     args.output_dir            = "";
 
     // Alignment parameters.
@@ -70,8 +70,8 @@ arguments read_args(int argc, char **argv) {
 
     argp_parse(&argp, argc, argv, 0, 0, &args);
 
-    if (!args.graph_file) throw "Graph file not specified (-g).";
-    if (!args.query_file) throw "Query file not specified (-q).";
+    if (args.graph_file == "") throw "Graph file not specified (-g).";
+    if (args.query_file == "") throw "Query file not specified (-q).";
 
     if (!(args.costs.match   >= 0.0)) throw "EditCosts should be non-negative.";
     if (!(args.costs.subst   >= 0.0)) throw "EditCosts should be non-negative.";

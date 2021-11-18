@@ -6,7 +6,7 @@
 #include <map>
 #include <string>
 
-#include "astar-seeds-approx.h"
+#include "astar-seeds.h"
 #include "utils.h"
 
 // based on http://www.gnu.org/software/libc/manual/html_node/Argp-Example-3.html#Argp-Example-3
@@ -19,8 +19,8 @@ extern struct argp_option options[];
 /* Used by main to communicate with parse_opt. */
 struct arguments {
     // Input
-    char *graph_file;
-    char *query_file;
+	std::string graph_file;
+	std::string query_file;
 	std::string output_dir;
 
 	// Alignment parameters
