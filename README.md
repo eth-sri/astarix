@@ -20,8 +20,7 @@ In order to compile `AStarix`, you will need to first install:
   argument parsing library
 * (optional) [pandas](https://pandas.pydata.org/) &ndash; dataframe library used for testing and evalutaions
 
-We show how to install them in the [Dockerfile](./Dockerfile).
-Other third-party libraries are located in the `/ext` directory and their own licenses apply.
+T hird-party libraries are located in the `/ext` directory and their own licenses apply.
 
 ### Compile and test
 
@@ -35,72 +34,123 @@ make test
 This is an example run of `AStarix` on a toy data: aligning 100 simulated Illumina reads to a linear graph from the first 10000bp of Escherichia coli. You can expect a similar summary printed to standard output:
 
 ```
-$ bin/astarix align-optimal -g data/ecoli_head10000_linear.gfa -q data/illumina.fq -o tmp/astar-default
-Reading queries...
-Precomputation...
-Aligning...
+$ make test
+release/astarix align-optimal -a astar-seeds -t 1 -v 0 -g data/ecoli_head10000_linear/graph.gfa -q data/ecoli_head10000_linear/illumina.fq -o tmp/ecoli_head10000_linear/astar-seeds --fixed_trie_depth 1 --seeds_len 25
+----
+Assert() checks:       OFF
+        verbose:        0
+----
+Loading reference graph... Added reverse complement... done in 0.001078s.
+Loading queries... done in 0.000216s.
+Contructing trie... done in 0.007017s.
+Initializing A* heuristic... done in 1.6e-05s.
 
-       == Input ==
-              Queries/reads: 100 read in 0.00s
-Graph nodes, edges, density: 50146, 69774, 0
-           Reading run time: 0.00s
-       == General parameters and optimizations == 
-             Alignment algo: astar-prefix
-                 Edit costs: 0.00, 1.00, 5.00, 5.00 (match, subst, ins, del)
-                    Threads: 1
+ == General parameters and optimizations ==
+             Alignment algo: astar-seeds
+                 Edit costs: 0, 1, 5, 5 (match, subst, ins, del)
               Greedy match?: true
-       == Aligning statistics ==
-                      Reads: 100 x 100bp
-          Aligning run time: 0.10s (A*: 30.10%, que: 6.03%, dicts: 20.95%, greedy_match: 17.34%)
-                Performance: 1049.68 reads/s, 102.51 Kbp/s
-   Explored rate (avg, max): 0.89, 2.41    [states/bp] (states normalized by query length)
-     Expand rate (avg, max): 0.13, 0.31
-       == A* parameters ==
-                   Cost cap: 5.00
-   Upcoming seq. length cap: 5
-      Nodes equiv. classes?: true
-  Compressible equiv. nodes: 37049 (73.88%)
-    Precomputation run time: 0.03s
-                     Memory: 0.11 GB (graph: 0.91%, A*-memoization: <0.01% for 8444 entries)
-       Memoization hit rate: 3.50%
+                    Threads: 1
+
+ == A* parameters ==
+          seed length: 25 bp
+     skip near crumbs: 1
+
+ == Data ==
+         Original reference: 9826 nodes, 9824 edges
+                       Trie: 5186 nodes, 24822 edges, depth=7
+  Reference+ReverseRef+Trie: 24838 nodes, 44470 edges, density: 0
+
+                  Trie: 5186 nodes, 24822 edges, depth=7
+  Reference+ReverseRef+Trie: 24838 nodes, 44470 edges, density: 0
+                      Reads: 100 x 99bp, coverage: 1.00774x
+            Avg phred value: 0.13640%
+
+ == Aligning statistics ==
+        Explored rate (avg): 1.70707 states/read_bp
+         States with crumbs: 0.02992%
+            Explored states: 0.01737%
+             Skipped states: 99.95271%
+     Pushed rate (avg, max): 0.77130, 0.01400    [states/bp] (states normalized by query length)
+     Popped rate (avg, max): 0.09310, 0.00140
+             Average popped: 7.16000 from trie (76.90655%) vs 2.15000 from ref (per read)
+Total cost of aligned reads: 15, 0.15000 per read, 0.15152% per letter
+                 Alignments: 100 unique (100.00000%), 0 ambiguous (0.00000%) and 0 overcost (0.00000%)
+
+ == Heuristic stats (astar-seeds) ==
+        For all reads:
+                            Seeds: 400 (4.00000 per read)
+                     Seed matches: 385 (3.85000 per read, 0.96250 per seed)
+               States with crumbs: 29105 [+0.00000% repeated], (291.05000 per read)
+                  Heuristic (avg): 0.10000 of potential 4.00000
+
+ == Performance ==
+    Memory:                    measured | estimated
+                   total: 0.00510gb, 100% | -
+               reference: 0.00267gb, 52.39521% | 5.74505%
+                   reads: 0.00000gb, 0.00000% | 0.18091%
+                    trie: 0.00100gb, 19.53593% | 5.82224%
+     equiv. classes opt.: 0.00000gb, 0.00000%
+          A*-memoization: 0.00000gb, 0.00000
+
+   Total wall runtime:    0.04086s
+       reference loading: 0.00108s
+         queries loading: 0.00022s
+          construct trie: 0.00702s
+              precompute: 0.00002s
+       align (wall time): 0.03040s = 3289.04470 reads/s = 325.61543 Kbp/s
+
+    Total align cpu time: 0.02998s = 3335.11206 reads/s = 330.17609 Kbp/s
+     |          Preprocessing: 31.61686%
+     |               A* query: 18.47652%
+     |           greedy_match: 11.42609%
+     |                  other: 38.48052%
+ DONE
 ```
 
-The directory `output_dir/` will contain a file with execution logs and a file with alignment statistics.
-Short aggregated statistics are print to standard output (to redirect, you can add `>output_dir/summary.txt`).
+The directory `tmp/ecoli_head10000_linear/astar-seeds/` will contain a file with execution logs and a file with alignment statistics.
+Short aggregated statistics are print to standard output (to redirect, you can add `>summary.txt`).
 
 
 # Usage
 
 `AStarix` currently works only in exact/optimal mode (specified using `align-optimal`). Currently supported formats are `.gfa` without overlapping nodes (for a graph reference) and `.fa`/`.fasta` (for a linear reference). The queries should be in `.fq`/`.fastq` format (the phred values are ignored).
-Tested on Ubuntu 18.04.
+Tested on Ubuntu 20.04.
 
 ```
-$ ./bin/astarix --help
+$ astarix --help
+----  
 Usage: astarix [OPTION...] align-optimal -g GRAPH.gfa -q READS.fq -o OUT_DIR/
 Optimal sequence-to-graph aligner based on A* shortest path.
 
-  -a, --algorithm={dijkstra, astar-prefix}
+  -a, --algorithm={dijkstra, astar-prefix, astar-seeds}
                              Shortest path algorithm
-  -c, --astar_cost_cap=A*_COST_CAP
+  -c, --prefix_cost_cap=A*_COST_CAP
                              The maximum prefix cost for the A* heuristic
-  -d, --astar_len_cap=A*_PREFIX_CAP
+  -d, --prefix_len_cap=A*_PREFIX_CAP
                              The upcoming sequence length cap for the A*
                              heuristic
   -D, --tree_depth=TREE_DEPTH   Suffix tree depth
-  -e, --astar_equivalence_classes=A*_EQ_CLASSES
+  -e, --prefix_equivalence_classes=A*_EQ_CLASSES
                              Whether to partition all nodes to equivalence
                              classes in order not to reuse the heuristic
+      --fixed_trie_depth=FIXED_TRIE_DEPTH
+                             Some leafs depth can be less than tree_depth
+                             (variable=0, fixed=1)
   -f, --greedy_match=GREEDY_MATCH
                              Proceed greedily forward if there is a unique
                              matching outgoing edge
   -g, --graph=GRAPH          Input graph (.gfa)
-  -G, --gap=GAP_COST         Gap (Insertion or Deletion) penalty
-  -M, --match=MATCH_COST     Match penalty
+  -G, --gap=GAP_COST         Gap (Insertion or Deletion) penalty [5]
+  -k, --k_best_alignments=TOP_K   Output at most k optimal alignments per read
+                             [1]
+  -M, --match=MATCH_COST     Match penalty [0]
   -o, --outdir=OUTDIR        Output directory
   -q, --query=QUERY          Input queries/reads (.fq, .fastq)
-  -S, --subst=SUBST_COST     Substitution penalty
-  -t, --threads=THREADS      Number of threads (default=1)
-  -v, --verbose=THREADS      Verbosity (default=silent=0, info=1, debug=2)
+      --seeds_len=A*_SEED_LEN   The length of the A* seeds.
+      --seeds_skip_near_crumbs={0,1}
+  -S, --subst=SUBST_COST     Substitution penalty [1]
+  -t, --threads=THREADS      Number of threads [1]
+  -v, --verbose=THREADS      Verbosity (silent=0, info=1, debug=2), [0]
   -?, --help                 Give this help list
       --usage                Give a short usage message
   -V, --version              Print program version
