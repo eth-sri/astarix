@@ -5,25 +5,13 @@
 
 ![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)
 
-**AStarix** is a sequence-to-graph semi-global aligner based on A* shortest path algorithm.
+**AStarix** is a sequence-to-graph aligner based on A\* shortest path algorithm.
 It supports general graphs and finds alignments that are optimal according to edit-distance with non-negative weights.
+Currently, it uses the Seed heuristic.
 
 A [preprint](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v1) using AStarix has been accepted to [RECOMB2020](https://www.recomb2020.org/). Evaluation scripts are available in the [RECOMB2020_experiments branch](https://github.com/eth-sri/astarix/tree/RECOMB2020_experiments/evals).
 
-## Using Docker
-
-You can try out AStarix using [Docker](https://www.docker.com).
-
-```bash
-# run docker daemon if not running already
-sudo dockerd
-# set up prerequisites, clone and build the current repository and test it
-sudo docker build -t astarix .
-# interactively run a new container for further work
-sudo docker run -it --rm --name astarix-container astarix
-```
-
-## Manual install
+## Installation
 
 Alternatively to using Docker, you can install `AStarix` directly on your system.
 
