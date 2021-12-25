@@ -18,7 +18,7 @@ Ivanov, Bichsel, Mustafa, Kahles, Rätsch, Vechev (RECOMB 2020)
 [AStarix: Fast and Optimal Sequence-to-Graph Alignment](https://www.biorxiv.org/content/10.1101/2020.01.22.915496v2) (2020) -- Introduces `AStarix` tool, the trie index which allows scaling to bigger references, and _Prefix heuristic_ which outperforms Dijkstra. Evaluations [here](https://github.com/eth-sri/astarix/tree/RECOMB2020_experiments/evals).
 
 <a id="2">[2]</a> 
-Ivanov, Bichsel, Vechev (2021, preprint) 
+Ivanov, Bichsel, Vechev (RECOMB 2022) 
 [Fast and Optimal Sequence-to-Graph Alignment Guided by Seeds](https://www.biorxiv.org/content/10.1101/2021.11.05.467453v1) -- Introduces _Seed heuristic_ which outperforms other aproaches on Illumina reads and allows to scale to long HiFi reads.
 
 ## Installation
